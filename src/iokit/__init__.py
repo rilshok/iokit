@@ -7,9 +7,10 @@ __all__ = [
     "State",
     "load_file",
     "save_file",
+    "save_temp",
 ]
 __version__ = "0.0.1"
 
 from .extensions import Gzip, Json, Jsonl, Tar, Txt
 from .state import State
-from .storage import load_file, save_file
+from .storage import load_file, save_file, save_temp

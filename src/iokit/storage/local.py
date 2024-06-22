@@ -1,8 +1,12 @@
 __all__ = [
     "load_file",
     "save_file",
+    "save_temp",
 ]
+import tempfile
+from contextlib import contextmanager
 from pathlib import Path
+from typing import Generator
 
 from iokit.state import State
 from iokit.tools.time import fromtimestamp
@@ -34,3 +38,10 @@ def save_file(
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_bytes(state.data.getvalue())
     return path
+
+@contextmanager
+def save_temp(state: State) -> Generator[Path, None, None]:
+    with tempfile.TemporaryDirectory() as temp_dir:
+        path = Path(temp_dir) / str(state.name)
+        path.write_bytes(state.data.getvalue())
+        yield path.resolve()
