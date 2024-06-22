@@ -1,6 +1,13 @@
+__all__ = [
+    "State",
+    "filter_states",
+    "find_state",
+]
+
 from datetime import datetime
+from fnmatch import fnmatch
 from io import BytesIO
-from typing import Any
+from typing import Any, Generator, Iterable
 
 from humanize import naturalsize
 from typing_extensions import Self
@@ -128,3 +135,16 @@ class State:
         if not self.name.suffix:
             return self.data.getvalue()
         return self.cast().load()
+
+
+
+def filter_states(states: Iterable[State], pattern: str) -> Generator[State, None, None]:
+    for state in states:
+        if fnmatch(str(state.name), pattern):
+            yield state
+
+
+def find_state(states: Iterable[State], pattern: str) -> State:
+    for state in filter_states(states, pattern):
+        return state
+    raise FileNotFoundError(f"State not found: {pattern!r}")
