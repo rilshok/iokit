@@ -51,12 +51,33 @@ class StateName:
 
 
 class State:
+    suffix: str = ""
     suffixes: tuple[str, ...] = ("",)
 
     def __init__(self, data: Payload, stem: str | StateName = "", mtime: datetime | None = None):
         self._data = BytesIO(data) if isinstance(data, bytes) else data
-        self._name = StateName.make(stem, self.suffixes[0])
+        self._name = StateName.make(stem, self.suffix)
         self._mtime = mtime or now()
+
+    def __init_subclass__(
+        cls, suffix: str | None = None, suffixes: tuple[str, ...] | None = None
+    ) -> None:
+        if suffix is None and suffixes is not None:
+            if len(suffixes) == 0:
+                raise ValueError("State subclasses must define at least one suffix")
+            suffix = suffixes[0]
+        if suffix is not None and suffixes is None:
+            suffixes = (suffix,)
+
+        if suffix is not None and suffixes is not None:
+            if suffix not in suffixes:
+                suffixes = (suffix, *suffixes)
+
+        if suffix is None or suffixes is None:
+            raise ValueError("State subclasses must define a suffix or suffixes")
+
+        cls.suffix = suffix
+        cls.suffixes = suffixes
 
     @property
     def name(self) -> StateName:
