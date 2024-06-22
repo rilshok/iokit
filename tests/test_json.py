@@ -42,7 +42,6 @@ def test_json_different() -> None:
     assert loaded["int"] == 42
 
 
-
 def test_json_is_string() -> None:
     state = Json("hello", name="string")
     assert state.load() == "hello"
