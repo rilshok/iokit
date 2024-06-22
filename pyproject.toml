@@ -10,6 +10,7 @@ authors = [
 ]
 dependencies = [
     "humanize>=4.9.0",
+    "typing-extensions>=4.8.0",
     "pytz>=2024.1",
 ]
 
