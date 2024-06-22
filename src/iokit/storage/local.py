@@ -43,6 +43,4 @@ def save_file(
 @contextmanager
 def save_temp(state: State) -> Generator[Path, None, None]:
     with tempfile.TemporaryDirectory() as temp_dir:
-        path = Path(temp_dir) / str(state.name)
-        path.write_bytes(state.data.getvalue())
-        yield path.resolve()
+        yield save_file(state, root=temp_dir)
