@@ -20,7 +20,7 @@ jobs:
       with:
         python-version: ${{ matrix.python-version }}
     - name: Install dependencies
-      run: pip install .[dev]
+      run: pip install .[dev] pytest-md
     - name: Run pre-commit hooks
       uses: pre-commit/action@v3.0.1
     - name: Run pytest
