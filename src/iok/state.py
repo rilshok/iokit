@@ -52,3 +52,17 @@ class State:
     @property
     def name(self) -> StateName:
         return self._name
+
+    @name.setter
+    def name(self, value: str | StateName) -> None:
+        if isinstance(value, str):
+            value = StateName(value)
+        self._name = value
+
+    @property
+    def mtime(self) -> datetime:
+        return self._mtime
+
+    @mtime.setter
+    def mtime(self, value: datetime) -> None:
+        self._mtime = value
