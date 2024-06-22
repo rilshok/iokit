@@ -1,4 +1,4 @@
-from iokit import Tar, Txt, find_state, Gzip
+from iokit import Gzip, Tar, Txt, find_state
 
 
 def test_tar_state() -> None:

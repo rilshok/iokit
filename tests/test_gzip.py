@@ -1,12 +1,13 @@
-from iokit import Json, Gzip, load_file, save_temp
-
 import os
+
+from iokit import Gzip, Json, load_file, save_temp
 
 
 def random_utf8_string(length: int) -> str:
     random_bytes = os.urandom(length)
     string = random_bytes.decode("utf-8", errors="replace")
     return string
+
 
 def test_gzip_state() -> None:
     data = {"a": 1, "b": 2}
@@ -17,6 +18,7 @@ def test_gzip_state() -> None:
     assert state.name.suffixes == ("json", "gz")
     assert state.load().load() == data
     assert state.size > 0
+
 
 def test_gzip_compression() -> None:
     string = random_utf8_string(10_000)
@@ -31,6 +33,7 @@ def test_gzip_compression() -> None:
     assert compressed1.load().load() == string
     assert compressed3.load().load() == string
     assert compressed9.load().load() == string
+
 
 def test_gzip_save_load_file() -> None:
     data = {"a": 1, "b": 2}
