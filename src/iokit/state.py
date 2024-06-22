@@ -1,16 +1,20 @@
-from datetime import datetime
-from io import BytesIO
-from typing import Any
+__all__ = [
+    "State",
+    "filter_states",
+    "find_state",
+]
 
-import pytz
+from datetime import datetime
+from fnmatch import fnmatch
+from io import BytesIO
+from typing import Any, Generator, Iterable
+
 from humanize import naturalsize
 from typing_extensions import Self
 
+from iokit.tools.time import now
+
 Payload = BytesIO | bytes
-
-
-def now() -> datetime:
-    return datetime.now(pytz.utc)
 
 
 class StateName:
@@ -44,6 +48,14 @@ class StateName:
 
     def __repr__(self) -> str:
         return self._name
+
+    def __eq__(self, other: object) -> bool:
+        if isinstance(other, str):
+            return self._name == other
+        if isinstance(other, StateName):
+            return self._name == other._name
+        msg = f"Expected str or StateName, got {type(other).__name__}"
+        raise NotImplementedError(msg)
 
     @classmethod
     def make(cls, stem: "str | StateName", suffix: str) -> Self:
@@ -131,3 +143,15 @@ class State:
         if not self.name.suffix:
             return self.data.getvalue()
         return self.cast().load()
+
+
+def filter_states(states: Iterable[State], pattern: str) -> Generator[State, None, None]:
+    for state in states:
+        if fnmatch(str(state.name), pattern):
+            yield state
+
+
+def find_state(states: Iterable[State], pattern: str) -> State:
+    for state in filter_states(states, pattern):
+        return state
+    raise FileNotFoundError(f"State not found: {pattern!r}")

@@ -6,7 +6,7 @@ from iokit.state import State
 
 
 class Gzip(State, suffix="gz"):
-    def __init__(self, state: State, compression: int = 1, **kwargs: Any):
+    def __init__(self, state: State, *, compression: int = 1, **kwargs: Any):
         data = BytesIO()
         gzip_file = gzip.GzipFile(fileobj=data, mode="wb", compresslevel=compression, mtime=0)
         with gzip_file as gzip_buffer:
