@@ -20,10 +20,22 @@ jobs:
       with:
         python-version: ${{ matrix.python-version }}
     - name: Install dependencies
-      run: pip install .[dev] pytest-md
+      run: |
+        pip install --upgrade pip
+
+        pip install .[dev] pytest-md pytest-cov
     - name: Run pre-commit hooks
       uses: pre-commit/action@v3.0.1
-    - name: Run pytest
-      uses: pavelzw/pytest-action@v2
+    - name: Build coverage file
+      run: |
+        pytest --junitxml=pytest.xml --cov-report=term-missing:skip-covered --cov=app tests/ | tee pytest-coverage.txt
+    - name: Pytest coverage comment
+      uses: MishaKav/pytest-coverage-comment@main
       with:
-        emoji: false
+        pytest-coverage-path: ./pytest-coverage.txt
+        junitxml-path: ./pytest.xml
+
+    # - name: Run pytest
+    #   uses: pavelzw/pytest-action@v2
+    #   with:
+    #     emoji: false
