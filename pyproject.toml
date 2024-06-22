@@ -9,6 +9,7 @@ authors = [
     {name = "Vladislav A. Proskurov", email = "rilshok@pm.me"},
 ]
 dependencies = [
+    "humanize>=4.9.0",
     "pytz>=2024.1",
 ]
 

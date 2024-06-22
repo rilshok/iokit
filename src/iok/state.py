@@ -2,6 +2,7 @@ from datetime import datetime
 from io import BytesIO
 
 import pytz
+from humanize import naturalsize
 from typing_extensions import Self
 
 Payload = BytesIO | bytes
@@ -98,3 +99,11 @@ class State:
     @mtime.setter
     def mtime(self, value: datetime) -> None:
         self._mtime = value
+
+    @property
+    def size(self) -> int:
+        return self._data.getbuffer().nbytes
+
+    def __repr__(self) -> str:
+        size = naturalsize(self.size, gnu=True)
+        return f"{self.name} ({size})"
