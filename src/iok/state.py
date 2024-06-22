@@ -56,10 +56,10 @@ class State:
     _suffix: str = ""
     _suffixes: tuple[str, ...] = ("",)
 
-    def __init__(self, data: Payload, name: str | StateName = "", mtime: datetime | None = None):
+    def __init__(self, data: Payload, name: str | StateName = "", time: datetime | None = None):
         self._data = BytesIO(data) if isinstance(data, bytes) else data
         self._name = StateName.make(name, self._suffix)
-        self._mtime = mtime or now()
+        self._time = time or now()
 
     def __init_subclass__(
         cls,
@@ -94,12 +94,12 @@ class State:
         self._name = value
 
     @property
-    def mtime(self) -> datetime:
-        return self._mtime
+    def time(self) -> datetime:
+        return self._time
 
-    @mtime.setter
-    def mtime(self, value: datetime) -> None:
-        self._mtime = value
+    @time.setter
+    def time(self, value: datetime) -> None:
+        self._time = value
 
     @property
     def data(self) -> BytesIO:
@@ -124,7 +124,7 @@ class State:
         state = klass.__new__(klass)
         setattr(state, "_data", self.data)
         setattr(state, "_name", self.name)
-        setattr(state, "_mtime", self.mtime)
+        setattr(state, "_time", self.time)
         return state
 
     def load(self) -> Any:
