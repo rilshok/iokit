@@ -1,15 +1,9 @@
 import tarfile
-from datetime import datetime
 from io import BytesIO
 from typing import Any, Iterable
 
-from pytz import utc
-
 from iokit.state import State
-
-
-def _fromtimestamp(timestamp: float) -> datetime:
-    return datetime.fromtimestamp(timestamp, utc)
+from iokit.tools.time import fromtimestamp
 
 
 class Tar(State, suffix="tar"):
@@ -37,7 +31,7 @@ class Tar(State, suffix="tar"):
                 state = State(
                     data=member_buffer.read(),
                     name=member.name,
-                    time=_fromtimestamp(member.mtime),
+                    time=fromtimestamp(member.mtime),
                 )
                 states.append(state)
         return states

@@ -2,15 +2,12 @@ from datetime import datetime
 from io import BytesIO
 from typing import Any
 
-import pytz
 from humanize import naturalsize
 from typing_extensions import Self
 
+from iokit.tools.time import now
+
 Payload = BytesIO | bytes
-
-
-def now() -> datetime:
-    return datetime.now(pytz.utc)
 
 
 class StateName:
