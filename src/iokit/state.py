@@ -50,7 +50,7 @@ class StateName:
         return self._name
 
     def __eq__(self, other: object) -> bool:
-        if isinstance(other, str): # type: ignore
+        if isinstance(other, str):
             return self._name == other
         if isinstance(other, StateName):
             return self._name == other._name

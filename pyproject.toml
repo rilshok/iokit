@@ -23,6 +23,7 @@ dev = ["iokit[lint,test]"]
 lint = [
     "mypy",
     "ruff",
+    "types-pytz",
 ]
 test = [
     "pytest",
