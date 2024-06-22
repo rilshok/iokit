@@ -17,4 +17,4 @@ class Gzip(State, suffix="gz"):
         gzip_file = gzip.GzipFile(fileobj=self.data, mode="rb")
         with gzip_file as file:
             data = file.read()
-        return State(data=data, name=str(self.name).removesuffix(".gz"))
+        return State(data=data, name=str(self.name).removesuffix(".gz")).cast()
