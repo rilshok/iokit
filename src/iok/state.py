@@ -44,9 +44,9 @@ class StateName:
 
 
 class State:
-    def __init__(self, data: Payload, name: str = "", mtime: datetime | None = None):
+    def __init__(self, data: Payload, name: str | StateName = "", mtime: datetime | None = None):
         self._data = BytesIO(data) if isinstance(data, bytes) else data
-        self._name = StateName(name)
+        self._name = StateName(name) if isinstance(name, str) else name
         self._mtime = mtime or now()
 
     @property
