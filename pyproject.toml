@@ -1,5 +1,5 @@
 [project]
-name = "iok"
+name = "iokit"
 description = "Input Output Kit"
 readme = "README.md"
 requires-python = ">=3.10"
@@ -15,11 +15,11 @@ dependencies = [
 ]
 
 [tool.setuptools.dynamic]
-version = {attr = "iok.__version__"}
+version = {attr = "iokit.__version__"}
 
 [project.urls]
-Homepage = "https://github.com/rilshok/iok"
-Repository = "https://github.com/rilshok/iok"
+Homepage = "https://github.com/rilshok/iokit"
+Repository = "https://github.com/rilshok/iokit"
 
 [tool.mypy]
 strict = true
@@ -35,4 +35,4 @@ make_whitelist = true
 sort_by_size = true
 verbose = true
 min_confidence = 100
-paths = ["src/iok"]
+paths = ["src/iokit"]
