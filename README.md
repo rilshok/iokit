@@ -51,17 +51,17 @@ single.json (16B)
 ### GZip Compression
 
 ```python
-from iokit import Json, Gzip
+from iokit import Txt, Gzip
 
-data = {"a": 1, "b": 2}
-state = Gzip(Json(data, name="data"))
+data = "Hello, World! "* 1000
+state = Gzip(Txt(data, name="data"))
 print(state)
-print(state.load().load())
+print(len(state.load().load()))
 ```
 
 ```plain-text
-data.json.gz (34B)
-{'a': 1, 'b': 2}
+data.txt.gz (133B)
+14000
 ```
 
 ### Tar Archive
