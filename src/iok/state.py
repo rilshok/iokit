@@ -2,6 +2,7 @@ from datetime import datetime
 from io import BytesIO
 
 import pytz
+from typing_extensions import Self
 
 Payload = BytesIO | bytes
 
@@ -42,11 +43,19 @@ class StateName:
     def __repr__(self) -> str:
         return self._name
 
+    @classmethod
+    def make(cls, stem: "str | StateName", suffix: str) -> Self:
+        if suffix:
+            return cls(f"{stem}.{suffix}")
+        return cls(str(stem))
+
 
 class State:
-    def __init__(self, data: Payload, name: str | StateName = "", mtime: datetime | None = None):
+    suffixes: tuple[str, ...] = ("",)
+
+    def __init__(self, data: Payload, stem: str | StateName = "", mtime: datetime | None = None):
         self._data = BytesIO(data) if isinstance(data, bytes) else data
-        self._name = StateName(name) if isinstance(name, str) else name
+        self._name = StateName.make(stem, self.suffixes[0])
         self._mtime = mtime or now()
 
     @property
