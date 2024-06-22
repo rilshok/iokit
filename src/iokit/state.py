@@ -137,7 +137,6 @@ class State:
         return self.cast().load()
 
 
-
 def filter_states(states: Iterable[State], pattern: str) -> Generator[State, None, None]:
     for state in states:
         if fnmatch(str(state.name), pattern):

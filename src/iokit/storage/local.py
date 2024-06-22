@@ -39,6 +39,7 @@ def save_file(
     path.write_bytes(state.data.getvalue())
     return path
 
+
 @contextmanager
 def save_temp(state: State) -> Generator[Path, None, None]:
     with tempfile.TemporaryDirectory() as temp_dir:

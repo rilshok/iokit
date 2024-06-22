@@ -18,6 +18,17 @@ dependencies = [
 [tool.setuptools.dynamic]
 version = {attr = "iokit.__version__"}
 
+[project.optional-dependencies]
+dev = ["iokit[lint,test]"]
+lint = [
+    "mypy",
+    "ruff",
+]
+test = [
+    "pytest",
+    "pytest-cov",
+]
+
 [project.urls]
 Homepage = "https://github.com/rilshok/iokit"
 Repository = "https://github.com/rilshok/iokit"
