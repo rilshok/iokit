@@ -49,6 +49,14 @@ class StateName:
     def __repr__(self) -> str:
         return self._name
 
+    def __eq__(self, other: object) -> bool:
+        if isinstance(other, str): # type: ignore
+            return self._name == other
+        if isinstance(other, StateName):
+            return self._name == other._name
+        msg = f"Expected str or StateName, got {type(other).__name__}"
+        raise NotImplementedError(msg)
+
     @classmethod
     def make(cls, stem: "str | StateName", suffix: str) -> Self:
         if suffix:
