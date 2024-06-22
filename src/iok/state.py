@@ -60,7 +60,9 @@ class State:
         self._mtime = mtime or now()
 
     def __init_subclass__(
-        cls, suffix: str | None = None, suffixes: tuple[str, ...] | None = None
+        cls,
+        suffix: str | None = None,
+        suffixes: tuple[str, ...] | None = None,
     ) -> None:
         if suffix is None and suffixes is not None:
             if len(suffixes) == 0:
