@@ -1,0 +1,38 @@
+[project]
+name = "iok"
+description = "Input Output Kit"
+readme = "README.md"
+requires-python = ">=3.10"
+license = {text = "MIT"}
+dynamic = ["version"]
+authors = [
+    {name = "Vladislav A. Proskurov", email = "rilshok@pm.me"},
+]
+dependencies = [
+    "humanize>=4.9.0",
+    "typing-extensions>=4.8.0",
+    "pytz>=2024.1",
+]
+
+[tool.setuptools.dynamic]
+version = {attr = "iok.__version__"}
+
+[project.urls]
+Homepage = "https://github.com/rilshok/iok"
+Repository = "https://github.com/rilshok/iok"
+
+[tool.mypy]
+strict = true
+
+[tool.ruff]
+line-length = 100
+
+[tool.ruff.format]
+docstring-code-format = true
+
+[tool.vulture]
+make_whitelist = true
+sort_by_size = true
+verbose = true
+min_confidence = 100
+paths = ["src/iok"]
