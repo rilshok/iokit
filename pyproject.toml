@@ -9,6 +9,7 @@ authors = [
     {name = "Vladislav A. Proskurov", email = "rilshok@pm.me"},
 ]
 dependencies = [
+    "jsonlines>=4.0.0",
     "humanize>=4.9.0",
     "typing-extensions>=4.8.0",
     "pytz>=2024.1",

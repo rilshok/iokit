@@ -34,7 +34,7 @@ class Tar(State, suffix="tar"):
                 member_buffer = tar_buffer.extractfile(member)
                 if member_buffer is None:
                     continue
-                state =  State(
+                state = State(
                     data=member_buffer.read(),
                     name=member.name,
                     time=_fromtimestamp(member.mtime),
