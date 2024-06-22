@@ -1,5 +1,6 @@
 from datetime import datetime
 from io import BytesIO
+from typing import Any
 
 import pytz
 from humanize import naturalsize
@@ -112,3 +113,21 @@ class State:
     def __repr__(self) -> str:
         size = naturalsize(self.size, gnu=True)
         return f"{self.name} ({size})"
+
+    def cast(self) -> "State":
+        suffix = self.name.suffix
+        for klass in State.__subclasses__():
+            if suffix in getattr(klass, "_suffixes"):
+                break
+        else:
+            raise ValueError(f"Unknown state suffix {suffix}")
+        state = klass.__new__(klass)
+        setattr(state, "_data", self.data)
+        setattr(state, "_name", self.name)
+        setattr(state, "_mtime", self.mtime)
+        return state
+
+    def load(self) -> Any:
+        if not self.name.suffix:
+            return self.data.getvalue()
+        return self.cast().load()
