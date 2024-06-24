@@ -1,4 +1,5 @@
 __all__ = [
+    "Dat",
     "Gzip",
     "Json",
     "Jsonl",
@@ -6,6 +7,7 @@ __all__ = [
     "Txt",
 ]
 
+from .dat import Dat
 from .gz import Gzip
 from .json import Json
 from .jsonl import Jsonl
