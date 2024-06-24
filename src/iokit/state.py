@@ -7,12 +7,14 @@ __all__ = [
 from datetime import datetime
 from fnmatch import fnmatch
 from io import BytesIO
-from typing import Any, Generator, Iterable
+from typing import Any, Generator, Iterable, Type
 
 from humanize import naturalsize
 from typing_extensions import Self
 
 from iokit.tools.time import now
+from contextlib import suppress
+
 
 Payload = BytesIO | bytes
 
@@ -126,13 +128,17 @@ class State:
         size = naturalsize(self.size, gnu=True)
         return f"{self.name} ({size})"
 
+    @classmethod
+    def by_suffix(cls, suffix: str) -> Type[Self]:
+        if suffix in cls._suffixes:
+            return cls
+        for klass in cls.__subclasses__():
+            with suppress(ValueError):
+                return klass.by_suffix(suffix)
+        raise ValueError(f"Unknown state suffix {suffix}")
+
     def cast(self) -> "State":
-        suffix = self.name.suffix
-        for klass in State.__subclasses__():
-            if suffix in getattr(klass, "_suffixes"):
-                break
-        else:
-            raise ValueError(f"Unknown state suffix {suffix}")
+        klass = self.by_suffix(self.name.suffix)
         state = klass.__new__(klass)
         setattr(state, "_data", self.data)
         setattr(state, "_name", self.name)
