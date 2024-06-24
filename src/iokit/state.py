@@ -4,6 +4,7 @@ __all__ = [
     "find_state",
 ]
 
+from contextlib import suppress
 from datetime import datetime
 from fnmatch import fnmatch
 from io import BytesIO
@@ -13,8 +14,6 @@ from humanize import naturalsize
 from typing_extensions import Self
 
 from iokit.tools.time import now
-from contextlib import suppress
-
 
 Payload = BytesIO | bytes
 

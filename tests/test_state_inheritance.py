@@ -1,7 +1,9 @@
 from iokit import Json, State
 
+
 class MyJson(Json, suffix="myjson"):
     pass
+
 
 def test_state_inheritance_json() -> None:
     assert getattr(MyJson, "_suffix") == "myjson"
