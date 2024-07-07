@@ -13,7 +13,7 @@ __all__ = [
     "save_file",
     "save_temp",
 ]
-__version__ = "0.1.2"
+__version__ = "0.1.3"
 
 from .extensions import Dat, Gzip, Json, Jsonl, Tar, Txt, Yaml
 from .state import State, filter_states, find_state
