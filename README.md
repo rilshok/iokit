@@ -2,7 +2,7 @@
 
 IOKit is a Python library that offers a suite of utilities for managing a wide range of input/output operations. Central to its design is the concept of a `State`, where each state signifies a unit of data that can be loaded, saved, or transformed. Each state corresponds to a valid file state, represented as a bytes-like object.
 
-IOKit abstracts and unifies serialization and deserialization operations from various libraries into a single, cohesive interface. This allows for direct manipulation of the file's state in memory, eliminating the need for disk interaction. Consequently, it facilitates the (de)serialization of data in multiple formats, such as `json`, `txt`, `tar`, `gzip`, among others. This abstraction not only simplifies data handling but also enhances efficiency by reducing disk I/O operations.
+IOKit abstracts and unifies serialization and deserialization operations from various libraries into a single, cohesive interface. This allows for direct manipulation of the file's state in memory, eliminating the need for disk interaction. Consequently, it facilitates the (de)serialization of data in multiple formats, such as `json`, `yaml`, `txt`, `tar`, `gzip`, among others. This abstraction not only simplifies data handling but also enhances efficiency by reducing disk I/O operations.
 
 ## Installation
 
@@ -45,6 +45,22 @@ print(state.load())
 
 ```plain-text
 single.json (16B)
+{'key': 'value'}
+```
+
+### YAML
+
+```python
+from iokit import Yaml
+
+data = {"key": "value"}
+state = Yaml(data, name="single")
+print(state)
+print(state.load())
+```
+
+```plain-text
+single.yaml (11B)
 {'key': 'value'}
 ```
 
