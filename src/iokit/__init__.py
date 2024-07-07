@@ -5,6 +5,7 @@ __all__ = [
     "Jsonl",
     "Tar",
     "Txt",
+    "Yaml",
     "State",
     "filter_states",
     "find_state",
@@ -14,6 +15,6 @@ __all__ = [
 ]
 __version__ = "0.1.2"
 
-from .extensions import Dat, Gzip, Json, Jsonl, Tar, Txt
+from .extensions import Dat, Gzip, Json, Jsonl, Tar, Txt, Yaml
 from .state import State, filter_states, find_state
 from .storage import load_file, save_file, save_temp
