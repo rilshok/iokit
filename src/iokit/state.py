@@ -128,16 +128,16 @@ class State:
         return f"{self.name} ({size})"
 
     @classmethod
-    def by_suffix(cls, suffix: str) -> Type[Self]:
+    def _by_suffix(cls, suffix: str) -> Type[Self]:
         if suffix in cls._suffixes:
             return cls
-        for klass in cls.__subclasses__():
+        for kls in cls.__subclasses__():
             with suppress(ValueError):
-                return klass.by_suffix(suffix)
-        raise ValueError(f"Unknown state suffix {suffix}")
+                return kls._by_suffix(suffix)
+        return cls
 
     def cast(self) -> "State":
-        klass = self.by_suffix(self.name.suffix)
+        klass = self._by_suffix(self.name.suffix)
         state = klass.__new__(klass)
         setattr(state, "_data", self.data)
         setattr(state, "_name", self.name)
