@@ -134,20 +134,26 @@ class State:
         for kls in cls.__subclasses__():
             with suppress(ValueError):
                 return kls._by_suffix(suffix)
-        return cls
+        raise ValueError(f"Unknown state suffix '{suffix}'")
 
     def cast(self) -> "State":
-        klass = self._by_suffix(self.name.suffix)
-        state = klass.__new__(klass)
-        setattr(state, "_data", self.data)
-        setattr(state, "_name", self.name)
-        setattr(state, "_time", self.time)
-        return state
+        with suppress(ValueError):
+            klass = self._by_suffix(self.name.suffix)
+            state = klass.__new__(klass)
+            setattr(state, "_data", self.data)
+            setattr(state, "_name", self.name)
+            setattr(state, "_time", self.time)
+            return state
+        return self
 
     def load(self) -> Any:
         if not self.name.suffix:
             return self.data.getvalue()
-        return self.cast().load()
+        state = self.cast()
+        if type(state) is State:  # pylint: disable=unidiomatic-typecheck
+            msg = f"Cannot load state with suffix '{self.name.suffix}'"
+            raise NotImplementedError(msg)
+        return state.load()
 
 
 def filter_states(states: Iterable[State], pattern: str) -> Generator[State, None, None]:
