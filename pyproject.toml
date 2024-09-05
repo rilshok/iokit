@@ -9,13 +9,14 @@ authors = [
     {name = "Vladislav A. Proskurov", email = "rilshok@pm.me"},
 ]
 dependencies = [
-    "jsonlines>=4.0.0",
-    "humanize>=4.9.0",
-    "typing-extensions>=4.8.0",
-    "pytz>=2024.1",
-    "PyYAML>=6.0.1",
-    "python-dotenv>=1.0.1",
-    "requests>=2.32.3",
+    "humanize>=4.9.0"
+    "jsonlines>=4.0.0"
+    "python-dateutil>=2.8.2"
+    "python-dotenv>=1.0.1"
+    "PyYAML>=6.0.1"
+    "pytz>=2024.1"
+    "requests>=2.32.3"
+    "typing-extensions>=4.8.0"
 ]
 
 [tool.setuptools.dynamic]
