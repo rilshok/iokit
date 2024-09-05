@@ -23,18 +23,19 @@ version = {attr = "iokit.__version__"}
 [project.optional-dependencies]
 dev = ["iokit[lint,test]"]
 lint = [
-    "mypy",
-    "ruff",
-    "types-pytz",
+    "mypy>=1.7.1",
+    "ruff>=0.6.3",
+    "types-pytz>=2024.1",
 ]
 test = [
-    "pytest",
-    "pytest-cov",
+    "pytest>=8.2.2",
+    "pytest-cov>=5.0.0",
 ]
 
 [project.urls]
 Homepage = "https://github.com/rilshok/iokit"
-Repository = "https://github.com/rilshok/iokit"
+Repository = "https://github.com/rilshok/iokit.git"
+Issues = "https://github.com/rilshok/iokit/issues"
 
 [tool.mypy]
 strict = true
