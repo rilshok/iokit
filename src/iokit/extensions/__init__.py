@@ -7,6 +7,7 @@ __all__ = [
     "Tar",
     "Txt",
     "Yaml",
+    "Zip",
 ]
 
 from .dat import Dat
@@ -17,3 +18,4 @@ from .jsonl import Jsonl
 from .tar import Tar
 from .txt import Txt
 from .yaml import Yaml
+from .zip import Zip
