@@ -1,5 +1,6 @@
 __all__ = [
     "Dat",
+    "Encryption",
     "Env",
     "Gzip",
     "Json",
@@ -11,6 +12,7 @@ __all__ = [
 ]
 
 from .dat import Dat
+from .enc import Encryption
 from .env import Env
 from .gz import Gzip
 from .json import Json

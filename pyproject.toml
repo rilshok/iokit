@@ -17,6 +17,7 @@ dependencies = [
     "pytz>=2024.1",
     "requests>=2.32.3",
     "typing-extensions>=4.8.0",
+    "cryptography>=41.0.7",
 ]
 
 [tool.setuptools.dynamic]

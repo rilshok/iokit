@@ -26,11 +26,6 @@ repos:
     - id: ruff-format
       types_or: [ python, pyi ]
 
-- repo: https://github.com/pycqa/isort
-  rev: 5.13.2
-  hooks:
-  - id: isort
-
 - repo: https://github.com/jendrikseipp/vulture
   rev: v2.6
   hooks:
