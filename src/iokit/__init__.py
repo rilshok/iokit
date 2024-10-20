@@ -1,5 +1,6 @@
 __all__ = [
     "Dat",
+    "Encryption",
     "Env",
     "Gzip",
     "Json",
@@ -16,8 +17,8 @@ __all__ = [
     "save_file",
     "save_temp",
 ]
-__version__ = "0.1.8"
+__version__ = "0.1.9"
 
-from .extensions import Dat, Env, Gzip, Json, Jsonl, Tar, Txt, Yaml, Zip
+from .extensions import Dat, Encryption, Env, Gzip, Json, Jsonl, Tar, Txt, Yaml, Zip
 from .state import State, filter_states, find_state
 from .storage import download_file, load_file, save_file, save_temp
