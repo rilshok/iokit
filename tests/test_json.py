@@ -1,3 +1,5 @@
+from typing import Any
+
 from iokit.extensions.json import Json
 
 
@@ -25,7 +27,7 @@ def test_json_multiple() -> None:
 
 
 def test_json_different() -> None:
-    data = {
+    data: dict[str, Any] = {
         "list": [1, 2, 3],
         "tuple": (4, 5, 6),
         "dict": {"a": 1, "b": 2},
