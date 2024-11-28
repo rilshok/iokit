@@ -11,6 +11,7 @@ __all__ = [
     "Zip",
     "Mp3",
     "Wav",
+    "Waveform",
     "Flac",
     "Ogg",
     "Oga",
@@ -38,6 +39,7 @@ from .extensions import (
     Tar,
     Txt,
     Wav,
+    Waveform,
     Yaml,
     Zip,
 )
