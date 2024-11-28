@@ -24,6 +24,10 @@ class Waveform:
             self.wave = self.wave.astype(float32)
 
     @property
+    def channels(self) -> int:
+        return self.wave.shape[1]
+
+    @property
     def duration(self) -> float:
         return self.wave.shape[0] / self.freq
 
