@@ -2,8 +2,9 @@ __all__ = [
     "Jsonl",
 ]
 
+from collections.abc import Iterable
 from io import BytesIO
-from typing import Any, Iterable
+from typing import Any
 
 from jsonlines import Reader, Writer
 

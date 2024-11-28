@@ -1,24 +1,24 @@
 default_stages:
 - commit
+
 repos:
 - repo: https://github.com/pre-commit/pre-commit-hooks
-  rev: v4.5.0
+  rev: v5.0.0
   hooks:
   - id: check-added-large-files
-    args: [--maxkb=5000]
+    args: [--maxkb=64]
   - id: trailing-whitespace
-  - id: check-json
   - id: check-merge-conflict
-  - id: check-xml
-  - id: check-yaml
   - id: detect-private-key
   - id: mixed-line-ending
+  - id: check-json
   - id: pretty-format-json
     args: [--autofix]
     exclude: \.ipynb$
+  - id: check-yaml
 
 - repo: https://github.com/astral-sh/ruff-pre-commit
-  rev: v0.4.10
+  rev: v0.7.3
   hooks:
     - id: ruff
       types_or: [ python, pyi ]
@@ -26,7 +26,8 @@ repos:
     - id: ruff-format
       types_or: [ python, pyi ]
 
+
 - repo: https://github.com/jendrikseipp/vulture
-  rev: v2.6
+  rev: v2.13
   hooks:
     - id: vulture
