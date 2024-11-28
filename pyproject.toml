@@ -19,6 +19,7 @@ dependencies = [
     "typing-extensions>=4.8.0",
     "cryptography>=41.0.7",
     "numpy>=1.21.1",
+    "soundfile>=0.12.1",
 ]
 
 [tool.setuptools.dynamic]
