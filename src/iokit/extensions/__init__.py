@@ -16,6 +16,7 @@ __all__ = [
     "Oga",
 ]
 
+from .audio import Flac, Mp3, Oga, Ogg, Wav
 from .dat import Dat
 from .enc import Encryption
 from .env import Env
@@ -26,4 +27,3 @@ from .tar import Tar
 from .txt import Txt
 from .yaml import Yaml
 from .zip import Zip
-from ._audio import Mp3, Wav, Flac, Ogg, Oga

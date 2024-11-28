@@ -4,9 +4,9 @@ __all__ = [
     "save_temp",
 ]
 import tempfile
+from collections.abc import Generator
 from contextlib import contextmanager
 from pathlib import Path
-from typing import Generator
 
 from iokit.state import State
 from iokit.tools.time import fromtimestamp

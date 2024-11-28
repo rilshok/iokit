@@ -1,10 +1,12 @@
-from iokit.state import State
-from typing import Any
 from dataclasses import dataclass
-from numpy.typing import NDArray
-from numpy import float32
 from io import BytesIO
+from typing import Any
+
 import soundfile
+from numpy import float32
+from numpy.typing import NDArray
+
+from iokit.state import State
 
 
 class AudioState(State, suffix=""):

@@ -4,11 +4,12 @@ __all__ = [
     "find_state",
 ]
 
+from collections.abc import Generator, Iterable
 from contextlib import suppress
 from datetime import datetime
 from fnmatch import fnmatch
 from io import BytesIO
-from typing import Any, Generator, Iterable, Type
+from typing import Any
 
 from humanize import naturalsize
 from typing_extensions import Self
@@ -86,9 +87,8 @@ class State:
         if suffix is not None and suffixes is None:
             suffixes = (suffix,)
 
-        if suffix is not None and suffixes is not None:
-            if suffix not in suffixes:
-                suffixes = (suffix, *suffixes)
+        if suffix is not None and suffixes is not None and suffix not in suffixes:
+            suffixes = (suffix, *suffixes)
 
         if suffix is None or suffixes is None:
             raise ValueError("State subclasses must define a suffix or suffixes")
@@ -128,7 +128,7 @@ class State:
         return f"{self.name} ({size})"
 
     @classmethod
-    def _by_suffix(cls, suffix: str) -> Type[Self]:
+    def _by_suffix(cls, suffix: str) -> type[Self]:
         if suffix in cls._suffixes:
             return cls
         for kls in cls.__subclasses__():
@@ -140,9 +140,9 @@ class State:
         with suppress(ValueError):
             klass = self._by_suffix(self.name.suffix)
             state = klass.__new__(klass)
-            setattr(state, "_data", self.data)
-            setattr(state, "_name", self.name)
-            setattr(state, "_time", self.time)
+            state._data = self.data
+            state._name = self.name
+            state._time = self.time
             return state
         return self
 

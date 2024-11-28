@@ -28,18 +28,18 @@ from .extensions import (
     Dat,
     Encryption,
     Env,
+    Flac,
     Gzip,
     Json,
     Jsonl,
+    Mp3,
+    Oga,
+    Ogg,
     Tar,
     Txt,
+    Wav,
     Yaml,
     Zip,
-    Mp3,
-    Wav,
-    Flac,
-    Ogg,
-    Oga,
 )
 from .state import State, filter_states, find_state
 from .storage import download_file, load_file, save_file, save_temp
