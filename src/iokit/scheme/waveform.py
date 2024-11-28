@@ -34,12 +34,17 @@ class Waveform:
     def copy(self) -> "Waveform":
         return Waveform(self.wave.copy(), self.freq)
 
-    def cut(self, *, begin: float | None = None, end: float | None = None) -> "Waveform":
+    def _position(self, time: float) -> int:
+        return int(time * self.freq)
+
+    def cut(self, begin: float | None = None, end: float | None = None) -> "Waveform":
         if begin is None and end is None:
             return self.copy()
-        begin = begin or 0.0
-        end = end or self.duration
-        raise NotImplementedError()
+        begin, end = begin or 0.0, end or self.duration
+        start, stop = self._position(begin), self._position(end)
+        if stop > self.wave.shape[0]:
+            stop = self.wave.shape[0]
+        return Waveform(self.wave[start:stop], self.freq)
 
     def display(self):
         from IPython.display import Audio, display
