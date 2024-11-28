@@ -16,16 +16,18 @@ def test_encryption() -> None:
     json = Json(data, name="different")
     state = Encryption(json, password="pA$sw0Rd", salt="s@lt")
     state_secret = state.load()
-    with pytest.raises(Exception):
+    with pytest.raises(ValueError) as excinfo:
         state_secret.load(password="pA$sw0Rd")
-    with pytest.raises(Exception):
+        raise str(excinfo.value) == "Decryption failed"
+    with pytest.raises(ValueError) as excinfo:
         state_secret.load(password="password", salt="s@lt")
+        assert str(excinfo.value) == "Decryption failed"
 
     state_loaded = state_secret.load(password="pA$sw0Rd", salt="s@lt")
     assert state_loaded.name == "different.json"
     loaded = state_loaded.load()
-    assert all(v1 == v2 for v1, v2 in zip(loaded["list"], [1, 2, 3]))
-    assert all(v1 == v2 for v1, v2 in zip(loaded["tuple"], (4, 5, 6)))
+    assert all(v1 == v2 for v1, v2 in zip(loaded["list"], [1, 2, 3], strict=True))
+    assert all(v1 == v2 for v1, v2 in zip(loaded["tuple"], (4, 5, 6), strict=True))
     assert loaded["dict"] == {"a": 1, "b": 2}
     assert loaded["str"] == "hello"
     assert loaded["int"] == 42
