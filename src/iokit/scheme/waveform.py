@@ -8,6 +8,10 @@ class Waveform:
     wave: NDArray[float32]
     freq: int
 
+    @property
+    def duration(self) -> float:
+        return self.wave.shape[0] / self.freq
+
     def copy(self) -> "Waveform":
         return Waveform(self.wave.copy(), self.freq)
 
