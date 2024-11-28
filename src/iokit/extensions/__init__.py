@@ -1,4 +1,9 @@
 __all__ = [
+    "Flac",
+    "Mp3",
+    "Ogg",
+    "Wav",
+    "Waveform",
     "Dat",
     "Encryption",
     "Env",
@@ -11,6 +16,7 @@ __all__ = [
     "Zip",
 ]
 
+from .audio import Flac, Mp3, Ogg, Wav, Waveform
 from .dat import Dat
 from .enc import Encryption
 from .env import Env

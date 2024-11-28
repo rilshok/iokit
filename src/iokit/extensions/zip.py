@@ -1,7 +1,8 @@
 import zipfile
+from collections.abc import Iterable
 from datetime import datetime
 from io import BytesIO
-from typing import Any, Iterable
+from typing import Any
 
 from iokit.state import State
 

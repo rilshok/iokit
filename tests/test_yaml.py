@@ -33,8 +33,8 @@ def test_yaml_different() -> None:
     state = Yaml(data, name="different")
     assert state.name == "different.yaml"
     loaded = state.load()
-    assert all(v1 == v2 for v1, v2 in zip(loaded["list"], [1, 2, 3]))
-    assert all(v1 == v2 for v1, v2 in zip(loaded["tuple"], (4, 5, 6)))
+    assert all(v1 == v2 for v1, v2 in zip(loaded["list"], [1, 2, 3], strict=True))
+    assert all(v1 == v2 for v1, v2 in zip(loaded["tuple"], (4, 5, 6), strict=True))
     assert loaded["dict"] == {"a": 1, "b": 2}
     assert loaded["str"] == "hello"
     assert loaded["int"] == 42

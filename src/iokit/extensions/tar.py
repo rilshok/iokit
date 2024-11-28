@@ -1,6 +1,7 @@
 import tarfile
+from collections.abc import Iterable
 from io import BytesIO
-from typing import Any, Iterable
+from typing import Any
 
 from iokit.state import State
 from iokit.tools.time import fromtimestamp
