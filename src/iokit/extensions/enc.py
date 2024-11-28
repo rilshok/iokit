@@ -1,7 +1,9 @@
 import struct
+from collections.abc import Iterator
 from hashlib import sha256
-from typing import Any, Iterator
+from typing import Any
 
+from cryptography.exceptions import InvalidTag
 from cryptography.hazmat.primitives.ciphers.algorithms import AES
 from cryptography.hazmat.primitives.ciphers.base import Cipher
 from cryptography.hazmat.primitives.ciphers.modes import GCM
@@ -41,7 +43,9 @@ def encrypt(data: bytes, password: bytes, salt: bytes) -> bytes:
     padded = padder.update(data) + padder.finalize()
     ct = encryptor.update(padded) + encryptor.finalize()
     tag = encryptor.tag
-    return ct + tag
+    result = ct + tag
+    assert isinstance(result, bytes)
+    return result
 
 
 def decrypt(data: bytes, password: bytes, salt: bytes) -> bytes:
@@ -49,8 +53,13 @@ def decrypt(data: bytes, password: bytes, salt: bytes) -> bytes:
     unpadder = PKCS7(128).unpadder()
     decryptor = _cipher(key=key, salt=salt).decryptor()
     ct, tag = data[:-16], data[-16:]
-    padded = decryptor.update(ct) + decryptor.finalize_with_tag(tag)
-    return unpadder.update(padded) + unpadder.finalize()
+    try:
+        padded = decryptor.update(ct) + decryptor.finalize_with_tag(tag)
+    except InvalidTag as exc:
+        raise ValueError("Decryption failed") from exc
+    result = unpadder.update(padded) + unpadder.finalize()
+    assert isinstance(result, bytes)
+    return result
 
 
 def _pack_arrays(*arrays: bytes) -> bytes:
