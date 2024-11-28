@@ -9,6 +9,11 @@ __all__ = [
     "Txt",
     "Yaml",
     "Zip",
+    "Mp3",
+    "Wav",
+    "Flac",
+    "Ogg",
+    "Oga",
 ]
 
 from .dat import Dat
@@ -21,3 +26,4 @@ from .tar import Tar
 from .txt import Txt
 from .yaml import Yaml
 from .zip import Zip
+from ._audio import Mp3, Wav, Flac, Ogg, Oga
