@@ -40,4 +40,4 @@ class Waveform:
     def display(self):
         from IPython.display import Audio, display
 
-        return display(Audio(self.wave, rate=self.freq))
+        return display(Audio(self.wave.T, rate=self.freq))
