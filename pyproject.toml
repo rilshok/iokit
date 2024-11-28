@@ -31,6 +31,9 @@ lint = [
     "mypy>=1.7.1",
     "ruff>=0.6.3",
     "types-pytz>=2024.1",
+    "types-requests>=2.31.0",
+    "types-PyYAML>=6.0.12",
+    "types-python-dateutil>=2.8.19",
 ]
 test = [
     "pytest>=8.2.2",
@@ -51,9 +54,19 @@ line-length = 100
 [tool.ruff.format]
 docstring-code-format = true
 
+[tool.ruff.lint]
+select = [
+    "E", # pycodestyle
+    "F", # Pyflakes
+    "UP", # pyupgrade
+    "B", # flake8-bugbear
+    "SIM",# flake8-simplify
+    "I", # isort
+]
+
 [tool.vulture]
 make_whitelist = true
 sort_by_size = true
-verbose = true
+verbose = false
 min_confidence = 100
 paths = ["src/iokit"]
