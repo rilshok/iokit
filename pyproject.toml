@@ -18,6 +18,7 @@ dependencies = [
     "requests>=2.32.3",
     "typing-extensions>=4.8.0",
     "cryptography>=41.0.7",
+    "numpy>=1.21.1",
 ]
 
 [tool.setuptools.dynamic]
