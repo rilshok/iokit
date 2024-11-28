@@ -40,10 +40,6 @@ class Ogg(AudioState, suffix="ogg"):
     pass
 
 
-class Oga(AudioState, suffix="oga"):
-    pass
-
-
 @dataclass
 class Waveform:
     wave: NDArray[float32]
