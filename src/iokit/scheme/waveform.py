@@ -50,3 +50,8 @@ class Waveform:
         from IPython.display import Audio, display
 
         return display(Audio(self.wave.T, rate=self.freq))
+
+    def to_mono(self) -> "Waveform":
+        if self.channels == 1:
+            return self.copy()
+        return Waveform(self.wave.mean(axis=1), self.freq)
