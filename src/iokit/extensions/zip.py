@@ -1,7 +1,7 @@
 __all__ = ["Zip"]
 
 import zipfile
-from collections.abc import Iterable
+from collections.abc import Iterable, Iterator
 from datetime import datetime
 from io import BytesIO
 from typing import Any
@@ -18,15 +18,12 @@ class Zip(State, suffix="zip"):
 
             super().__init__(buffer.getvalue(), **kwargs)
 
-    def load(self) -> list[State]:
-        states: list[State] = []
+    def load(self) -> Iterator[State]:
         with zipfile.ZipFile(self.buffer, mode="r") as zip_buffer:
             for file in zip_buffer.namelist():
                 with zip_buffer.open(file) as member_buffer:
-                    state = State(
+                    yield State(
                         member_buffer.read(),
                         name=file,
                         time=datetime(*zip_buffer.getinfo(file).date_time),
                     )
-                    states.append(state)
-        return states
