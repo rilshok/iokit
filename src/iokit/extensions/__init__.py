@@ -1,4 +1,5 @@
 __all__ = [
+    "Csv",
     "Dat",
     "Enc",
     "Env",
@@ -11,6 +12,7 @@ __all__ = [
     "Ogg",
     "SecretState",
     "Tar",
+    "Tsv",
     "Txt",
     "Wav",
     "Waveform",
@@ -28,6 +30,7 @@ from .gz import Gzip
 from .json import Json
 from .jsonl import Jsonl
 from .npy import Npy
+from .table import Csv, Tsv
 from .tar import Tar
 from .txt import Txt
 from .yaml import Yaml
