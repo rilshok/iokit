@@ -35,6 +35,10 @@ class Storage(ABC, Generic[T]):
         raise NotImplementedError(msg)
 
 
+class BackendStorage(Storage[bytes]):
+    pass
+
+
 class ReadOnlyStorage(Storage[T]):
     def __init__(self, storage: Storage[T]):
         self._storage = storage
