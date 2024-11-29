@@ -28,6 +28,10 @@ __all__ = [
     "Wav",
     "Yaml",
     "Zip",
+    "Storage",
+    "ReadOnlyStorage",
+    "StorageFactory",
+    "ReadOnlyStorageFactory",
 ]
 
 from .extensions import (
@@ -54,4 +58,13 @@ from .extensions import (
     encrypt,
 )
 from .state import State, filter_states, find_state
-from .storage import download_file, load_file, save_file, save_temp
+from .storage import (
+    ReadOnlyStorage,
+    ReadOnlyStorageFactory,
+    Storage,
+    StorageFactory,
+    download_file,
+    load_file,
+    save_file,
+    save_temp,
+)
