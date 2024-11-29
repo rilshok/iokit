@@ -1,5 +1,6 @@
 __version__ = "0.2.0"
 __all__ = [
+    "auto_state",
     "Csv",
     "Dat",
     "decrypt",
@@ -68,3 +69,4 @@ from .storage import (
     save_file,
     save_temp,
 )
+from .tools import auto_state
