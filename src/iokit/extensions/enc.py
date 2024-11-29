@@ -14,6 +14,8 @@ from typing_extensions import Self
 
 from iokit.state import State
 
+DEFAULT_SALT = b"170309"
+
 
 def _to_bytes(data: bytes | str) -> bytes:
     if isinstance(data, bytes):
@@ -83,7 +85,7 @@ class SecretState:
     def __init__(self, data: bytes):
         self.data = data
 
-    def load(self, password: bytes | str, salt: bytes | str = b"42") -> State:
+    def load(self, password: bytes | str, salt: bytes | str = DEFAULT_SALT) -> State:
         payload = decrypt(data=self.data, password=_to_bytes(password), salt=_to_bytes(salt))
         name, data = _unpack_arrays(payload)
         return State(data=data, name=name.decode("utf-8")).cast()
@@ -92,7 +94,7 @@ class SecretState:
         return f"<SecretState: {len(self.data)} bytes>"
 
     @classmethod
-    def pack(cls, state: State, password: bytes | str, salt: bytes | str = b"42") -> Self:
+    def pack(cls, state: State, password: bytes | str, salt: bytes | str = DEFAULT_SALT) -> Self:
         payload = _pack_arrays(str(state.name).encode("utf-8"), state.data)
         data = encrypt(data=payload, password=_to_bytes(password), salt=_to_bytes(salt))
         return cls(data=data)
@@ -105,7 +107,7 @@ class Enc(State, suffix="enc"):
         *,
         password: bytes | str,
         name: str | None = None,
-        salt: bytes | str = b"170309",
+        salt: bytes | str = DEFAULT_SALT,
         **kwargs: Any,
     ):
         if name is None:
