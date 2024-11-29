@@ -5,7 +5,7 @@ def test_yaml_empty() -> None:
     state = Yaml([], name="empty")
     assert state.name == "empty.yaml"
     assert state.size == 3
-    assert state.data.getvalue() == b"[]\n"
+    assert state.data == b"[]\n"
     assert not state.load()
 
 

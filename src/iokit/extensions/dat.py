@@ -12,4 +12,4 @@ class Dat(State, suffix="dat"):
         super().__init__(data=data, **kwargs)
 
     def load(self) -> bytes:
-        return self._data.getvalue()
+        return self.data

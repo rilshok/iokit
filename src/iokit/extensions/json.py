@@ -42,4 +42,4 @@ class Json(State, suffix="json"):
         super().__init__(data=data_, **kwargs)
 
     def load(self) -> Any:
-        return json.load(self.data)
+        return json.load(self.buffer)

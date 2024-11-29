@@ -1,6 +1,6 @@
 __all__ = [
     "Dat",
-    "Encryption",
+    "Enc",
     "Env",
     "Gzip",
     "Json",
@@ -27,7 +27,7 @@ __version__ = "0.2.0"
 
 from .extensions import (
     Dat,
-    Encryption,
+    Enc,
     Env,
     Flac,
     Gzip,

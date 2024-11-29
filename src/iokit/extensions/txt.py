@@ -10,4 +10,4 @@ class Txt(State, suffix="txt"):
         super().__init__(data=data.encode("utf-8"), **kwargs)
 
     def load(self) -> str:
-        return self.data.getvalue().decode("utf-8")
+        return self.data.decode("utf-8")

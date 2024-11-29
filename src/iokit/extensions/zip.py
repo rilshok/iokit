@@ -12,13 +12,13 @@ class Zip(State, suffix="zip"):
         with BytesIO() as buffer:
             with zipfile.ZipFile(buffer, mode="w") as zip_buffer:
                 for state in states:
-                    zip_buffer.writestr(str(state.name), data=state.data.getvalue())
+                    zip_buffer.writestr(str(state.name), data=state.data)
 
             super().__init__(data=buffer.getvalue(), **kwargs)
 
     def load(self) -> list[State]:
         states: list[State] = []
-        with zipfile.ZipFile(self.data, mode="r") as zip_buffer:
+        with zipfile.ZipFile(self.buffer, mode="r") as zip_buffer:
             for file in zip_buffer.namelist():
                 with zip_buffer.open(file) as member_buffer:
                     state = State(

@@ -31,5 +31,5 @@ class Jsonl(State, suffix="jsonl"):
             super().__init__(data=buffer.getvalue(), **kwargs)
 
     def load(self) -> list[Any]:
-        with Reader(self.data) as reader:
+        with Reader(self.buffer) as reader:
             return list(reader)

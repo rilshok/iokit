@@ -5,21 +5,21 @@ def test_jsonl_empty() -> None:
     state = Jsonl([], name="empty")
     assert state.name == "empty.jsonl"
     assert state.size == 0
-    assert state.data.getvalue() == b""
+    assert state.data == b""
     assert not state.load()
 
 
 def test_jsonl_single() -> None:
     state = Jsonl([{"key": "value"}], name="single")
     assert state.name == "single.jsonl"
-    assert state.data.getvalue() == b'{"key":"value"}\n'
+    assert state.data == b'{"key":"value"}\n'
     assert state.load() == [{"key": "value"}]
 
 
 def test_jsonl_multiple_repeat() -> None:
     state = Jsonl([{"key": "value"}] * 2, name="multiple")
     assert state.name == "multiple.jsonl"
-    assert state.data.getvalue() == b'{"key":"value"}\n{"key":"value"}\n'
+    assert state.data == b'{"key":"value"}\n{"key":"value"}\n'
     assert state.load() == [{"key": "value"}] * 2
 
 

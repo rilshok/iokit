@@ -21,7 +21,7 @@ class AudioState(State, suffix=""):
             super().__init__(data=buffer.getvalue(), **kwargs)
 
     def load(self) -> "Waveform":
-        wave, freq = soundfile.read(self.data, always_2d=True)
+        wave, freq = soundfile.read(self.buffer, always_2d=True)
         return Waveform(wave=wave, freq=freq)
 
 

@@ -91,12 +91,12 @@ class SecretState:
 
     @classmethod
     def pack(cls, state: State, password: bytes | str, salt: bytes | str = b"42") -> Self:
-        payload = _pack_arrays(str(state.name).encode("utf-8"), state.data.getvalue())
+        payload = _pack_arrays(str(state.name).encode("utf-8"), state.data)
         data = encrypt(data=payload, password=_to_bytes(password), salt=_to_bytes(salt))
         return cls(data=data)
 
 
-class Encryption(State, suffix="enc"):
+class Enc(State, suffix="enc"):
     def __init__(
         self,
         state: State,
@@ -112,4 +112,4 @@ class Encryption(State, suffix="enc"):
         super().__init__(data=data, name=name, **kwargs)
 
     def load(self) -> SecretState:
-        return SecretState(data=self.data.getvalue())
+        return SecretState(data=self.data)
