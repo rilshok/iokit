@@ -1,3 +1,5 @@
+__all__ = ["SecretState", "Enc", "encrypt", "decrypt"]
+
 import struct
 from collections.abc import Iterator
 from hashlib import sha256

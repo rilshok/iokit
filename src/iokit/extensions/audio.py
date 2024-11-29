@@ -1,3 +1,5 @@
+__all__ = ["Waveform", "Flac", "Wav", "Mp3", "Ogg"]
+
 from dataclasses import dataclass
 from io import BytesIO
 from typing import Any

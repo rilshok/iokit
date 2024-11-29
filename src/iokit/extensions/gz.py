@@ -1,3 +1,5 @@
+__all__ = ["Gzip"]
+
 import gzip
 from io import BytesIO
 from typing import Any

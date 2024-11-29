@@ -1,6 +1,4 @@
-__all__ = [
-    "Dat",
-]
+__all__ = ["Dat"]
 
 from typing import Any
 

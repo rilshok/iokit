@@ -1,3 +1,5 @@
+__all__ = ["Npy"]
+
 from io import BytesIO
 from typing import Any
 

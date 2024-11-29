@@ -1,3 +1,5 @@
+__all__ = ["Env"]
+
 from io import StringIO
 from pathlib import Path
 from tempfile import TemporaryDirectory

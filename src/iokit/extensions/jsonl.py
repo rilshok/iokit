@@ -1,6 +1,4 @@
-__all__ = [
-    "Jsonl",
-]
+__all__ = ["Jsonl"]
 
 from collections.abc import Iterable
 from io import BytesIO

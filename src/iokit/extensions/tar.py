@@ -1,3 +1,5 @@
+__all__ = ["Tar"]
+
 import tarfile
 from collections.abc import Iterable
 from io import BytesIO

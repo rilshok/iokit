@@ -1,3 +1,5 @@
+__all__ = ["Txt"]
+
 from typing import Any
 
 from iokit.state import State
@@ -5,8 +7,6 @@ from iokit.state import State
 
 class Txt(State, suffix="txt"):
     def __init__(self, data: str, **kwargs: Any):
-        if not isinstance(data, str):
-            raise TypeError(f"Expected str, got {type(data).__name__}")
         super().__init__(data=data.encode("utf-8"), **kwargs)
 
     def load(self) -> str:

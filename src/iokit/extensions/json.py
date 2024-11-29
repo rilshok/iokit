@@ -1,6 +1,4 @@
-__all__ = [
-    "Json",
-]
+__all__ = ["Json"]
 
 import json
 from collections.abc import Callable

@@ -1,6 +1,4 @@
-__all__ = [
-    "Yaml",
-]
+__all__ = ["Yaml"]
 
 from typing import Any
 
