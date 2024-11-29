@@ -4,7 +4,7 @@ __all__ = [
     "find_state",
 ]
 
-from collections.abc import Generator, Iterable
+from collections.abc import Generator, Iterable, Iterator
 from contextlib import suppress
 from datetime import datetime
 from fnmatch import fnmatch
@@ -166,6 +166,17 @@ class State:
             msg = f"Cannot load state with suffix '{self.name.suffix}'"
             raise NotImplementedError(msg)
         return state.load()
+
+
+def _sub_extensions(kls: type[State]) -> Iterator[str]:
+    for k in kls.__subclasses__():
+        if suffix := k.suffix():
+            yield suffix
+        yield from _sub_extensions(k)
+
+
+def supported_extensions() -> list[str]:
+    return list(_sub_extensions(State))
 
 
 def filter_states(states: Iterable[State], pattern: str) -> Generator[State, None, None]:

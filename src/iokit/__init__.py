@@ -20,6 +20,7 @@ __all__ = [
     "Ogg",
     "save_file",
     "save_temp",
+    "supported_extensions",
     "SecretState",
     "State",
     "Tar",
@@ -59,7 +60,7 @@ from .extensions import (
     decrypt,
     encrypt,
 )
-from .state import State, filter_states, find_state
+from .state import State, filter_states, find_state, supported_extensions
 from .storage import (
     ReadOnlyStorage,
     ReadOnlyStorageFactory,
