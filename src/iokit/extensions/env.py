@@ -11,7 +11,7 @@ from iokit.state import State
 
 
 class Env(State, suffix="env"):
-    def __init__(self, content: dict[str, str], /, **kwargs: Any):
+    def __init__(self, content: dict[str, str], /, **kwargs: Any) -> None:
         with TemporaryDirectory() as root:
             path = Path(root) / "env"
             for key, value in content.items():

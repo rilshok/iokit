@@ -18,7 +18,7 @@ from iokit.tools.time import now
 
 
 class StateName:
-    def __init__(self, name: str):
+    def __init__(self, name: str) -> None:
         self._name = name
 
     @property
@@ -75,7 +75,7 @@ class State:
         *,
         name: str | StateName = "",
         time: datetime | None = None,
-    ):
+    ) -> None:
         self._data = content
         self._name = StateName.make(name, self._suffix)
         self._time = time or now()

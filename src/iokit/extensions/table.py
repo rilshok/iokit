@@ -9,7 +9,7 @@ from iokit.state import State
 
 
 class Csv(State, suffix="csv"):
-    def __init__(self, content: DataFrame, /, *, index: bool = False, **kwargs: Any):
+    def __init__(self, content: DataFrame, /, *, index: bool = False, **kwargs: Any) -> None:
         with BytesIO() as buffer:
             content.to_csv(buffer, index=index)
             super().__init__(buffer.getvalue(), **kwargs)
@@ -19,7 +19,7 @@ class Csv(State, suffix="csv"):
 
 
 class Tsv(State, suffix="tsv"):
-    def __init__(self, content: DataFrame, /, *, index: bool = False, **kwargs: Any):
+    def __init__(self, content: DataFrame, /, *, index: bool = False, **kwargs: Any) -> None:
         with BytesIO() as buffer:
             content.to_csv(buffer, sep="\t", index=index)
             super().__init__(buffer.getvalue(), **kwargs)

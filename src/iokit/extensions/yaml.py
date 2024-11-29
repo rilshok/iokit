@@ -8,7 +8,7 @@ from iokit.state import State
 
 
 class Yaml(State, suffix="yaml"):
-    def __init__(self, content: Any, /, **kwargs: Any):
+    def __init__(self, content: Any, /, **kwargs: Any) -> None:
         super().__init__(yaml.safe_dump(content).encode("utf-8"), **kwargs)
 
     def load(self) -> Any:

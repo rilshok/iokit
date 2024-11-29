@@ -82,7 +82,7 @@ def _unpack_arrays(packed_data: bytes) -> Iterator[bytes]:
 
 
 class SecretState:
-    def __init__(self, data: bytes):
+    def __init__(self, data: bytes) -> None:
         self.data = data
 
     def load(self, password: bytes | str, salt: bytes | str = DEFAULT_SALT) -> State:

@@ -12,7 +12,7 @@ from iokit.state import State
 
 
 class AudioState(State, suffix=""):
-    def __init__(self, content: "Waveform", /, **kwargs: Any):
+    def __init__(self, content: "Waveform", /, **kwargs: Any) -> None:
         with BytesIO() as buffer:
             soundfile.write(
                 file=buffer,
@@ -86,7 +86,7 @@ class Waveform:
             stop = self.wave.shape[0]
         return Waveform(self.wave[start:stop], self.freq)
 
-    def display(self):
+    def display(self) -> Any:
         from IPython.display import Audio, display
 
         return display(Audio(self.wave.T, rate=self.freq))

@@ -10,7 +10,7 @@ from iokit.state import State
 
 
 class Zip(State, suffix="zip"):
-    def __init__(self, content: Iterable[State], /, **kwargs: Any):
+    def __init__(self, content: Iterable[State], /, **kwargs: Any) -> None:
         with BytesIO() as buffer:
             with zipfile.ZipFile(buffer, mode="w") as zip_buffer:
                 for state in content:

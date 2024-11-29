@@ -10,7 +10,7 @@ from iokit.tools.time import fromtimestamp
 
 
 class Tar(State, suffix="tar"):
-    def __init__(self, content: Iterable[State], /, **kwargs: Any):
+    def __init__(self, content: Iterable[State], /, **kwargs: Any) -> None:
         with BytesIO() as buffer:
             with tarfile.open(fileobj=buffer, mode="w") as tar_buffer:
                 for state in content:
