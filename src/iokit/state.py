@@ -94,6 +94,10 @@ class State:
         cls._suffix = suffix
         cls._suffixes = suffixes
 
+    @classmethod
+    def suffix(cls) -> str:
+        return cls._suffix
+
     @property
     def name(self) -> StateName:
         return self._name
