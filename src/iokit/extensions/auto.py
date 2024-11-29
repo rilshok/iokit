@@ -5,7 +5,17 @@ from typing import Any, Literal
 from numpy import ndarray
 from pandas import DataFrame
 
-from iokit import Csv, Dat, Enc, Gzip, Json, Npy, State, Tsv, Txt, Waveform, Yaml
+from iokit.state import State
+
+from .audio import Waveform
+from .dat import Dat
+from .enc import Enc, SecretState
+from .gz import Gzip
+from .json import Json
+from .npy import Npy
+from .table import Csv, Tsv
+from .txt import Txt
+from .yaml import Yaml
 
 
 def auto_state(
@@ -44,6 +54,8 @@ def auto_state(
                     return content.to_mp3(name=name)
                 case "ogg":
                     return content.to_ogg(name=name)
+        case SecretState():
+            return Enc(content, name=name)
         case bytes():
             return Dat(content, name=name)
         case str():

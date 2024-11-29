@@ -55,6 +55,7 @@ from .extensions import (
     Waveform,
     Yaml,
     Zip,
+    auto_state,
     decrypt,
     encrypt,
 )
@@ -69,4 +70,3 @@ from .storage import (
     save_file,
     save_temp,
 )
-from .tools import auto_state
