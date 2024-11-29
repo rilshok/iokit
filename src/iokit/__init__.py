@@ -1,5 +1,6 @@
 __version__ = "0.2.0"
 __all__ = [
+    "Csv",
     "Dat",
     "decrypt",
     "download_file",
@@ -21,6 +22,7 @@ __all__ = [
     "SecretState",
     "State",
     "Tar",
+    "Tsv",
     "Txt",
     "Waveform",
     "Wav",
@@ -29,6 +31,7 @@ __all__ = [
 ]
 
 from .extensions import (
+    Csv,
     Dat,
     Enc,
     Env,
@@ -41,6 +44,7 @@ from .extensions import (
     Ogg,
     SecretState,
     Tar,
+    Tsv,
     Txt,
     Wav,
     Waveform,
