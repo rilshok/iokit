@@ -11,13 +11,14 @@ from iokit.state import State
 
 class AudioState(State, suffix=""):
     def __init__(self, waveform: "Waveform", **kwargs: Any):
-        soundfile.write(
-            file=(target := BytesIO()),
-            data=waveform.wave,
-            samplerate=waveform.freq,
-            format=self._suffix,
-        )
-        super().__init__(data=target.getvalue(), **kwargs)
+        with BytesIO() as buffer:
+            soundfile.write(
+                file=buffer,
+                data=waveform.wave,
+                samplerate=waveform.freq,
+                format=self._suffix,
+            )
+            super().__init__(data=buffer.getvalue(), **kwargs)
 
     def load(self) -> "Waveform":
         wave, freq = soundfile.read(self.data, always_2d=True)
