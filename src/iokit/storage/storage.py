@@ -1,4 +1,8 @@
-__all__ = ["Storage", "ReadOnlyStorage", "StorageFactory", "ReadOnlyStorageFactory"]
+__all__ = [
+    "Storage",
+    "ReadOnlyStorage",
+]
+
 from abc import ABC, abstractmethod
 from collections.abc import Iterator
 from typing import Generic, TypeVar
@@ -61,27 +65,3 @@ class ReadOnlyStorage(Storage[T]):
 
     def index(self, prefix: str | None = None) -> Iterator[str]:
         return self._storage.index(prefix)
-
-
-class StorageFactory(ABC):
-    def __init__(self):
-        self._registry: dict[str, Storage[bytes]] = {}
-
-    @abstractmethod
-    def create(self, name: str) -> Storage[bytes]:
-        msg = "Method 'create' must be implemented in a subclass"
-        raise NotImplementedError(msg)
-
-    def __call__(self, name: str) -> Storage[bytes]:
-        if name not in self._registry:
-            self._registry[name] = self.create(name)
-        return self._registry[name]
-
-
-class ReadOnlyStorageFactory(StorageFactory):
-    def __init__(self, factory: StorageFactory):
-        super().__init__()
-        self._factory = factory
-
-    def create(self, name: str) -> Storage[bytes]:
-        return ReadOnlyStorage(self._factory.create(name))
