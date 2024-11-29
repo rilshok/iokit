@@ -16,8 +16,6 @@ from typing_extensions import Self
 
 from iokit.tools.time import now
 
-Payload = BytesIO | bytes
-
 
 class StateName:
     def __init__(self, name: str):
@@ -70,8 +68,8 @@ class State:
     _suffix: str = ""
     _suffixes: tuple[str, ...] = ("",)
 
-    def __init__(self, data: Payload, name: str | StateName = "", time: datetime | None = None):
-        self._data = BytesIO(data) if isinstance(data, bytes) else data
+    def __init__(self, data: bytes, name: str | StateName = "", time: datetime | None = None):
+        self._data = BytesIO(data)
         self._name = StateName.make(name, self._suffix)
         self._time = time or now()
 
