@@ -2,7 +2,7 @@ from typing import Any
 
 import pytest
 
-from iokit import Encryption, Json
+from iokit import Enc, Json
 
 
 def test_encryption() -> None:
@@ -14,7 +14,7 @@ def test_encryption() -> None:
         "int": 42,
     }
     json = Json(data, name="different")
-    state = Encryption(json, password="pA$sw0Rd", salt="s@lt")
+    state = Enc(json, password="pA$sw0Rd", salt="s@lt")
     state_secret = state.load()
     with pytest.raises(ValueError) as excinfo:
         state_secret.load(password="pA$sw0Rd")

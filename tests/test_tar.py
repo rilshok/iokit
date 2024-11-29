@@ -22,7 +22,7 @@ def test_tar_compress() -> None:
     archive2_gz = Gzip(archive)
 
     assert archive1_gz.size == archive2_gz.size
-    assert archive1_gz.data.getvalue() == archive2_gz.data.getvalue()
+    assert archive1_gz.data == archive2_gz.data
     loaded = archive1_gz.load().load()
     assert find_state(loaded, "text1.txt").load() == "First file"
     assert find_state(loaded, "text2.txt").load() == "Second file"

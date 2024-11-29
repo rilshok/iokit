@@ -1,6 +1,4 @@
-__all__ = [
-    "Yaml",
-]
+__all__ = ["Yaml"]
 
 from typing import Any
 
@@ -15,4 +13,4 @@ class Yaml(State, suffix="yaml"):
         super().__init__(data=data, **kwargs)
 
     def load(self) -> Any:
-        return yaml.safe_load(self.data)
+        return yaml.safe_load(self.buffer)

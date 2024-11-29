@@ -36,7 +36,7 @@ def save_file(
         raise FileExistsError(msg)
     root.mkdir(parents=parents, exist_ok=True)
     path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_bytes(state.data.getvalue())
+    path.write_bytes(state.data)
     return path
 
 

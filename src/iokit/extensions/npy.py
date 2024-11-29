@@ -1,3 +1,5 @@
+__all__ = ["Npy"]
+
 from io import BytesIO
 from typing import Any
 
@@ -14,4 +16,4 @@ class Npy(State, suffix="npy"):
             super().__init__(data=buffer.getvalue(), **kwargs)
 
     def load(self) -> NDArray[Any]:
-        return np.load(self.data, allow_pickle=False, fix_imports=False)
+        return np.load(self.buffer, allow_pickle=False, fix_imports=False)

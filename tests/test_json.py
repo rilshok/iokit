@@ -7,21 +7,21 @@ def test_json_empty() -> None:
     state = Json({}, name="empty")
     assert state.name == "empty.json"
     assert state.size == 2
-    assert state.data.getvalue() == b"{}"
+    assert state.data == b"{}"
     assert not state.load()
 
 
 def test_json_single() -> None:
     state = Json({"key": "value"}, name="single")
     assert state.name == "single.json"
-    assert state.data.getvalue() == b'{"key": "value"}'
+    assert state.data == b'{"key": "value"}'
     assert state.load() == {"key": "value"}
 
 
 def test_json_multiple() -> None:
     state = Json({"first": 1, "second": 2}, name="multiple")
     assert state.name == "multiple.json"
-    assert state.data.getvalue() == b'{"first": 1, "second": 2}'
+    assert state.data == b'{"first": 1, "second": 2}'
     assert state.load() == {"first": 1, "second": 2}
     assert 20 < state.size < 30
 
@@ -48,11 +48,11 @@ def test_json_is_string() -> None:
     state = Json("hello", name="string")
     assert state.load() == "hello"
     assert state.size == 7
-    assert state.data.getvalue() == b'"hello"'
+    assert state.data == b'"hello"'
 
 
 def test_json_is_sequence() -> None:
     state = Json([1, 2, 3], name="sequence")
     assert state.load() == [1, 2, 3]
     assert state.size == 9
-    assert state.data.getvalue() == b"[1, 2, 3]"
+    assert state.data == b"[1, 2, 3]"

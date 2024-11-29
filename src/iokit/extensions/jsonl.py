@@ -1,6 +1,4 @@
-__all__ = [
-    "Jsonl",
-]
+__all__ = ["Jsonl"]
 
 from collections.abc import Iterable
 from io import BytesIO
@@ -23,13 +21,13 @@ class Jsonl(State, suffix="jsonl"):
         allow_nan: bool = False,
         **kwargs: Any,
     ):
-        buffer = BytesIO()
-        dumps = json_dumps(compact=compact, ensure_ascii=ensure_ascii, allow_nan=allow_nan)
-        with Writer(buffer, compact=compact, sort_keys=False, dumps=dumps) as writer:
-            for item in sequence:
-                writer.write(item)
-        super().__init__(data=buffer, **kwargs)
+        with BytesIO() as buffer:
+            dumps = json_dumps(compact=compact, ensure_ascii=ensure_ascii, allow_nan=allow_nan)
+            with Writer(buffer, compact=compact, sort_keys=False, dumps=dumps) as writer:
+                for item in sequence:
+                    writer.write(item)
+            super().__init__(data=buffer.getvalue(), **kwargs)
 
     def load(self) -> list[Any]:
-        with Reader(self.data) as reader:
+        with Reader(self.buffer) as reader:
             return list(reader)

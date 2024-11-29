@@ -1,25 +1,28 @@
 __all__ = [
-    "Flac",
-    "Mp3",
-    "Ogg",
-    "Wav",
-    "Waveform",
     "Dat",
-    "Encryption",
+    "Enc",
     "Env",
+    "Flac",
     "Gzip",
     "Json",
     "Jsonl",
+    "Mp3",
     "Npy",
+    "Ogg",
+    "SecretState",
     "Tar",
     "Txt",
+    "Wav",
+    "Waveform",
     "Yaml",
     "Zip",
+    "decrypt",
+    "encrypt",
 ]
 
 from .audio import Flac, Mp3, Ogg, Wav, Waveform
 from .dat import Dat
-from .enc import Encryption
+from .enc import Enc, SecretState, decrypt, encrypt
 from .env import Env
 from .gz import Gzip
 from .json import Json

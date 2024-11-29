@@ -1,3 +1,5 @@
+__all__ = ["Waveform", "Flac", "Wav", "Mp3", "Ogg"]
+
 from dataclasses import dataclass
 from io import BytesIO
 from typing import Any
@@ -11,16 +13,17 @@ from iokit.state import State
 
 class AudioState(State, suffix=""):
     def __init__(self, waveform: "Waveform", **kwargs: Any):
-        soundfile.write(
-            file=(target := BytesIO()),
-            data=waveform.wave,
-            samplerate=waveform.freq,
-            format=self._suffix,
-        )
-        super().__init__(data=target.getvalue(), **kwargs)
+        with BytesIO() as buffer:
+            soundfile.write(
+                file=buffer,
+                data=waveform.wave,
+                samplerate=waveform.freq,
+                format=self._suffix,
+            )
+            super().__init__(data=buffer.getvalue(), **kwargs)
 
     def load(self) -> "Waveform":
-        wave, freq = soundfile.read(self.data, always_2d=True)
+        wave, freq = soundfile.read(self.buffer, always_2d=True)
         return Waveform(wave=wave, freq=freq)
 
 
