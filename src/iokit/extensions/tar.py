@@ -1,7 +1,7 @@
 __all__ = ["Tar"]
 
 import tarfile
-from collections.abc import Iterable
+from collections.abc import Iterable, Iterator
 from io import BytesIO
 from typing import Any
 
@@ -21,8 +21,7 @@ class Tar(State, suffix="tar"):
 
             super().__init__(buffer.getvalue(), **kwargs)
 
-    def load(self) -> list[State]:
-        states: list[State] = []
+    def load(self) -> Iterator[State]:
         with tarfile.open(fileobj=self.buffer, mode="r") as tar_buffer:
             assert tar_buffer is not None
             for member in tar_buffer.getmembers():
@@ -31,10 +30,8 @@ class Tar(State, suffix="tar"):
                 member_buffer = tar_buffer.extractfile(member)
                 if member_buffer is None:
                     continue
-                state = State(
+                yield State(
                     member_buffer.read(),
                     name=member.name,
                     time=fromtimestamp(member.mtime),
                 )
-                states.append(state)
-        return states
