@@ -20,5 +20,5 @@ class Env(State, suffix="env"):
         super().__init__(data=data_bytes, **kwargs)
 
     def load(self) -> dict[str, str | None]:
-        stream = StringIO(self.data.getvalue().decode())
-        return dict(dotenv.dotenv_values(stream=stream))
+        with StringIO(self.data.getvalue().decode()) as stream:
+            return dict(dotenv.dotenv_values(stream=stream))

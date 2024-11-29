@@ -9,12 +9,12 @@ from iokit.state import State
 
 class Zip(State, suffix="zip"):
     def __init__(self, states: Iterable[State], **kwargs: Any):
-        buffer = BytesIO()
-        with zipfile.ZipFile(buffer, mode="w") as zip_buffer:
-            for state in states:
-                zip_buffer.writestr(str(state.name), data=state.data.getvalue())
+        with BytesIO() as buffer:
+            with zipfile.ZipFile(buffer, mode="w") as zip_buffer:
+                for state in states:
+                    zip_buffer.writestr(str(state.name), data=state.data.getvalue())
 
-        super().__init__(data=buffer, **kwargs)
+            super().__init__(data=buffer.getvalue(), **kwargs)
 
     def load(self) -> list[State]:
         states: list[State] = []
