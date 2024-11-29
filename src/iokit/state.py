@@ -68,8 +68,15 @@ class State:
     _suffix: str = ""
     _suffixes: tuple[str, ...] = ("",)
 
-    def __init__(self, data: bytes, name: str | StateName = "", time: datetime | None = None):
-        self._data = data
+    def __init__(
+        self,
+        content: bytes,
+        /,
+        *,
+        name: str | StateName = "",
+        time: datetime | None = None,
+    ):
+        self._data = content
         self._name = StateName.make(name, self._suffix)
         self._time = time or now()
 

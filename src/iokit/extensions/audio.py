@@ -12,15 +12,15 @@ from iokit.state import State
 
 
 class AudioState(State, suffix=""):
-    def __init__(self, waveform: "Waveform", **kwargs: Any):
+    def __init__(self, content: "Waveform", /, **kwargs: Any):
         with BytesIO() as buffer:
             soundfile.write(
                 file=buffer,
-                data=waveform.wave,
-                samplerate=waveform.freq,
+                data=content.wave,
+                samplerate=content.freq,
                 format=self._suffix,
             )
-            super().__init__(data=buffer.getvalue(), **kwargs)
+            super().__init__(buffer.getvalue(), **kwargs)
 
     def load(self) -> "Waveform":
         wave, freq = soundfile.read(self.buffer, always_2d=True)
@@ -97,13 +97,13 @@ class Waveform:
         return Waveform(self.wave.mean(axis=1), self.freq)
 
     def to_flac(self, name: str, **kwargs: Any) -> Flac:
-        return Flac(waveform=self, name=name, **kwargs)
+        return Flac(self, name=name, **kwargs)
 
     def to_wav(self, name: str, **kwargs: Any) -> Wav:
-        return Wav(waveform=self, name=name, **kwargs)
+        return Wav(self, name=name, **kwargs)
 
     def to_mp3(self, name: str, **kwargs: Any) -> Mp3:
-        return Mp3(waveform=self, name=name, **kwargs)
+        return Mp3(self, name=name, **kwargs)
 
     def to_ogg(self, name: str, **kwargs: Any) -> Ogg:
-        return Ogg(waveform=self, name=name, **kwargs)
+        return Ogg(self, name=name, **kwargs)

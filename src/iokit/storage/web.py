@@ -29,4 +29,4 @@ def download_file(url: str, *, timeout: int = 60, keep_path: bool = False) -> St
     if not keep_path:
         name = Path(name).name
 
-    return State(data=resopnse.content, name=name, time=mtime)
+    return State(resopnse.content, name=name, time=mtime)

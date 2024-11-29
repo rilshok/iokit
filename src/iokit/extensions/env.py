@@ -11,15 +11,17 @@ from iokit.state import State
 
 
 class Env(State, suffix="env"):
-    def __init__(self, data: dict[str, str], **kwargs: Any):
+    def __init__(self, content: dict[str, str], /, **kwargs: Any):
         with TemporaryDirectory() as root:
             path = Path(root) / "env"
-            for key, value in data.items():
+            for key, value in content.items():
                 dotenv.set_key(
-                    dotenv_path=path, key_to_set=key, value_to_set=value, quote_mode="auto"
+                    dotenv_path=path,
+                    key_to_set=key,
+                    value_to_set=value,
+                    quote_mode="auto",
                 )
-            data_bytes = path.read_bytes()
-        super().__init__(data=data_bytes, **kwargs)
+            super().__init__(path.read_bytes(), **kwargs)
 
     def load(self) -> dict[str, str | None]:
         with StringIO(self.data.decode()) as stream:

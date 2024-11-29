@@ -28,7 +28,8 @@ def json_dumps(
 class Json(State, suffix="json"):
     def __init__(
         self,
-        data: Any,
+        content: Any,
+        /,
         *,
         compact: bool = False,
         ensure_ascii: bool = False,
@@ -36,8 +37,7 @@ class Json(State, suffix="json"):
         **kwargs: Any,
     ):
         dumps = json_dumps(compact=compact, ensure_ascii=ensure_ascii, allow_nan=allow_nan)
-        data_ = dumps(data).encode("utf-8")
-        super().__init__(data=data_, **kwargs)
+        super().__init__(dumps(content).encode("utf-8"), **kwargs)
 
     def load(self) -> Any:
         return json.load(self.buffer)

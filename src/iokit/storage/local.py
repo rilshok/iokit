@@ -22,16 +22,18 @@ from .storage import BackendStorage, Storage, StorageFactory
 PathLike = str | Path
 
 
-def load_file(path: PathLike) -> State:
+def load_file(path: PathLike, /) -> State:
     logger.debug(f"Loading file from '{path}'")
     path = Path(path).resolve()
     mtime = fromtimestamp(path.stat().st_mtime)
-    return State(data=path.read_bytes(), name=path.name, time=mtime).cast()
+    return State(path.read_bytes(), name=path.name, time=mtime).cast()
 
 
 def save_file(
     state: State,
+    /,
     root: PathLike = "",
+    *,
     parents: bool = False,
     force: bool = False,
 ) -> Path:
@@ -53,7 +55,7 @@ def save_file(
 
 
 @contextmanager
-def save_temp(state: State) -> Generator[Path, None, None]:
+def save_temp(state: State, /) -> Generator[Path, None, None]:
     with tempfile.TemporaryDirectory() as temp_dir:
         yield save_file(state, root=temp_dir)
 
@@ -71,7 +73,7 @@ class LocalStorage(BackendStorage):
     def push(self, uid: str, record: bytes, *, force: bool = False) -> None:
         logger.debug(f"Pushing record with uid '{uid}' to '{self._root}'")
         try:
-            save_file(State(data=record, name=uid), root=self._root, force=force)
+            save_file(State(record, name=uid), root=self._root, force=force)
         except FileExistsError as exc:
             msg = f"Record with uid '{uid}' already exists"
             logger.error(msg)
@@ -190,7 +192,7 @@ class StateStorage(Storage[S]):
     def pull(self, uid: str) -> S:
         name = self._name(uid)
         data = self._backend.pull(name)
-        state = State(data=data, name=name)
+        state = State(data, name=name)
         state = self._cast_state(state)
         return state
 

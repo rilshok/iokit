@@ -10,16 +10,16 @@ from iokit.tools.time import fromtimestamp
 
 
 class Tar(State, suffix="tar"):
-    def __init__(self, states: Iterable[State], **kwargs: Any):
+    def __init__(self, content: Iterable[State], /, **kwargs: Any):
         with BytesIO() as buffer:
             with tarfile.open(fileobj=buffer, mode="w") as tar_buffer:
-                for state in states:
+                for state in content:
                     file_data = tarfile.TarInfo(name=str(state.name))
                     file_data.size = state.size
                     file_data.mtime = int(state.time.timestamp())
                     tar_buffer.addfile(fileobj=state.buffer, tarinfo=file_data)
 
-            super().__init__(data=buffer.getvalue(), **kwargs)
+            super().__init__(buffer.getvalue(), **kwargs)
 
     def load(self) -> list[State]:
         states: list[State] = []
@@ -32,7 +32,7 @@ class Tar(State, suffix="tar"):
                 if member_buffer is None:
                     continue
                 state = State(
-                    data=member_buffer.read(),
+                    member_buffer.read(),
                     name=member.name,
                     time=fromtimestamp(member.mtime),
                 )

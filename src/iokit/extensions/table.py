@@ -9,9 +9,9 @@ from iokit.state import State
 
 
 class Csv(State, suffix="json"):
-    def __init__(self, frame: DataFrame, *, index: bool = False, **kwargs: Any):
+    def __init__(self, content: DataFrame, /, *, index: bool = False, **kwargs: Any):
         with BytesIO() as buffer:
-            frame.to_csv(buffer, index=index)
+            content.to_csv(buffer, index=index)
             super().__init__(buffer.getvalue(), **kwargs)
 
     def load(self) -> DataFrame:
@@ -19,9 +19,9 @@ class Csv(State, suffix="json"):
 
 
 class Tsv(State, suffix="tsv"):
-    def __init__(self, frame: DataFrame, *, index: bool = False, **kwargs: Any):
+    def __init__(self, content: DataFrame, /, *, index: bool = False, **kwargs: Any):
         with BytesIO() as buffer:
-            frame.to_csv(buffer, sep="\t", index=index)
+            content.to_csv(buffer, sep="\t", index=index)
             super().__init__(buffer.getvalue(), **kwargs)
 
     def load(self) -> DataFrame:

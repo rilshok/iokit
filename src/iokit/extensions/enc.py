@@ -88,7 +88,7 @@ class SecretState:
     def load(self, password: bytes | str, salt: bytes | str = DEFAULT_SALT) -> State:
         payload = decrypt(data=self.data, password=_to_bytes(password), salt=_to_bytes(salt))
         name, data = _unpack_arrays(payload)
-        return State(data=data, name=name.decode("utf-8")).cast()
+        return State(data, name=name.decode("utf-8")).cast()
 
     def __repr__(self) -> str:
         return f"<SecretState: {len(self.data)} bytes>"
@@ -103,17 +103,19 @@ class SecretState:
 class Enc(State, suffix="enc"):
     def __init__(
         self,
-        state: State,
+        content: State,
+        /,
         *,
         password: bytes | str,
         name: str | None = None,
         salt: bytes | str = DEFAULT_SALT,
         **kwargs: Any,
     ):
-        if name is None:
-            name = str(state.name)
-        data = SecretState.pack(state=state, password=password, salt=salt).data
-        super().__init__(data=data, name=name, **kwargs)
+        super().__init__(
+            SecretState.pack(state=content, password=password, salt=salt).data,
+            name=name or str(content.name),
+            **kwargs,
+        )
 
     def load(self) -> SecretState:
         return SecretState(data=self.data)
