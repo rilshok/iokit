@@ -10,6 +10,7 @@ __all__ = [
     "Gzip",
     "Json",
     "Jsonl",
+    "Npy",
     "Tar",
     "Txt",
     "Yaml",
@@ -23,6 +24,7 @@ from .env import Env
 from .gz import Gzip
 from .json import Json
 from .jsonl import Jsonl
+from .npy import Npy
 from .tar import Tar
 from .txt import Txt
 from .yaml import Yaml
