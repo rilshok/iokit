@@ -8,7 +8,7 @@ from pandas import DataFrame, read_csv
 from iokit.state import State
 
 
-class Csv(State, suffix="json"):
+class Csv(State, suffix="csv"):
     def __init__(self, content: DataFrame, /, *, index: bool = False, **kwargs: Any):
         with BytesIO() as buffer:
             content.to_csv(buffer, index=index)
