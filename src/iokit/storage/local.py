@@ -3,21 +3,21 @@ __all__ = [
     "save_file",
     "save_temp",
     "LocalStorage",
-    "LocalStorageFactory",
+    "MemoryStorage",
     "StateStorage",
 ]
 import tempfile
 from collections.abc import Generator, Iterator
 from contextlib import contextmanager
 from pathlib import Path
-from typing import TypeVar
+from typing import Any, Literal
 
 from loguru import logger
 
-from iokit import State
+from iokit import State, auto_state, supported_extensions
 from iokit.tools.time import fromtimestamp
 
-from .storage import BackendStorage, Storage, StorageFactory
+from .storage import BackendStorage, Storage
 
 PathLike = str | Path
 
@@ -143,77 +143,91 @@ class MemoryStorage(BackendStorage):
                 yield uid
 
 
-class LocalStorageFactory(StorageFactory):
-    def __init__(self, root: Path | str):
-        super().__init__()
-        root = Path(root).resolve()
-        if not root.exists():
-            logger.debug(f"Creating root directory '{root}'")
-            root.mkdir(parents=False, exist_ok=True)
-        self._root = root
-        logger.debug(f"Created local storage factory at '{self._root}'")
-
-    def create(self, name: str) -> Storage[bytes]:
-        root = (self._root / name).resolve()
-        if not root.is_relative_to(self._root):
-            msg = (
-                f"Storage name '{name}' is incorrect"
-                f"because its use would result in a path outside the root '{self._root}'"
-            )
-            logger.error(msg)
-            raise ValueError(msg)
-        root.mkdir(parents=True, exist_ok=True)
-        return LocalStorage(root=root)
-
-
-S = TypeVar("S", bound=State)
-
-
-class StateStorage(Storage[S]):
-    def __init__(self, backend: BackendStorage, scheme: type[S]):
+class StateStorage(Storage[Any]):
+    def __init__(
+        self,
+        backend: BackendStorage,
+        *,
+        compression: int | bool | None = None,
+        password: str | None = None,
+        waveform_to: Literal["wav", "flac", "mp3", "ogg"] = "wav",
+        dataframe_to: Literal["csv", "tsv"] = "csv",
+        builtin_to: Literal["json", "yaml"] = "json",
+    ):
         super().__init__()
         self._backend = backend
-        self._scheme = scheme
-        self._suffix = f".{scheme.suffix()}"
+        self._extensions = supported_extensions()
 
-    def _cast_state(self, state: State) -> S:
-        state = state.cast()
-        if not isinstance(state, self._scheme):
-            msg = (
-                f"Expected state to be an instance of '{self._scheme.__name__}'"
-                f" but got an instance of '{type(state).__name__}'"
-            )
-            raise TypeError(msg)
-        return state
+        self._compression = compression
+        self._password = password
+        self._waveform_to = waveform_to
+        self._dataframe_to = dataframe_to
+        self._builtin_to = builtin_to
+
+    def _remove_extension(self, name: str) -> str:
+        while True:
+            for ext in self._extensions:
+                suffix = f".{ext}"
+                if name.endswith(suffix):
+                    name = name.removesuffix(suffix)
+                    break
+            else:
+                break
+        return name
 
     def _name(self, uid: str) -> str:
-        return f"{uid}{self._suffix}"
+        for name in self._backend.index(prefix=uid):
+            if self._remove_extension(name) == uid:
+                return name
+        msg = f"Record with uid '{uid}' does not exist"
+        raise FileNotFoundError(msg)
 
-    def pull(self, uid: str) -> S:
+    def pull_state(self, uid: str) -> State:
         name = self._name(uid)
-        data = self._backend.pull(name)
-        state = State(data, name=name)
-        state = self._cast_state(state)
-        return state
+        try:
+            data = self._backend.pull(name)
+            return State(data, name=name).cast()
+        except FileNotFoundError as exc:
+            msg = f"Record with uid '{uid}' does not exist"
+            logger.error(msg)
+            raise FileNotFoundError(msg) from exc
 
-    def push(self, uid: str, record: S, *, force: bool = False) -> None:
-        return self._backend.push(
-            uid=self._name(uid),
-            record=self._cast_state(record).data,
-            force=force,
+    def pull(self, uid: str) -> Any:
+        state = self.pull_state(uid)
+        if self._password is not None:
+            state = state.load().load(password=self._password)
+        if self._compression is not None:
+            state = state.load()
+        return state.load()
+
+    def push(self, uid: str, record: Any, *, force: bool = False) -> None:
+        state = auto_state(
+            record,
+            name=uid,
+            compression=self._compression,
+            password=self._password,
+            waveform_to=self._waveform_to,
+            dataframe_to=self._dataframe_to,
+            builtin_to=self._builtin_to,
         )
+        try:
+            return self._backend.push(uid=str(state.name), record=state.data, force=force)
+        except FileExistsError as exc:
+            msg = f"Record with uid '{uid}' already exists"
+            logger.error(msg)
+            raise FileExistsError(msg) from exc
 
     def remove(self, uid: str) -> None:
-        return self._backend.remove(self._name(uid))
+        try:
+            return self._backend.remove(self._name(uid))
+        except FileNotFoundError as exc:
+            msg = f"Record with uid '{uid}' does not exist"
+            logger.error(msg)
+            raise FileNotFoundError(msg) from exc
 
     def exists(self, uid: str) -> bool:
         return self._backend.exists(self._name(uid))
 
     def index(self, prefix: str | None = None) -> Iterator[str]:
         for idx in self._backend.index(prefix=prefix):
-            yield idx.removesuffix(self._suffix)
-
-
-class MemoryStorageFactory(StorageFactory):
-    def create(self, name: str) -> Storage[bytes]:
-        return MemoryStorage()
+            yield self._remove_extension(idx)
