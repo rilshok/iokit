@@ -62,22 +62,29 @@ class Waveform:
         if self.wave.ndim != 2:
             msg = f"Waveform must be 1D or 2D array, but got {self.wave.ndim}D"
             raise ValueError(msg)
-        if self.wave.shape[1] >= self.wave.shape[0]:
+        if self.channels >= self.frames:
             msg = (
                 "Waveform must have more frames than channels,"
-                f" but got {self.wave.shape[0]} frames and {self.wave.shape[1]} channels."
+                f" but got {self.frames} frames and {self.channels} channels."
             )
             raise ValueError(msg)
         if self.wave.dtype is not float32:
             self.wave = self.wave.astype(float32)
 
     @property
+    def frames(self) -> int:
+        return self.wave.shape[0]
+
+    @property
     def channels(self) -> int:
         return self.wave.shape[1]
 
+    def channel(self, index: int) -> "Waveform":
+        return Waveform(self.wave[:, index], self.freq)
+
     @property
     def duration(self) -> float:
-        return self.wave.shape[0] / self.freq
+        return self.frames / self.freq
 
     def copy(self) -> "Waveform":
         return Waveform(self.wave.copy(), self.freq)
