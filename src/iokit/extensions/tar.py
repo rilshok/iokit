@@ -1,27 +1,35 @@
-import tarfile
-from collections.abc import Iterable
-from io import BytesIO
-from typing import Any
+__all__ = ["Tar"]
 
-from iokit.state import State
+import tarfile
+from collections.abc import Iterable, Iterator
+from datetime import datetime
+from io import BytesIO
+
+from iokit.state import State, StateName
 from iokit.tools.time import fromtimestamp
 
 
 class Tar(State, suffix="tar"):
-    def __init__(self, states: Iterable[State], **kwargs: Any):
-        buffer = BytesIO()
-        with tarfile.open(fileobj=buffer, mode="w") as tar_buffer:
-            for state in states:
-                file_data = tarfile.TarInfo(name=str(state.name))
-                file_data.size = state.size
-                file_data.mtime = int(state.time.timestamp())
-                tar_buffer.addfile(fileobj=state.data, tarinfo=file_data)
+    def __init__(
+        self,
+        data: Iterable[State],
+        /,
+        name: str | StateName = "",
+        *,
+        time: datetime | None = None,
+    ) -> None:
+        with BytesIO() as buffer:
+            with tarfile.open(fileobj=buffer, mode="w") as tar_buffer:
+                for state in data:
+                    file_data = tarfile.TarInfo(name=str(state.name))
+                    file_data.size = state.size
+                    file_data.mtime = int(state.time.timestamp())
+                    tar_buffer.addfile(fileobj=state.buffer, tarinfo=file_data)
 
-        super().__init__(data=buffer, **kwargs)
+            super().__init__(buffer.getvalue(), name=name, time=time)
 
-    def load(self) -> list[State]:
-        states: list[State] = []
-        with tarfile.open(fileobj=self.data, mode="r") as tar_buffer:
+    def load(self) -> Iterator[State]:
+        with tarfile.open(fileobj=self.buffer, mode="r") as tar_buffer:
             assert tar_buffer is not None
             for member in tar_buffer.getmembers():
                 if not member.isfile():
@@ -29,10 +37,8 @@ class Tar(State, suffix="tar"):
                 member_buffer = tar_buffer.extractfile(member)
                 if member_buffer is None:
                     continue
-                state = State(
-                    data=member_buffer.read(),
+                yield State(
+                    member_buffer.read(),
                     name=member.name,
                     time=fromtimestamp(member.mtime),
                 )
-                states.append(state)
-        return states

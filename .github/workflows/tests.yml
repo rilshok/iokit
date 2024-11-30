@@ -32,7 +32,13 @@ jobs:
       run: |
         pytest --junitxml=pytest.xml --cov-report=term-missing:skip-covered --cov=iokit tests/ | tee pytest-coverage.txt
     - name: Pytest coverage comment
+      id: coverage
       uses: MishaKav/pytest-coverage-comment@main
       with:
         pytest-coverage-path: ./pytest-coverage.txt
         junitxml-path: ./pytest.xml
+    - name: Check for test failures
+      if: steps.coverage.outputs.failures != '0' || steps.coverage.outputs.errors != '0'
+      run: |
+        echo "Tests failed or errors occurred. Blocking PR merge."
+        exit 1

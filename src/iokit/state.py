@@ -4,7 +4,7 @@ __all__ = [
     "find_state",
 ]
 
-from collections.abc import Generator, Iterable
+from collections.abc import Generator, Iterable, Iterator
 from contextlib import suppress
 from datetime import datetime
 from fnmatch import fnmatch
@@ -16,11 +16,9 @@ from typing_extensions import Self
 
 from iokit.tools.time import now
 
-Payload = BytesIO | bytes
-
 
 class StateName:
-    def __init__(self, name: str):
+    def __init__(self, name: str) -> None:
         self._name = name
 
     @property
@@ -70,8 +68,15 @@ class State:
     _suffix: str = ""
     _suffixes: tuple[str, ...] = ("",)
 
-    def __init__(self, data: Payload, name: str | StateName = "", time: datetime | None = None):
-        self._data = BytesIO(data) if isinstance(data, bytes) else data
+    def __init__(
+        self,
+        data: bytes,
+        /,
+        name: str | StateName = "",
+        *,
+        time: datetime | None = None,
+    ) -> None:
+        self._data = data
         self._name = StateName.make(name, self._suffix)
         self._time = time or now()
 
@@ -96,6 +101,10 @@ class State:
         cls._suffix = suffix
         cls._suffixes = suffixes
 
+    @classmethod
+    def suffix(cls) -> str:
+        return cls._suffix
+
     @property
     def name(self) -> StateName:
         return self._name
@@ -115,13 +124,16 @@ class State:
         self._time = value
 
     @property
-    def data(self) -> BytesIO:
-        self._data.seek(0)
-        return BytesIO(self._data.getvalue())
+    def data(self) -> bytes:
+        return self._data
+
+    @property
+    def buffer(self) -> BytesIO:
+        return BytesIO(self._data)
 
     @property
     def size(self) -> int:
-        return self._data.getbuffer().nbytes
+        return len(self._data)
 
     def __repr__(self) -> str:
         size = naturalsize(self.size, gnu=True)
@@ -148,12 +160,23 @@ class State:
 
     def load(self) -> Any:
         if not self.name.suffix:
-            return self.data.getvalue()
+            return self.data
         state = self.cast()
         if type(state) is State:  # pylint: disable=unidiomatic-typecheck
             msg = f"Cannot load state with suffix '{self.name.suffix}'"
             raise NotImplementedError(msg)
         return state.load()
+
+
+def _sub_extensions(kls: type[State]) -> Iterator[str]:
+    for k in kls.__subclasses__():
+        if suffix := k.suffix():
+            yield suffix
+        yield from _sub_extensions(k)
+
+
+def supported_extensions() -> list[str]:
+    return list(_sub_extensions(State))
 
 
 def filter_states(states: Iterable[State], pattern: str) -> Generator[State, None, None]:

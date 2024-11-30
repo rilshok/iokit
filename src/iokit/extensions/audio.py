@@ -1,4 +1,7 @@
+__all__ = ["Waveform", "Flac", "Wav", "Mp3", "Ogg"]
+
 from dataclasses import dataclass
+from datetime import datetime
 from io import BytesIO
 from typing import Any
 
@@ -6,21 +9,29 @@ import soundfile
 from numpy import float32
 from numpy.typing import NDArray
 
-from iokit.state import State
+from iokit.state import State, StateName
 
 
 class AudioState(State, suffix=""):
-    def __init__(self, waveform: "Waveform", **kwargs: Any):
-        soundfile.write(
-            file=(target := BytesIO()),
-            data=waveform.wave,
-            samplerate=waveform.freq,
-            format=self._suffix,
-        )
-        super().__init__(data=target.getvalue(), **kwargs)
+    def __init__(
+        self,
+        data: "Waveform",
+        /,
+        name: str | StateName = "",
+        *,
+        time: datetime | None = None,
+    ) -> None:
+        with BytesIO() as buffer:
+            soundfile.write(
+                file=buffer,
+                data=data.wave,
+                samplerate=data.freq,
+                format=self._suffix,
+            )
+            super().__init__(buffer.getvalue(), name=name, time=time)
 
     def load(self) -> "Waveform":
-        wave, freq = soundfile.read(self.data, always_2d=True)
+        wave, freq = soundfile.read(self.buffer, always_2d=True)
         return Waveform(wave=wave, freq=freq)
 
 
@@ -83,7 +94,7 @@ class Waveform:
             stop = self.wave.shape[0]
         return Waveform(self.wave[start:stop], self.freq)
 
-    def display(self):
+    def display(self) -> Any:
         from IPython.display import Audio, display
 
         return display(Audio(self.wave.T, rate=self.freq))
@@ -93,14 +104,14 @@ class Waveform:
             return self.copy()
         return Waveform(self.wave.mean(axis=1), self.freq)
 
-    def to_flac(self, name: str, **kwargs: Any) -> Flac:
-        return Flac(waveform=self, name=name, **kwargs)
+    def to_flac(self, name: str | StateName, *, time: datetime | None = None) -> Flac:
+        return Flac(self, name=name, time=time)
 
-    def to_wav(self, name: str, **kwargs: Any) -> Wav:
-        return Wav(waveform=self, name=name, **kwargs)
+    def to_wav(self, name: str | StateName, *, time: datetime | None = None) -> Wav:
+        return Wav(self, name=name, time=time)
 
-    def to_mp3(self, name: str, **kwargs: Any) -> Mp3:
-        return Mp3(waveform=self, name=name, **kwargs)
+    def to_mp3(self, name: str | StateName, *, time: datetime | None = None) -> Mp3:
+        return Mp3(self, name=name, time=time)
 
-    def to_ogg(self, name: str, **kwargs: Any) -> Ogg:
-        return Ogg(waveform=self, name=name, **kwargs)
+    def to_ogg(self, name: str | StateName, *, time: datetime | None = None) -> Ogg:
+        return Ogg(self, name=name, time=time)

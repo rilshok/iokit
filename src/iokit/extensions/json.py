@@ -1,13 +1,12 @@
-__all__ = [
-    "Json",
-]
+__all__ = ["Json"]
 
 import json
 from collections.abc import Callable
+from datetime import datetime
 from functools import lru_cache
 from typing import Any
 
-from iokit.state import State
+from iokit.state import State, StateName
 
 
 @lru_cache
@@ -31,15 +30,16 @@ class Json(State, suffix="json"):
     def __init__(
         self,
         data: Any,
+        /,
+        name: str | StateName = "",
         *,
         compact: bool = False,
         ensure_ascii: bool = False,
         allow_nan: bool = False,
-        **kwargs: Any,
+        time: datetime | None = None,
     ):
         dumps = json_dumps(compact=compact, ensure_ascii=ensure_ascii, allow_nan=allow_nan)
-        data_ = dumps(data).encode("utf-8")
-        super().__init__(data=data_, **kwargs)
+        super().__init__(dumps(data).encode("utf-8"), name=name, time=time)
 
     def load(self) -> Any:
-        return json.load(self.data)
+        return json.load(self.buffer)

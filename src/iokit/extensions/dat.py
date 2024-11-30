@@ -1,15 +1,21 @@
-__all__ = [
-    "Dat",
-]
+__all__ = ["Dat"]
 
-from typing import Any
 
-from iokit.state import Payload, State
+from datetime import datetime
+
+from iokit.state import State, StateName
 
 
 class Dat(State, suffix="dat"):
-    def __init__(self, data: Payload, **kwargs: Any):
-        super().__init__(data=data, **kwargs)
+    def __init__(
+        self,
+        data: bytes,
+        /,
+        name: str | StateName = "",
+        *,
+        time: datetime | None = None,
+    ) -> None:
+        super().__init__(data, name=name, time=time)
 
     def load(self) -> bytes:
-        return self._data.getvalue()
+        return self.data
