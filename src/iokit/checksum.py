@@ -10,7 +10,7 @@ import xxhash
 
 CHUNK_SIZE = 4096
 
-HashAlgorithm = Literal["xxh32", "xxh64", "xxh128", "sha256", "md5", "sha1"]
+HashAlgorithm = Literal["xxh32", "xxh64", "xxh128", "sha256", "md5", "sha1", "blake2b", "blake2s"]
 
 
 @contextmanager
@@ -79,6 +79,14 @@ class ChecksumMixin:
     def _hexdigest_sha1(self) -> str:
         return _hexdigest(algorithm=hashlib.sha1(), data=self)
 
+    @property
+    def _hexdigest_blake2b(self) -> str:
+        return _hexdigest(algorithm=hashlib.blake2b(), data=self)
+
+    @property
+    def _hexdigest_blake2s(self) -> str:
+        return _hexdigest(algorithm=hashlib.blake2s(), data=self)
+
     def hexdigest(self, algorithm: HashAlgorithm = "xxh64") -> str:
         match algorithm:
             case "xxh32":
@@ -93,6 +101,10 @@ class ChecksumMixin:
                 return self._hexdigest_md5
             case "sha1":
                 return self._hexdigest_sha1
+            case "blake2b":
+                return self._hexdigest_blake2b
+            case "blake2s":
+                return self._hexdigest_blake2s
             case other:
                 msg = f"Unknown hash algorithm '{other}'"
                 raise ValueError(msg)
