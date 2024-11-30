@@ -34,11 +34,14 @@ __all__ = [
     "Wav",
     "Yaml",
     "Zip",
-    "xxh128",
+    "hexdigest_xxh128",
+    "hexdigest_sha256",
+    "hexdigest_md5",
+    "hexdigest_sha1",
 ]
 
 
-from .checksum import xxh128
+from .checksum import hexdigest_md5, hexdigest_sha1, hexdigest_sha256, hexdigest_xxh128
 from .extensions import (
     Csv,
     Dat,

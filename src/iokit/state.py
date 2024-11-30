@@ -168,10 +168,28 @@ class State:
         return state.load()
 
     @property
-    def checksum_xxh128(self) -> str:
-        from .checksum import xxh128
+    def hexdigest_xxh128(self) -> str:
+        from .checksum import hexdigest_xxh128
 
-        return xxh128(self.buffer)
+        return hexdigest_xxh128(self.buffer)
+
+    @property
+    def hexdigest_sha256(self) -> str:
+        from .checksum import hexdigest_sha256
+
+        return hexdigest_sha256(self.buffer)
+
+    @property
+    def hexdigest_md5(self) -> str:
+        from .checksum import hexdigest_md5
+
+        return hexdigest_md5(self.buffer)
+
+    @property
+    def hexdigest_sha1(self) -> str:
+        from .checksum import hexdigest_sha1
+
+        return hexdigest_sha1(self.buffer)
 
 
 def _sub_extensions(kls: type[State]) -> Iterator[str]:

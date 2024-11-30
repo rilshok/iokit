@@ -1,8 +1,15 @@
-__all__ = ["xxh128"]
+__all__ = [
+    "hexdigest_xxh128",
+    "hexdigest_sha256",
+    "hexdigest_md5",
+    "hexdigest_sha1",
+]
 
-from collections.abc import Generator
+import hashlib
+from collections.abc import Generator, Iterator
 from contextlib import contextmanager
 from io import BytesIO
+from typing import Any
 
 import xxhash
 
@@ -34,10 +41,31 @@ def _buffer(data: Data) -> Generator[BytesIO, None, None]:
             buffer.close()
 
 
-def xxh128(data: Data) -> str:
-    hash_object = xxhash.xxh128()
+def _iterate_chuncks(
+    data: Data,
+    chunk_size: int = CHUNK_SIZE,
+) -> Iterator[bytes]:
     with _buffer(data) as buffer:
-        for chunk in iter(lambda: buffer.read(CHUNK_SIZE), b""):
-            hash_object.update(chunk)
-        file_hash = hash_object.hexdigest()
-        return file_hash
+        yield from iter(lambda: buffer.read(chunk_size), b"")
+
+
+def _hexdigest(algorithm: Any, data: Data) -> str:
+    for chunk in _iterate_chuncks(data):
+        algorithm.update(chunk)
+    return algorithm.hexdigest()
+
+
+def hexdigest_xxh128(data: Data) -> str:
+    return _hexdigest(algorithm=xxhash.xxh128(), data=data)
+
+
+def hexdigest_sha256(data: Data) -> str:
+    return _hexdigest(algorithm=hashlib.sha256(), data=data)
+
+
+def hexdigest_md5(data: Data) -> str:
+    return _hexdigest(algorithm=hashlib.md5(), data=data)
+
+
+def hexdigest_sha1(data: Data) -> str:
+    return _hexdigest(algorithm=hashlib.sha1(), data=data)
