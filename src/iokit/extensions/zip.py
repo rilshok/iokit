@@ -11,7 +11,7 @@ from iokit.state import State, StateName
 class Zip(State, suffix="zip"):
     def __init__(
         self,
-        content: Iterable[State],
+        data: Iterable[State],
         /,
         name: str | StateName = "",
         *,
@@ -19,7 +19,7 @@ class Zip(State, suffix="zip"):
     ) -> None:
         with BytesIO() as buffer:
             with zipfile.ZipFile(buffer, mode="w") as zip_buffer:
-                for state in content:
+                for state in data:
                     zip_buffer.writestr(str(state.name), data=state.data)
 
             super().__init__(buffer.getvalue(), name=name, time=time)

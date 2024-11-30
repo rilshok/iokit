@@ -12,7 +12,7 @@ from iokit.tools.time import fromtimestamp
 class Tar(State, suffix="tar"):
     def __init__(
         self,
-        content: Iterable[State],
+        data: Iterable[State],
         /,
         name: str | StateName = "",
         *,
@@ -20,7 +20,7 @@ class Tar(State, suffix="tar"):
     ) -> None:
         with BytesIO() as buffer:
             with tarfile.open(fileobj=buffer, mode="w") as tar_buffer:
-                for state in content:
+                for state in data:
                     file_data = tarfile.TarInfo(name=str(state.name))
                     file_data.size = state.size
                     file_data.mtime = int(state.time.timestamp())

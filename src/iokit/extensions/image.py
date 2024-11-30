@@ -9,14 +9,14 @@ from iokit.state import State, StateName
 class ImageState(State, suffix=""):
     def __init__(
         self,
-        content: Image.Image,
+        data: Image.Image,
         /,
         name: str | StateName = "",
         *,
         time: datetime | None = None,
     ):
         with BytesIO() as buffer:
-            content.save(buffer, format=self._suffix)
+            data.save(buffer, format=self._suffix)
             super().__init__(buffer.getvalue(), name=name, time=time)
 
     def load(self) -> Image.Image:

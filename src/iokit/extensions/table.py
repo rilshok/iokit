@@ -11,7 +11,7 @@ from iokit.state import State, StateName
 class Csv(State, suffix="csv"):
     def __init__(
         self,
-        content: DataFrame,
+        data: DataFrame,
         /,
         name: str | StateName = "",
         *,
@@ -19,7 +19,7 @@ class Csv(State, suffix="csv"):
         time: datetime | None = None,
     ) -> None:
         with BytesIO() as buffer:
-            content.to_csv(buffer, index=index)
+            data.to_csv(buffer, index=index)
             super().__init__(buffer.getvalue(), name=name, time=time)
 
     def load(self) -> DataFrame:
@@ -29,7 +29,7 @@ class Csv(State, suffix="csv"):
 class Tsv(State, suffix="tsv"):
     def __init__(
         self,
-        content: DataFrame,
+        data: DataFrame,
         /,
         name: str | StateName = "",
         *,
@@ -37,7 +37,7 @@ class Tsv(State, suffix="tsv"):
         time: datetime | None = None,
     ) -> None:
         with BytesIO() as buffer:
-            content.to_csv(buffer, sep="\t", index=index)
+            data.to_csv(buffer, sep="\t", index=index)
             super().__init__(buffer.getvalue(), name=name, time=time)
 
     def load(self) -> DataFrame:

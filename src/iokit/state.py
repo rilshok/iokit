@@ -70,13 +70,13 @@ class State:
 
     def __init__(
         self,
-        content: bytes,
+        data: bytes,
         /,
         name: str | StateName = "",
         *,
         time: datetime | None = None,
     ) -> None:
-        self._data = content
+        self._data = data
         self._name = StateName.make(name, self._suffix)
         self._time = time or now()
 
