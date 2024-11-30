@@ -9,7 +9,7 @@ def test_zip_state() -> None:
     assert archive.name.stem == "archive"
     assert archive.name.suffix == "zip"
     assert archive.name.suffixes == ("zip",)
-    states = archive.load()
+    states = list(archive.load())
     assert len(states) == 2
     assert find_state(states, "text1.txt").load() == "First file"
     assert find_state(states, "text2.txt").load() == "Second file"
