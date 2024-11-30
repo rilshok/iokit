@@ -34,9 +34,11 @@ __all__ = [
     "Wav",
     "Yaml",
     "Zip",
+    "ChecksumMixin",
 ]
 
 
+from .checksum import ChecksumMixin
 from .extensions import (
     Csv,
     Dat,
