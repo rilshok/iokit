@@ -16,6 +16,8 @@ from typing_extensions import Self
 
 from iokit.tools.time import now
 
+from .checksum import ChecksumMixin
+
 
 class StateName:
     def __init__(self, name: str) -> None:
@@ -64,7 +66,7 @@ class StateName:
         return cls(str(stem))
 
 
-class State:
+class State(ChecksumMixin):
     _suffix: str = ""
     _suffixes: tuple[str, ...] = ("",)
 

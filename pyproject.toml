@@ -23,6 +23,7 @@ dependencies = [
     "pandas>=1.5.3",
     "loguru>=0.7.2",
     "Pillow>=10.4.0",
+    "xxhash>=3.4.1",
 ]
 
 [tool.setuptools.dynamic]

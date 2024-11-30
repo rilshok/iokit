@@ -1,4 +1,4 @@
-__version__ = "0.3.0"
+__version__ = "0.3.1"
 __all__ = [
     "auto_state",
     "Csv",
@@ -34,9 +34,11 @@ __all__ = [
     "Wav",
     "Yaml",
     "Zip",
+    "ChecksumMixin",
 ]
 
 
+from .checksum import ChecksumMixin
 from .extensions import (
     Csv,
     Dat,
