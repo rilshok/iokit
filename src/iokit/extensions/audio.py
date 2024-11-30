@@ -104,14 +104,14 @@ class Waveform:
             return self.copy()
         return Waveform(self.wave.mean(axis=1), self.freq)
 
-    def to_flac(self, name: str, **kwargs: Any) -> Flac:
-        return Flac(self, name=name, **kwargs)
+    def to_flac(self, name: str, *, time: datetime | None = None) -> Flac:
+        return Flac(self, name=name, time=time)
 
-    def to_wav(self, name: str, **kwargs: Any) -> Wav:
-        return Wav(self, name=name, **kwargs)
+    def to_wav(self, name: str, *, time: datetime | None = None) -> Wav:
+        return Wav(self, name=name, time=time)
 
-    def to_mp3(self, name: str, **kwargs: Any) -> Mp3:
-        return Mp3(self, name=name, **kwargs)
+    def to_mp3(self, name: str, *, time: datetime | None = None) -> Mp3:
+        return Mp3(self, name=name, time=time)
 
-    def to_ogg(self, name: str, **kwargs: Any) -> Ogg:
-        return Ogg(self, name=name, **kwargs)
+    def to_ogg(self, name: str, *, time: datetime | None = None) -> Ogg:
+        return Ogg(self, name=name, time=time)
