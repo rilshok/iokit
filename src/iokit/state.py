@@ -167,6 +167,12 @@ class State:
             raise NotImplementedError(msg)
         return state.load()
 
+    @property
+    def checksum_xxh128(self) -> str:
+        from .checksum import xxh128
+
+        return xxh128(self.buffer)
+
 
 def _sub_extensions(kls: type[State]) -> Iterator[str]:
     for k in kls.__subclasses__():
