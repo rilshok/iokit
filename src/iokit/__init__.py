@@ -32,8 +32,6 @@ __all__ = [
     "Zip",
     "Storage",
     "ReadOnlyStorage",
-    "StorageFactory",
-    "ReadOnlyStorageFactory",
 ]
 
 from .extensions import (
@@ -63,9 +61,7 @@ from .extensions import (
 from .state import State, filter_states, find_state, supported_extensions
 from .storage import (
     ReadOnlyStorage,
-    ReadOnlyStorageFactory,
     Storage,
-    StorageFactory,
     download_file,
     load_file,
     save_file,
