@@ -3,14 +3,17 @@ __all__ = [
     "Csv",
     "Dat",
     "Enc",
+    "Enc",
     "Env",
     "Flac",
     "Gzip",
     "Json",
     "Jsonl",
+    "Jpeg",
     "Mp3",
     "Npy",
     "Ogg",
+    "Png",
     "SecretState",
     "Tar",
     "Tsv",
@@ -29,6 +32,7 @@ from .dat import Dat
 from .enc import Enc, SecretState, decrypt, encrypt
 from .env import Env
 from .gz import Gzip
+from .image import Jpeg, Png
 from .json import Json
 from .jsonl import Jsonl
 from .npy import Npy
