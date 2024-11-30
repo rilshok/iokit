@@ -10,6 +10,8 @@ from .state import State
 
 Data = State | bytes | BytesIO
 
+CHUNK_SIZE = 4096
+
 
 @contextmanager
 def _buffer(data: Data) -> Generator[BytesIO, None, None]:
@@ -35,7 +37,7 @@ def _buffer(data: Data) -> Generator[BytesIO, None, None]:
 def xxh128(data: Data) -> str:
     hash_object = xxhash.xxh128()
     with _buffer(data) as buffer:
-        for chunk in iter(lambda: buffer.read(4096), b""):
+        for chunk in iter(lambda: buffer.read(CHUNK_SIZE), b""):
             hash_object.update(chunk)
         file_hash = hash_object.hexdigest()
         return file_hash
