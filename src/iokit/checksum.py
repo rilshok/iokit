@@ -13,6 +13,29 @@ CHUNK_SIZE = 4096
 HashAlgorithm = Literal["xxh32", "xxh64", "xxh128", "sha256", "md5", "sha1", "blake2b", "blake2s"]
 
 
+def _get_hash_algorithm(algorithm: HashAlgorithm) -> Any:
+    match algorithm:
+        case "xxh32":
+            return xxhash.xxh32()
+        case "xxh64":
+            return xxhash.xxh64()
+        case "xxh128":
+            return xxhash.xxh128()
+        case "sha256":
+            return hashlib.sha256()
+        case "md5":
+            return hashlib.md5()
+        case "sha1":
+            return hashlib.sha1()
+        case "blake2b":
+            return hashlib.blake2b()
+        case "blake2s":
+            return hashlib.blake2s()
+        case other:
+            msg = f"Unknown hash algorithm '{other}'"
+            raise ValueError(msg)
+
+
 @contextmanager
 def _buffer(data: Any) -> Generator[BytesIO, None, None]:
     close = False
@@ -48,66 +71,16 @@ def _iterate_chuncks(
         yield from iter(lambda: buffer.read(chunk_size), b"")
 
 
-def _hexdigest(algorithm: Any, data: Any) -> str:
+def _hexdigest(algorithm: HashAlgorithm, data: Any) -> str:
+    hash_object = _get_hash_algorithm(algorithm)
     for chunk in _iterate_chuncks(data):
-        algorithm.update(chunk)
-    return algorithm.hexdigest()
+        hash_object.update(chunk)
+    return hash_object.hexdigest()
 
 
 class ChecksumMixin:
-    @property
-    def _hexdigest_xxh32(self) -> str:
-        return _hexdigest(algorithm=xxhash.xxh32(), data=self)
-
-    @property
-    def _hexdigest_xxh64(self) -> str:
-        return _hexdigest(algorithm=xxhash.xxh64(), data=self)
-
-    @property
-    def _hexdigest_xxh128(self) -> str:
-        return _hexdigest(algorithm=xxhash.xxh128(), data=self)
-
-    @property
-    def _hexdigest_sha256(self) -> str:
-        return _hexdigest(algorithm=hashlib.sha256(), data=self)
-
-    @property
-    def _hexdigest_md5(self) -> str:
-        return _hexdigest(algorithm=hashlib.md5(), data=self)
-
-    @property
-    def _hexdigest_sha1(self) -> str:
-        return _hexdigest(algorithm=hashlib.sha1(), data=self)
-
-    @property
-    def _hexdigest_blake2b(self) -> str:
-        return _hexdigest(algorithm=hashlib.blake2b(), data=self)
-
-    @property
-    def _hexdigest_blake2s(self) -> str:
-        return _hexdigest(algorithm=hashlib.blake2s(), data=self)
-
-    def hexdigest(self, algorithm: HashAlgorithm = "xxh64") -> str:
-        match algorithm:
-            case "xxh32":
-                return self._hexdigest_xxh32
-            case "xxh64":
-                return self._hexdigest_xxh64
-            case "xxh128":
-                return self._hexdigest_xxh128
-            case "sha256":
-                return self._hexdigest_sha256
-            case "md5":
-                return self._hexdigest_md5
-            case "sha1":
-                return self._hexdigest_sha1
-            case "blake2b":
-                return self._hexdigest_blake2b
-            case "blake2s":
-                return self._hexdigest_blake2s
-            case other:
-                msg = f"Unknown hash algorithm '{other}'"
-                raise ValueError(msg)
+    def hexdigest(self, algorithm: HashAlgorithm) -> str:
+        return _hexdigest(algorithm=algorithm, data=self)
 
     def hexdigest_assert(self, algorithm: HashAlgorithm, hexdigest: str) -> None:
         if (checksum := self.hexdigest(algorithm)) != hexdigest:
