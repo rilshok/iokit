@@ -51,7 +51,7 @@ def auto_state(
             dataframe_to=dataframe_to,
             builtin_to=builtin_to,
         )
-        return Gzip(state, name=name, time=time, compression=int(compression))
+        return Gzip(state, time=time, compression=int(compression))
     match content:
         case ndarray():
             return Npy(content, name=name, time=time)
