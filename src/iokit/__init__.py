@@ -34,9 +34,11 @@ __all__ = [
     "Wav",
     "Yaml",
     "Zip",
+    "xxh128",
 ]
 
 
+from .checksum import xxh128
 from .extensions import (
     Csv,
     Dat,
