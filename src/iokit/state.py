@@ -16,6 +16,8 @@ from typing_extensions import Self
 
 from iokit.tools.time import now
 
+from .checksum import ChecksumMixin
+
 
 class StateName:
     def __init__(self, name: str) -> None:
@@ -64,7 +66,7 @@ class StateName:
         return cls(str(stem))
 
 
-class State:
+class State(ChecksumMixin):
     _suffix: str = ""
     _suffixes: tuple[str, ...] = ("",)
 
@@ -166,30 +168,6 @@ class State:
             msg = f"Cannot load state with suffix '{self.name.suffix}'"
             raise NotImplementedError(msg)
         return state.load()
-
-    @property
-    def hexdigest_xxh128(self) -> str:
-        from .checksum import hexdigest_xxh128
-
-        return hexdigest_xxh128(self.buffer)
-
-    @property
-    def hexdigest_sha256(self) -> str:
-        from .checksum import hexdigest_sha256
-
-        return hexdigest_sha256(self.buffer)
-
-    @property
-    def hexdigest_md5(self) -> str:
-        from .checksum import hexdigest_md5
-
-        return hexdigest_md5(self.buffer)
-
-    @property
-    def hexdigest_sha1(self) -> str:
-        from .checksum import hexdigest_sha1
-
-        return hexdigest_sha1(self.buffer)
 
 
 def _sub_extensions(kls: type[State]) -> Iterator[str]:
