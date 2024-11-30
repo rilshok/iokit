@@ -20,7 +20,7 @@ from .yaml import Yaml
 
 
 def auto_state(
-    content: Any,
+    data: Any,
     /,
     name: str | StateName = "",
     *,
@@ -33,7 +33,7 @@ def auto_state(
 ) -> State:
     if password is not None:
         state = auto_state(
-            content,
+            data,
             name=name,
             time=time,
             compression=compression,
@@ -44,7 +44,7 @@ def auto_state(
         return Enc(state, password=password, name=name, time=time)
     if compression is not None:
         state = auto_state(
-            content,
+            data,
             name=name,
             time=time,
             waveform_to=waveform_to,
@@ -52,37 +52,37 @@ def auto_state(
             builtin_to=builtin_to,
         )
         return Gzip(state, time=time, compression=int(compression))
-    match content:
+    match data:
         case ndarray():
-            return Npy(content, name=name, time=time)
+            return Npy(data, name=name, time=time)
         case DataFrame():
             match dataframe_to:
                 case "csv":
-                    return Csv(content, name=name, time=time)
+                    return Csv(data, name=name, time=time)
                 case "tsv":
-                    return Tsv(content, name=name, time=time)
+                    return Tsv(data, name=name, time=time)
         case Waveform():
             match waveform_to:
                 case "wav":
-                    return content.to_wav(name=name, time=time)
+                    return data.to_wav(name=name, time=time)
                 case "flac":
-                    return content.to_flac(name=name, time=time)
+                    return data.to_flac(name=name, time=time)
                 case "mp3":
-                    return content.to_mp3(name=name, time=time)
+                    return data.to_mp3(name=name, time=time)
                 case "ogg":
-                    return content.to_ogg(name=name, time=time)
+                    return data.to_ogg(name=name, time=time)
         case SecretState():
-            return Enc(content, name=name, time=time)
+            return Enc(data, name=name, time=time)
         case bytes():
-            return Dat(content, name=name, time=time)
+            return Dat(data, name=name, time=time)
         case str():
-            return Txt(content, name=name, time=time)
+            return Txt(data, name=name, time=time)
         case dict() | int() | float() | bool():
             match builtin_to:
                 case "json":
-                    return Json(content, name=name, time=time)
+                    return Json(data, name=name, time=time)
                 case "yaml":
-                    return Yaml(content, name=name, time=time)
+                    return Yaml(data, name=name, time=time)
         case other:
             msg = f"Unsupported record: {other}"
             raise ValueError(msg)

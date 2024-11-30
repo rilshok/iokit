@@ -103,7 +103,7 @@ class SecretState:
 class Enc(State, suffix="enc"):
     def __init__(
         self,
-        content: State | SecretState,
+        data: State | SecretState,
         /,
         name: str | StateName = "",
         *,
@@ -111,15 +111,15 @@ class Enc(State, suffix="enc"):
         salt: bytes | str = DEFAULT_SALT,
         time: datetime | None = None,
     ) -> None:
-        if isinstance(content, SecretState):
+        if isinstance(data, SecretState):
             if password is not None:
                 raise ValueError("Cannot encrypt already encrypted content.")
-            return super().__init__(content.data, name=name or "", time=time)
+            return super().__init__(data.data, name=name or "", time=time)
         if password is None:
             raise ValueError("Password is required for encryption.")
         super().__init__(
-            SecretState.pack(state=content, password=password, salt=salt).data,
-            name=name or str(content.name),
+            SecretState.pack(state=data, password=password, salt=salt).data,
+            name=name or str(data.name),
             time=time,
         )
 

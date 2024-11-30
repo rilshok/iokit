@@ -9,13 +9,13 @@ from iokit.state import State, StateName
 class Dat(State, suffix="dat"):
     def __init__(
         self,
-        content: bytes,
+        data: bytes,
         /,
         name: str | StateName = "",
         *,
         time: datetime | None = None,
     ) -> None:
-        super().__init__(content, name=name, time=time)
+        super().__init__(data, name=name, time=time)
 
     def load(self) -> bytes:
         return self.data

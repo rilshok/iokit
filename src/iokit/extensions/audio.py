@@ -15,7 +15,7 @@ from iokit.state import State, StateName
 class AudioState(State, suffix=""):
     def __init__(
         self,
-        content: "Waveform",
+        data: "Waveform",
         /,
         name: str | StateName = "",
         *,
@@ -24,8 +24,8 @@ class AudioState(State, suffix=""):
         with BytesIO() as buffer:
             soundfile.write(
                 file=buffer,
-                data=content.wave,
-                samplerate=content.freq,
+                data=data.wave,
+                samplerate=data.freq,
                 format=self._suffix,
             )
             super().__init__(buffer.getvalue(), name=name, time=time)
@@ -104,14 +104,14 @@ class Waveform:
             return self.copy()
         return Waveform(self.wave.mean(axis=1), self.freq)
 
-    def to_flac(self, name: str, *, time: datetime | None = None) -> Flac:
+    def to_flac(self, name: str | StateName, *, time: datetime | None = None) -> Flac:
         return Flac(self, name=name, time=time)
 
-    def to_wav(self, name: str, *, time: datetime | None = None) -> Wav:
+    def to_wav(self, name: str | StateName, *, time: datetime | None = None) -> Wav:
         return Wav(self, name=name, time=time)
 
-    def to_mp3(self, name: str, *, time: datetime | None = None) -> Mp3:
+    def to_mp3(self, name: str | StateName, *, time: datetime | None = None) -> Mp3:
         return Mp3(self, name=name, time=time)
 
-    def to_ogg(self, name: str, *, time: datetime | None = None) -> Ogg:
+    def to_ogg(self, name: str | StateName, *, time: datetime | None = None) -> Ogg:
         return Ogg(self, name=name, time=time)

@@ -15,7 +15,7 @@ from .json import json_dumps
 class Jsonl(State, suffix="jsonl"):
     def __init__(
         self,
-        content: Iterable[dict[str, Any]],
+        data: Iterable[dict[str, Any]],
         /,
         name: str | StateName = "",
         *,
@@ -27,7 +27,7 @@ class Jsonl(State, suffix="jsonl"):
         with BytesIO() as buffer:
             dumps = json_dumps(compact=compact, ensure_ascii=ensure_ascii, allow_nan=allow_nan)
             with Writer(buffer, compact=compact, sort_keys=False, dumps=dumps) as writer:
-                for item in content:
+                for item in data:
                     writer.write(item)
             super().__init__(buffer.getvalue(), name=name, time=time)
 

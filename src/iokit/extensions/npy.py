@@ -13,14 +13,14 @@ from iokit.state import State, StateName
 class Npy(State, suffix="npy"):
     def __init__(
         self,
-        content: NDArray[Any],
+        data: NDArray[Any],
         /,
         name: str | StateName = "",
         *,
         time: datetime | None = None,
     ) -> None:
         with BytesIO() as buffer:
-            np.save(buffer, content, allow_pickle=False, fix_imports=False)
+            np.save(buffer, data, allow_pickle=False, fix_imports=False)
             super().__init__(buffer.getvalue(), name=name, time=time)
 
     def load(self) -> NDArray[Any]:

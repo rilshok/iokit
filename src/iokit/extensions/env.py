@@ -13,7 +13,7 @@ from iokit.state import State, StateName
 class Env(State, suffix="env"):
     def __init__(
         self,
-        content: dict[str, str],
+        data: dict[str, str],
         /,
         name: str | StateName = "",
         *,
@@ -21,7 +21,7 @@ class Env(State, suffix="env"):
     ) -> None:
         with TemporaryDirectory() as root:
             path = Path(root) / "env"
-            for key, value in content.items():
+            for key, value in data.items():
                 dotenv.set_key(
                     dotenv_path=path,
                     key_to_set=key,

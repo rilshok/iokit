@@ -29,7 +29,7 @@ def json_dumps(
 class Json(State, suffix="json"):
     def __init__(
         self,
-        content: Any,
+        data: Any,
         /,
         name: str | StateName = "",
         *,
@@ -39,7 +39,7 @@ class Json(State, suffix="json"):
         time: datetime | None = None,
     ):
         dumps = json_dumps(compact=compact, ensure_ascii=ensure_ascii, allow_nan=allow_nan)
-        super().__init__(dumps(content).encode("utf-8"), name=name, time=time)
+        super().__init__(dumps(data).encode("utf-8"), name=name, time=time)
 
     def load(self) -> Any:
         return json.load(self.buffer)
