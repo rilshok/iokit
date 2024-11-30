@@ -4,7 +4,7 @@ __all__ = [
     "find_state",
 ]
 
-from collections.abc import Generator, Iterable
+from collections.abc import Generator, Iterable, Iterator
 from contextlib import suppress
 from datetime import datetime
 from fnmatch import fnmatch
@@ -18,7 +18,7 @@ from iokit.tools.time import now
 
 
 class StateName:
-    def __init__(self, name: str):
+    def __init__(self, name: str) -> None:
         self._name = name
 
     @property
@@ -68,8 +68,15 @@ class State:
     _suffix: str = ""
     _suffixes: tuple[str, ...] = ("",)
 
-    def __init__(self, data: bytes, name: str | StateName = "", time: datetime | None = None):
-        self._data = data
+    def __init__(
+        self,
+        content: bytes,
+        /,
+        name: str | StateName = "",
+        *,
+        time: datetime | None = None,
+    ) -> None:
+        self._data = content
         self._name = StateName.make(name, self._suffix)
         self._time = time or now()
 
@@ -93,6 +100,10 @@ class State:
 
         cls._suffix = suffix
         cls._suffixes = suffixes
+
+    @classmethod
+    def suffix(cls) -> str:
+        return cls._suffix
 
     @property
     def name(self) -> StateName:
@@ -155,6 +166,17 @@ class State:
             msg = f"Cannot load state with suffix '{self.name.suffix}'"
             raise NotImplementedError(msg)
         return state.load()
+
+
+def _sub_extensions(kls: type[State]) -> Iterator[str]:
+    for k in kls.__subclasses__():
+        if suffix := k.suffix():
+            yield suffix
+        yield from _sub_extensions(k)
+
+
+def supported_extensions() -> list[str]:
+    return list(_sub_extensions(State))
 
 
 def filter_states(states: Iterable[State], pattern: str) -> Generator[State, None, None]:

@@ -21,6 +21,7 @@ dependencies = [
     "numpy>=1.21.1",
     "soundfile>=0.12.1",
     "pandas>=1.5.3",
+    "loguru>=0.7.2",
 ]
 
 [tool.setuptools.dynamic]

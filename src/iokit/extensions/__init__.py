@@ -1,4 +1,5 @@
 __all__ = [
+    "auto_state",
     "Csv",
     "Dat",
     "Enc",
@@ -23,6 +24,7 @@ __all__ = [
 ]
 
 from .audio import Flac, Mp3, Ogg, Wav, Waveform
+from .auto import auto_state
 from .dat import Dat
 from .enc import Enc, SecretState, decrypt, encrypt
 from .env import Env

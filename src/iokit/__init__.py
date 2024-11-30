@@ -1,5 +1,6 @@
 __version__ = "0.2.0"
 __all__ = [
+    "auto_state",
     "Csv",
     "Dat",
     "decrypt",
@@ -19,6 +20,7 @@ __all__ = [
     "Ogg",
     "save_file",
     "save_temp",
+    "supported_extensions",
     "SecretState",
     "State",
     "Tar",
@@ -28,6 +30,8 @@ __all__ = [
     "Wav",
     "Yaml",
     "Zip",
+    "Storage",
+    "ReadOnlyStorage",
 ]
 
 from .extensions import (
@@ -50,8 +54,16 @@ from .extensions import (
     Waveform,
     Yaml,
     Zip,
+    auto_state,
     decrypt,
     encrypt,
 )
-from .state import State, filter_states, find_state
-from .storage import download_file, load_file, save_file, save_temp
+from .state import State, filter_states, find_state, supported_extensions
+from .storage import (
+    ReadOnlyStorage,
+    Storage,
+    download_file,
+    load_file,
+    save_file,
+    save_temp,
+)

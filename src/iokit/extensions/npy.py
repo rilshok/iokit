@@ -1,19 +1,27 @@
 __all__ = ["Npy"]
 
+from datetime import datetime
 from io import BytesIO
 from typing import Any
 
 import numpy as np
 from numpy.typing import NDArray
 
-from iokit.state import State
+from iokit.state import State, StateName
 
 
 class Npy(State, suffix="npy"):
-    def __init__(self, array: NDArray[Any], **kwargs: Any) -> None:
+    def __init__(
+        self,
+        content: NDArray[Any],
+        /,
+        name: str | StateName = "",
+        *,
+        time: datetime | None = None,
+    ) -> None:
         with BytesIO() as buffer:
-            np.save(buffer, array, allow_pickle=False, fix_imports=False)
-            super().__init__(data=buffer.getvalue(), **kwargs)
+            np.save(buffer, content, allow_pickle=False, fix_imports=False)
+            super().__init__(buffer.getvalue(), name=name, time=time)
 
     def load(self) -> NDArray[Any]:
         return np.load(self.buffer, allow_pickle=False, fix_imports=False)

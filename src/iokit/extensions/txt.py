@@ -1,13 +1,21 @@
 __all__ = ["Txt"]
 
-from typing import Any
 
-from iokit.state import State
+from datetime import datetime
+
+from iokit.state import State, StateName
 
 
 class Txt(State, suffix="txt"):
-    def __init__(self, data: str, **kwargs: Any):
-        super().__init__(data=data.encode("utf-8"), **kwargs)
+    def __init__(
+        self,
+        content: str,
+        /,
+        name: str | StateName = "",
+        *,
+        time: datetime | None = None,
+    ) -> None:
+        super().__init__(content.encode("utf-8"), name=name, time=time)
 
     def load(self) -> str:
         return self.data.decode("utf-8")

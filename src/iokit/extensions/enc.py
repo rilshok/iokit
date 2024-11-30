@@ -2,8 +2,8 @@ __all__ = ["SecretState", "Enc", "encrypt", "decrypt"]
 
 import struct
 from collections.abc import Iterator
+from datetime import datetime
 from hashlib import sha256
-from typing import Any
 
 from cryptography.exceptions import InvalidTag
 from cryptography.hazmat.primitives.ciphers.algorithms import AES
@@ -12,7 +12,9 @@ from cryptography.hazmat.primitives.ciphers.modes import GCM
 from cryptography.hazmat.primitives.padding import PKCS7
 from typing_extensions import Self
 
-from iokit.state import State
+from iokit.state import State, StateName
+
+DEFAULT_SALT = b"170309"
 
 
 def _to_bytes(data: bytes | str) -> bytes:
@@ -80,19 +82,19 @@ def _unpack_arrays(packed_data: bytes) -> Iterator[bytes]:
 
 
 class SecretState:
-    def __init__(self, data: bytes):
+    def __init__(self, data: bytes) -> None:
         self.data = data
 
-    def load(self, password: bytes | str, salt: bytes | str = b"42") -> State:
+    def load(self, password: bytes | str, salt: bytes | str = DEFAULT_SALT) -> State:
         payload = decrypt(data=self.data, password=_to_bytes(password), salt=_to_bytes(salt))
         name, data = _unpack_arrays(payload)
-        return State(data=data, name=name.decode("utf-8")).cast()
+        return State(data, name=name.decode("utf-8")).cast()
 
     def __repr__(self) -> str:
         return f"<SecretState: {len(self.data)} bytes>"
 
     @classmethod
-    def pack(cls, state: State, password: bytes | str, salt: bytes | str = b"42") -> Self:
+    def pack(cls, state: State, password: bytes | str, salt: bytes | str = DEFAULT_SALT) -> Self:
         payload = _pack_arrays(str(state.name).encode("utf-8"), state.data)
         data = encrypt(data=payload, password=_to_bytes(password), salt=_to_bytes(salt))
         return cls(data=data)
@@ -101,17 +103,25 @@ class SecretState:
 class Enc(State, suffix="enc"):
     def __init__(
         self,
-        state: State,
+        content: State | SecretState,
+        /,
+        name: str | StateName = "",
         *,
-        password: bytes | str,
-        name: str | None = None,
-        salt: bytes | str = b"170309",
-        **kwargs: Any,
-    ):
-        if name is None:
-            name = str(state.name)
-        data = SecretState.pack(state=state, password=password, salt=salt).data
-        super().__init__(data=data, name=name, **kwargs)
+        password: bytes | str | None = None,
+        salt: bytes | str = DEFAULT_SALT,
+        time: datetime | None = None,
+    ) -> None:
+        if isinstance(content, SecretState):
+            if password is not None:
+                raise ValueError("Cannot encrypt already encrypted content.")
+            return super().__init__(content.data, name=name or "", time=time)
+        if password is None:
+            raise ValueError("Password is required for encryption.")
+        super().__init__(
+            SecretState.pack(state=content, password=password, salt=salt).data,
+            name=name or str(content.name),
+            time=time,
+        )
 
     def load(self) -> SecretState:
         return SecretState(data=self.data)
