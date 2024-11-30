@@ -1,15 +1,23 @@
 __all__ = ["Yaml"]
 
+from datetime import datetime
 from typing import Any
 
 import yaml
 
-from iokit.state import State
+from iokit.state import State, StateName
 
 
 class Yaml(State, suffix="yaml"):
-    def __init__(self, content: Any, /, **kwargs: Any) -> None:
-        super().__init__(yaml.safe_dump(content).encode("utf-8"), **kwargs)
+    def __init__(
+        self,
+        content: Any,
+        /,
+        name: str | StateName = "",
+        *,
+        time: datetime | None = None,
+    ) -> None:
+        super().__init__(yaml.safe_dump(content).encode("utf-8"), name=name, time=time)
 
     def load(self) -> Any:
         return yaml.safe_load(self.buffer)

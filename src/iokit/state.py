@@ -72,8 +72,8 @@ class State:
         self,
         content: bytes,
         /,
-        *,
         name: str | StateName = "",
+        *,
         time: datetime | None = None,
     ) -> None:
         self._data = content

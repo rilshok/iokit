@@ -2,15 +2,22 @@ __all__ = ["Tar"]
 
 import tarfile
 from collections.abc import Iterable, Iterator
+from datetime import datetime
 from io import BytesIO
-from typing import Any
 
-from iokit.state import State
+from iokit.state import State, StateName
 from iokit.tools.time import fromtimestamp
 
 
 class Tar(State, suffix="tar"):
-    def __init__(self, content: Iterable[State], /, **kwargs: Any) -> None:
+    def __init__(
+        self,
+        content: Iterable[State],
+        /,
+        name: str | StateName = "",
+        *,
+        time: datetime | None = None,
+    ) -> None:
         with BytesIO() as buffer:
             with tarfile.open(fileobj=buffer, mode="w") as tar_buffer:
                 for state in content:
@@ -19,7 +26,7 @@ class Tar(State, suffix="tar"):
                     file_data.mtime = int(state.time.timestamp())
                     tar_buffer.addfile(fileobj=state.buffer, tarinfo=file_data)
 
-            super().__init__(buffer.getvalue(), **kwargs)
+            super().__init__(buffer.getvalue(), name=name, time=time)
 
     def load(self) -> Iterator[State]:
         with tarfile.open(fileobj=self.buffer, mode="r") as tar_buffer:

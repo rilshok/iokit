@@ -1,6 +1,7 @@
 __all__ = ["Waveform", "Flac", "Wav", "Mp3", "Ogg"]
 
 from dataclasses import dataclass
+from datetime import datetime
 from io import BytesIO
 from typing import Any
 
@@ -8,11 +9,18 @@ import soundfile
 from numpy import float32
 from numpy.typing import NDArray
 
-from iokit.state import State
+from iokit.state import State, StateName
 
 
 class AudioState(State, suffix=""):
-    def __init__(self, content: "Waveform", /, **kwargs: Any) -> None:
+    def __init__(
+        self,
+        content: "Waveform",
+        /,
+        name: str | StateName = "",
+        *,
+        time: datetime | None = None,
+    ) -> None:
         with BytesIO() as buffer:
             soundfile.write(
                 file=buffer,
@@ -20,7 +28,7 @@ class AudioState(State, suffix=""):
                 samplerate=content.freq,
                 format=self._suffix,
             )
-            super().__init__(buffer.getvalue(), **kwargs)
+            super().__init__(buffer.getvalue(), name=name, time=time)
 
     def load(self) -> "Waveform":
         wave, freq = soundfile.read(self.buffer, always_2d=True)

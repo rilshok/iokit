@@ -2,8 +2,8 @@ __all__ = ["SecretState", "Enc", "encrypt", "decrypt"]
 
 import struct
 from collections.abc import Iterator
+from datetime import datetime
 from hashlib import sha256
-from typing import Any
 
 from cryptography.exceptions import InvalidTag
 from cryptography.hazmat.primitives.ciphers.algorithms import AES
@@ -12,7 +12,7 @@ from cryptography.hazmat.primitives.ciphers.modes import GCM
 from cryptography.hazmat.primitives.padding import PKCS7
 from typing_extensions import Self
 
-from iokit.state import State
+from iokit.state import State, StateName
 
 DEFAULT_SALT = b"170309"
 
@@ -105,22 +105,22 @@ class Enc(State, suffix="enc"):
         self,
         content: State | SecretState,
         /,
+        name: str | StateName = "",
         *,
         password: bytes | str | None = None,
-        name: str | None = None,
         salt: bytes | str = DEFAULT_SALT,
-        **kwargs: Any,
+        time: datetime | None = None,
     ) -> None:
         if isinstance(content, SecretState):
             if password is not None:
                 raise ValueError("Cannot encrypt already encrypted content.")
-            return super().__init__(content.data, name=name or "", **kwargs)
+            return super().__init__(content.data, name=name or "", time=time)
         if password is None:
             raise ValueError("Password is required for encryption.")
         super().__init__(
             SecretState.pack(state=content, password=password, salt=salt).data,
             name=name or str(content.name),
-            **kwargs,
+            time=time,
         )
 
     def load(self) -> SecretState:
