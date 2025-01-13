@@ -2,6 +2,7 @@ __all__ = ["Zip"]
 
 import zipfile
 from collections.abc import Iterable, Iterator
+from contextlib import suppress
 from datetime import datetime
 from io import BytesIO
 
@@ -28,8 +29,7 @@ class Zip(State, suffix="zip"):
         with zipfile.ZipFile(self.buffer, mode="r") as zip_buffer:
             for file in zip_buffer.namelist():
                 with zip_buffer.open(file) as member_buffer:
-                    yield State(
-                        member_buffer.read(),
-                        name=file,
-                        time=datetime(*zip_buffer.getinfo(file).date_time),
-                    )
+                    time: datetime | None = None
+                    with suppress(ValueError):
+                        time = datetime(*zip_buffer.getinfo(file).date_time)
+                    yield State(member_buffer.read(), name=file, time=time)
