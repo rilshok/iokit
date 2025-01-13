@@ -22,7 +22,6 @@ class Zip(State, suffix="zip"):
             with ZipFile(buffer, mode="w") as archive:
                 for state in data:
                     archive.writestr(str(state.name), data=state.data)
-
             super().__init__(buffer.getvalue(), name=name, time=time)
 
     def load(self) -> Iterator[State]:
