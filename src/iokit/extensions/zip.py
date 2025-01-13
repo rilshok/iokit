@@ -1,6 +1,5 @@
 __all__ = ["Zip"]
 
-# import zipfile
 from collections.abc import Iterable, Iterator
 from contextlib import suppress
 from datetime import datetime
