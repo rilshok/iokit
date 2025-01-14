@@ -1,9 +1,10 @@
 __all__ = ["Zip"]
 
-import zipfile
 from collections.abc import Iterable, Iterator
+from contextlib import suppress
 from datetime import datetime
 from io import BytesIO
+from zipfile import ZipFile
 
 from iokit.state import State, StateName
 
@@ -18,18 +19,19 @@ class Zip(State, suffix="zip"):
         time: datetime | None = None,
     ) -> None:
         with BytesIO() as buffer:
-            with zipfile.ZipFile(buffer, mode="w") as zip_buffer:
+            with ZipFile(buffer, mode="w") as archive:
                 for state in data:
-                    zip_buffer.writestr(str(state.name), data=state.data)
-
+                    archive.writestr(str(state.name), data=state.data)
             super().__init__(buffer.getvalue(), name=name, time=time)
 
     def load(self) -> Iterator[State]:
-        with zipfile.ZipFile(self.buffer, mode="r") as zip_buffer:
-            for file in zip_buffer.namelist():
-                with zip_buffer.open(file) as member_buffer:
-                    yield State(
-                        member_buffer.read(),
-                        name=file,
-                        time=datetime(*zip_buffer.getinfo(file).date_time),
-                    )
+        with ZipFile(self.buffer, mode="r") as archive:
+            for file in archive.namelist():
+                info = archive.getinfo(file)
+                if info.is_dir():
+                    continue
+                time: datetime | None = None
+                with suppress(ValueError):
+                    time = datetime(*info.date_time)
+                with archive.open(file) as member_buffer:
+                    yield State(member_buffer.read(), name=file, time=time).cast()
