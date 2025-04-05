@@ -42,3 +42,8 @@ jobs:
       run: |
         echo "Tests failed or errors occurred. Blocking PR merge."
         exit 1
+    - name: Add Summary
+      uses: actions/github-script@v6
+      with:
+        script: |
+          core.summary.addRaw(${{ steps.coverage.outputs.summaryReport }}).write()
