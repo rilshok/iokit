@@ -145,7 +145,7 @@ class State(ChecksumMixin):
 
     @classmethod
     def _by_suffix(cls, suffix: str) -> type[Self]:
-        if suffix in cls._suffixes:
+        if suffix.lower() in cls._suffixes:
             return cls
         for kls in cls.__subclasses__():
             with suppress(ValueError):
