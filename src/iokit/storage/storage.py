@@ -6,6 +6,7 @@ __all__ = [
 from abc import ABC, abstractmethod
 from collections.abc import Iterator
 from typing import Generic, TypeVar
+import warnings
 
 
 T = TypeVar("T")
@@ -50,10 +51,15 @@ class ReadOnlyStorage(Storage[T]):
         return self._storage.pull(uid)
 
     def push(self, uid: str, record: T, *, force: bool = False) -> None:
-        pass
+        force_str = f"{force} " if force else ""
+        record_repr = repr(record)
+        record_repr = record_repr if len(record_repr) < 30 else f"{type(record)}"
+        msg = f"Attempt to {force_str}push to read-only storage: {uid=}, {record_repr}"
+        warnings.warn(msg, stacklevel=2)
 
     def remove(self, uid: str) -> None:
-        pass
+        msg = f"Attempt to remove from read-only storage: {uid}"
+        warnings.warn(msg, stacklevel=2)
 
     def exists(self, uid: str) -> bool:
         return self._storage.exists(uid)
