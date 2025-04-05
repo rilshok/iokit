@@ -20,8 +20,8 @@ class Npy(State, suffix="npy"):
         time: datetime | None = None,
     ) -> None:
         with BytesIO() as buffer:
-            np.save(buffer, data, allow_pickle=False, fix_imports=False)
+            np.save(buffer, data, allow_pickle=False)
             super().__init__(buffer.getvalue(), name=name, time=time)
 
     def load(self) -> NDArray[Any]:
-        return np.load(self.buffer, allow_pickle=False, fix_imports=False)
+        return np.load(self.buffer, allow_pickle=False)

@@ -1,9 +1,8 @@
-__all__ = ["Waveform", "Flac", "Wav", "Mp3", "Ogg"]
+__all__ = ["Flac", "Mp3", "Ogg", "Wav", "Waveform"]
 
 from dataclasses import dataclass
 from datetime import datetime
 from io import BytesIO
-from typing import Any
 
 import soundfile
 from numpy import float32
@@ -47,7 +46,7 @@ class Mp3(AudioState, suffix="mp3"):
     pass
 
 
-class Ogg(AudioState, suffix="ogg"):
+class Ogg(AudioState, suffix="ogg", suffixes=("ogg", "oga", "opus")):
     pass
 
 
@@ -59,7 +58,7 @@ class Waveform:
     def __post_init__(self) -> None:
         if self.wave.ndim == 1:
             self.wave = self.wave[:, None]
-        if self.wave.ndim != 2:
+        if self.wave.ndim != 2:  # noqa: PLR2004
             msg = f"Waveform must be 1D or 2D array, but got {self.wave.ndim}D"
             raise ValueError(msg)
         if self.channels >= self.frames:
@@ -97,11 +96,10 @@ class Waveform:
             return self.copy()
         begin, end = begin or 0.0, end or self.duration
         start, stop = self._position(begin), self._position(end)
-        if stop > self.wave.shape[0]:
-            stop = self.wave.shape[0]
+        stop = min(stop, self.wave.shape[0])
         return Waveform(self.wave[start:stop], self.freq)
 
-    def display(self) -> Any:
+    def display(self) -> None:
         from IPython.display import Audio, display
 
         return display(Audio(self.wave.T, rate=self.freq))

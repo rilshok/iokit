@@ -13,7 +13,7 @@ from .json import json_dumps
 
 
 class Jsonl(State, suffix="jsonl"):
-    def __init__(
+    def __init__(  # noqa: PLR0913
         self,
         data: Iterable[dict[str, Any]],
         /,
@@ -23,7 +23,7 @@ class Jsonl(State, suffix="jsonl"):
         ensure_ascii: bool = False,
         allow_nan: bool = False,
         time: datetime | None = None,
-    ):
+    ) -> None:
         with BytesIO() as buffer:
             dumps = json_dumps(compact=compact, ensure_ascii=ensure_ascii, allow_nan=allow_nan)
             with Writer(buffer, compact=compact, sort_keys=False, dumps=dumps) as writer:

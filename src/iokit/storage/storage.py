@@ -1,13 +1,12 @@
 __all__ = [
-    "Storage",
     "ReadOnlyStorage",
+    "Storage",
 ]
 
+import warnings
 from abc import ABC, abstractmethod
 from collections.abc import Iterator
 from typing import Generic, TypeVar
-
-from loguru import logger
 
 T = TypeVar("T")
 
@@ -43,8 +42,11 @@ class BackendStorage(Storage[bytes]):
     pass
 
 
+_RECORD_REPR_LENGTH = 30
+
+
 class ReadOnlyStorage(Storage[T]):
-    def __init__(self, storage: Storage[T]):
+    def __init__(self, storage: Storage[T]) -> None:
         self._storage = storage
 
     def pull(self, uid: str) -> T:
@@ -53,12 +55,13 @@ class ReadOnlyStorage(Storage[T]):
     def push(self, uid: str, record: T, *, force: bool = False) -> None:
         force_str = f"{force} " if force else ""
         record_repr = repr(record)
-        record_repr = record_repr if len(record_repr) < 30 else f"{type(record)}"
+        record_repr = record_repr if len(record_repr) < _RECORD_REPR_LENGTH else f"{type(record)}"
         msg = f"Attempt to {force_str}push to read-only storage: {uid=}, {record_repr}"
-        logger.warning(msg)
+        warnings.warn(msg, stacklevel=2)
 
     def remove(self, uid: str) -> None:
-        logger.warning(f"Attempt to remove from read-only storage: {uid}")
+        msg = f"Attempt to remove from read-only storage: {uid}"
+        warnings.warn(msg, stacklevel=2)
 
     def exists(self, uid: str) -> bool:
         return self._storage.exists(uid)
