@@ -30,7 +30,7 @@ jobs:
       uses: pre-commit/action@v3.0.1
     - name: Build coverage file
       run: |
-        pytest -n auto --junitxml=pytest.xml --cov-report=term-missing:skip-covered --cov=iokit tests/ | tee pytest-coverage.txt
+        pytest --junitxml=pytest.xml --cov-report=term-missing:skip-covered --cov=iokit tests/ | tee pytest-coverage.txt
     - name: Pytest coverage comment
       id: coverage
       uses: MishaKav/pytest-coverage-comment@main
