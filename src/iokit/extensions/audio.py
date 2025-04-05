@@ -46,7 +46,7 @@ class Mp3(AudioState, suffix="mp3"):
     pass
 
 
-class Ogg(AudioState, suffix="ogg"):
+class Ogg(AudioState, suffix="ogg", suffixes=("ogg", "oga", "opus")):
     pass
 
 
