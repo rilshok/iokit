@@ -42,7 +42,7 @@ lint = [
 ]
 test = [
     "pytest>=8.2.2",
-    "pytest-cov>=5.0.0",
+    "pytest-cov>=6.0.0,<6.1.0",
     "pytest-xdist>=3.6.1",
 ]
 
