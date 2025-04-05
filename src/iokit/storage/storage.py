@@ -3,11 +3,10 @@ __all__ = [
     "ReadOnlyStorage",
 ]
 
+import warnings
 from abc import ABC, abstractmethod
 from collections.abc import Iterator
 from typing import Generic, TypeVar
-import warnings
-
 
 T = TypeVar("T")
 
