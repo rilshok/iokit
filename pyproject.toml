@@ -43,6 +43,7 @@ lint = [
 test = [
     "pytest>=8.2.2",
     "pytest-cov>=5.0.0",
+    "pytest-xdist>=3.6.1",
 ]
 
 
@@ -56,6 +57,14 @@ Issues = "https://github.com/rilshok/iokit/issues"
 strict = true
 
 
+[tool.vulture]
+make_whitelist = true
+sort_by_size = true
+verbose = false
+min_confidence = 100
+paths = ["src/iokit"]
+
+
 [tool.ruff]
 line-length = 100
 
@@ -66,18 +75,46 @@ docstring-code-format = true
 
 [tool.ruff.lint]
 select = [
-    "E", # pycodestyle
-    "F", # Pyflakes
-    "UP", # pyupgrade
-    "B", # flake8-bugbear
-    "SIM",# flake8-simplify
-    "I", # isort
+    "RUF",
+    "W",
+    "E",
+    "F",
+    "UP",
+    "YTT",
+    "B",
+    "C4",
+    "T10",
+    "SIM",
+    "I",
+    "PGH",
+    "COM",
+    "RSE",
+    "FLY",
+    "RET",
+    "TC",
+    "FURB",
+    "A",
+    "S",
+    "TRY",
+    "EM",
+    "ANN",
+    "BLE",
+    "N",
+    "C90",
+    "FBT",
+    "SLF",
+    "TID",
+    "ARG",
+    "PTH",
+    "NPY",
+    "PERF",
+    "PL",
+    "FIX",
+    "TD",
+]
+ignore = [
+    "RUF100",
 ]
 
-
-[tool.vulture]
-make_whitelist = true
-sort_by_size = true
-verbose = false
-min_confidence = 100
-paths = ["src/iokit"]
+[tool.ruff.lint.per-file-ignores]
+"tests/*" = ["PLR2004", "PLR0915", "S101", "S106", "ANN201", "SLF001"]

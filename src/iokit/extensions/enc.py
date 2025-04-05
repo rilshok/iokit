@@ -1,4 +1,4 @@
-__all__ = ["SecretState", "Enc", "encrypt", "decrypt"]
+__all__ = ["Enc", "SecretState", "decrypt", "encrypt"]
 
 import struct
 from collections.abc import Iterator
@@ -47,9 +47,7 @@ def encrypt(data: bytes, password: bytes, salt: bytes) -> bytes:
     padded = padder.update(data) + padder.finalize()
     ct = encryptor.update(padded) + encryptor.finalize()
     tag = encryptor.tag
-    result = ct + tag
-    assert isinstance(result, bytes)
-    return result
+    return ct + tag
 
 
 def decrypt(data: bytes, password: bytes, salt: bytes) -> bytes:
@@ -60,10 +58,9 @@ def decrypt(data: bytes, password: bytes, salt: bytes) -> bytes:
     try:
         padded = decryptor.update(ct) + decryptor.finalize_with_tag(tag)
     except InvalidTag as exc:
-        raise ValueError("Decryption failed") from exc
-    result = unpadder.update(padded) + unpadder.finalize()
-    assert isinstance(result, bytes)
-    return result
+        msg = "Decryption failed"
+        raise ValueError(msg) from exc
+    return unpadder.update(padded) + unpadder.finalize()
 
 
 def _pack_arrays(*arrays: bytes) -> bytes:
@@ -113,15 +110,20 @@ class Enc(State, suffix="enc"):
     ) -> None:
         if isinstance(data, SecretState):
             if password is not None:
-                raise ValueError("Cannot encrypt already encrypted content.")
-            return super().__init__(data.data, name=name or "", time=time)
+                msg = "Cannot encrypt already encrypted content."
+                raise ValueError(msg)
+            super().__init__(data.data, name=name or "", time=time)
+            return
+
         if password is None:
-            raise ValueError("Password is required for encryption.")
+            msg = "Password is required for encryption."
+            raise ValueError(msg)
         super().__init__(
             SecretState.pack(state=data, password=password, salt=salt).data,
             name=name or str(data.name),
             time=time,
         )
+        return
 
     def load(self) -> SecretState:
         return SecretState(data=self.data)

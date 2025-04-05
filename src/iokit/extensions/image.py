@@ -14,7 +14,7 @@ class ImageState(State, suffix=""):
         name: str | StateName = "",
         *,
         time: datetime | None = None,
-    ):
+    ) -> None:
         with BytesIO() as buffer:
             data.save(buffer, format=self._suffix)
             super().__init__(buffer.getvalue(), name=name, time=time)

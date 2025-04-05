@@ -19,7 +19,7 @@ def test_txt_save_load_file() -> None:
 
 
 def test_txt_state_japanese() -> None:
-    text = "こんにちは、世界！\nこれはテストファイルです。"
+    text = "こんにちは、世界！\nこれはテストファイルです。"  # noqa: RUF001
     state = Txt(text, name="text")
     assert state.load() == text
     assert state.size > len(text) * 2

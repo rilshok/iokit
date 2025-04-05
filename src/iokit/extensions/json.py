@@ -27,9 +27,9 @@ def json_dumps(
 
 
 class Json(State, suffix="json"):
-    def __init__(
+    def __init__(  # noqa: PLR0913
         self,
-        data: Any,
+        data: object,
         /,
         name: str | StateName = "",
         *,
@@ -37,9 +37,9 @@ class Json(State, suffix="json"):
         ensure_ascii: bool = False,
         allow_nan: bool = False,
         time: datetime | None = None,
-    ):
+    ) -> None:
         dumps = json_dumps(compact=compact, ensure_ascii=ensure_ascii, allow_nan=allow_nan)
         super().__init__(dumps(data).encode("utf-8"), name=name, time=time)
 
-    def load(self) -> Any:
+    def load(self) -> object:
         return json.load(self.buffer)

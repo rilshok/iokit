@@ -5,8 +5,7 @@ from iokit import Gzip, Json, load_file, save_temp
 
 def random_utf8_string(length: int) -> str:
     random_bytes = os.urandom(length)
-    string = random_bytes.decode("utf-8", errors="replace")
-    return string
+    return random_bytes.decode("utf-8", errors="replace")
 
 
 def test_gzip_state() -> None:

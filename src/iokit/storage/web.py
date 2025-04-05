@@ -1,16 +1,17 @@
-__all__ = [
-    "download_file",
-]
+__all__ = ["download_file"]
 
 from contextlib import suppress
-from datetime import datetime
 from pathlib import Path
+from typing import TYPE_CHECKING
 from urllib.parse import urlparse
 
 import requests
 from dateutil.parser import parse as datetimeparse
 
 from iokit.state import State
+
+if TYPE_CHECKING:
+    from datetime import datetime
 
 
 def download_file(url: str, *, timeout: int = 60, keep_path: bool = False) -> State:
