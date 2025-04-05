@@ -1,4 +1,4 @@
-__version__ = "0.3.1"
+__version__ = "0.3.2"
 __all__ = [
     "auto_state",
     "Csv",
@@ -66,11 +66,4 @@ from .extensions import (
     encrypt,
 )
 from .state import State, filter_states, find_state, supported_extensions
-from .storage import (
-    ReadOnlyStorage,
-    Storage,
-    download_file,
-    load_file,
-    save_file,
-    save_temp,
-)
+from .storage import ReadOnlyStorage, Storage, download_file, load_file, save_file, save_temp
