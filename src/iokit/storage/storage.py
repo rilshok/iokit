@@ -3,11 +3,10 @@ __all__ = [
     "ReadOnlyStorage",
 ]
 
+import warnings
 from abc import ABC, abstractmethod
 from collections.abc import Iterator
 from typing import Generic, TypeVar
-
-from loguru import logger
 
 T = TypeVar("T")
 
@@ -55,10 +54,11 @@ class ReadOnlyStorage(Storage[T]):
         record_repr = repr(record)
         record_repr = record_repr if len(record_repr) < 30 else f"{type(record)}"
         msg = f"Attempt to {force_str}push to read-only storage: {uid=}, {record_repr}"
-        logger.warning(msg)
+        warnings.warn(msg, stacklevel=2)
 
     def remove(self, uid: str) -> None:
-        logger.warning(f"Attempt to remove from read-only storage: {uid}")
+        msg = f"Attempt to remove from read-only storage: {uid}"
+        warnings.warn(msg, stacklevel=2)
 
     def exists(self, uid: str) -> bool:
         return self._storage.exists(uid)

@@ -21,13 +21,14 @@ dependencies = [
     "numpy>=1.21.1",
     "soundfile>=0.12.1",
     "pandas>=1.5.3",
-    "loguru>=0.7.2",
     "Pillow>=10.4.0",
     "xxhash>=3.4.1",
 ]
 
+
 [tool.setuptools.dynamic]
 version = {attr = "iokit.__version__"}
+
 
 [project.optional-dependencies]
 dev = ["iokit[lint,test]"]
@@ -44,19 +45,24 @@ test = [
     "pytest-cov>=5.0.0",
 ]
 
+
 [project.urls]
 Homepage = "https://github.com/rilshok/iokit"
 Repository = "https://github.com/rilshok/iokit.git"
 Issues = "https://github.com/rilshok/iokit/issues"
 
+
 [tool.mypy]
 strict = true
+
 
 [tool.ruff]
 line-length = 100
 
+
 [tool.ruff.format]
 docstring-code-format = true
+
 
 [tool.ruff.lint]
 select = [
@@ -67,6 +73,7 @@ select = [
     "SIM",# flake8-simplify
     "I", # isort
 ]
+
 
 [tool.vulture]
 make_whitelist = true
