@@ -1,10 +1,10 @@
 __all__ = [
-    "load_file",
-    "save_file",
-    "save_temp",
     "LocalStorage",
     "MemoryStorage",
     "StateStorage",
+    "load_file",
+    "save_file",
+    "save_temp",
 ]
 
 import tempfile
@@ -56,7 +56,7 @@ def save_temp(state: State, /) -> Generator[Path, None, None]:
 
 
 class LocalStorage(BackendStorage):
-    def __init__(self, root: Path | str):
+    def __init__(self, root: Path | str) -> None:
         super().__init__()
         self._root = Path(root).resolve()
 
@@ -123,7 +123,7 @@ class MemoryStorage(BackendStorage):
 
 
 class StateStorage(Storage[Any]):
-    def __init__(
+    def __init__(  # noqa: PLR0913
         self,
         backend: BackendStorage,
         *,
@@ -132,7 +132,7 @@ class StateStorage(Storage[Any]):
         waveform_to: Literal["wav", "flac", "mp3", "ogg"] = "wav",
         dataframe_to: Literal["csv", "tsv"] = "csv",
         builtin_to: Literal["json", "yaml"] = "json",
-    ):
+    ) -> None:
         super().__init__()
         self._backend = backend
         self._extensions = supported_extensions()
@@ -170,7 +170,7 @@ class StateStorage(Storage[Any]):
             msg = f"Record with uid '{uid}' does not exist"
             raise FileNotFoundError(msg) from exc
 
-    def pull(self, uid: str) -> Any:
+    def pull(self, uid: str) -> object:
         state = self.pull_state(uid)
         if self._password is not None:
             state = state.load().load(password=self._password)
@@ -178,7 +178,7 @@ class StateStorage(Storage[Any]):
             state = state.load()
         return state.load()
 
-    def push(self, uid: str, record: Any, *, force: bool = False) -> None:
+    def push(self, uid: str, record: object, *, force: bool = False) -> None:
         state = auto_state(
             record,
             name=uid,

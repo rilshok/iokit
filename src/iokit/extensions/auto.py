@@ -1,7 +1,7 @@
 __all__ = ["auto_state"]
 
 from datetime import datetime
-from typing import Any, Literal
+from typing import Literal
 
 from numpy import ndarray
 from pandas import DataFrame
@@ -19,8 +19,8 @@ from .txt import Txt
 from .yaml import Yaml
 
 
-def auto_state(
-    data: Any,
+def auto_state(  # noqa: C901, PLR0911, PLR0913, PLR0912
+    data: object,
     /,
     name: str | StateName = "",
     *,

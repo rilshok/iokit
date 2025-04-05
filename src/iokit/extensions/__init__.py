@@ -1,5 +1,4 @@
 __all__ = [
-    "auto_state",
     "Csv",
     "Dat",
     "Enc",
@@ -7,9 +6,9 @@ __all__ = [
     "Env",
     "Flac",
     "Gzip",
+    "Jpeg",
     "Json",
     "Jsonl",
-    "Jpeg",
     "Mp3",
     "Npy",
     "Ogg",
@@ -22,6 +21,7 @@ __all__ = [
     "Waveform",
     "Yaml",
     "Zip",
+    "auto_state",
     "decrypt",
     "encrypt",
 ]

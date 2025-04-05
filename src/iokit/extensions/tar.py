@@ -30,7 +30,6 @@ class Tar(State, suffix="tar"):
 
     def load(self) -> Iterator[State]:
         with tarfile.open(fileobj=self.buffer, mode="r") as tar_buffer:
-            assert tar_buffer is not None
             for member in tar_buffer.getmembers():
                 if not member.isfile():
                     continue

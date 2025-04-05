@@ -9,7 +9,6 @@ from contextlib import suppress
 from datetime import datetime
 from fnmatch import fnmatch
 from io import BytesIO
-from typing import Any
 
 from humanize import naturalsize
 from typing_extensions import Self
@@ -36,9 +35,10 @@ class StateName:
     @property
     def suffix(self) -> str:
         split = self._name.rsplit(sep=".", maxsplit=1)
-        if len(split) == 2:
+        if len(split) == 2:  # noqa: PLR2004
             return f"{split[-1]}"
-        raise ValueError(f"State name '{self._name}' does not have a suffix")
+        msg = f"State name '{self._name}' does not have a suffix"
+        raise ValueError(msg)
 
     @property
     def suffixes(self) -> tuple[str, ...]:
@@ -89,7 +89,8 @@ class State(ChecksumMixin):
     ) -> None:
         if suffix is None and suffixes is not None:
             if len(suffixes) == 0:
-                raise ValueError("State subclasses must define at least one suffix")
+                msg = "State subclasses must define at least one suffix"
+                raise ValueError(msg)
             suffix = suffixes[0]
         if suffix is not None and suffixes is None:
             suffixes = (suffix,)
@@ -98,7 +99,8 @@ class State(ChecksumMixin):
             suffixes = (suffix, *suffixes)
 
         if suffix is None or suffixes is None:
-            raise ValueError("State subclasses must define a suffix or suffixes")
+            msg = "State subclasses must define a suffix or suffixes"
+            raise ValueError(msg)
 
         cls._suffix = suffix
         cls._suffixes = suffixes
@@ -147,20 +149,21 @@ class State(ChecksumMixin):
             return cls
         for kls in cls.__subclasses__():
             with suppress(ValueError):
-                return kls._by_suffix(suffix)
-        raise ValueError(f"Unknown state suffix '{suffix}'")
+                return kls._by_suffix(suffix)  # noqa: SLF001
+        msg = f"Unknown state suffix '{suffix}'"
+        raise ValueError(msg)
 
     def cast(self) -> "State":
         with suppress(ValueError):
             klass = self._by_suffix(self.name.suffix)
             state = klass.__new__(klass)
-            state._data = self.data
-            state._name = self.name
-            state._time = self.time
+            state._data = self.data  # noqa: SLF001
+            state._name = self.name  # noqa: SLF001
+            state._time = self.time  # noqa: SLF001
             return state
         return self
 
-    def load(self) -> Any:
+    def load(self) -> object:
         if not self.name.suffix:
             return self.data
         state = self.cast()
@@ -190,4 +193,5 @@ def filter_states(states: Iterable[State], pattern: str) -> Generator[State, Non
 def find_state(states: Iterable[State], pattern: str) -> State:
     for state in filter_states(states, pattern):
         return state
-    raise FileNotFoundError(f"State not found: {pattern!r}")
+    msg = f"State not found: {pattern!r}"
+    raise FileNotFoundError(msg)
