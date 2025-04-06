@@ -13,7 +13,8 @@ from contextlib import contextmanager
 from pathlib import Path
 from typing import Any, Literal, TypeVar, overload
 
-from iokit import State, auto_state, supported_extensions
+from iokit import Enc, auto_state, supported_extensions
+from iokit.state import ExpectectedStateType, State
 from iokit.tools.time import fromtimestamp
 
 from .storage import BackendStorage, Storage
@@ -171,19 +172,31 @@ class StateStorage(Storage[Any]):
         msg = f"Record with uid '{uid}' does not exist"
         raise FileNotFoundError(msg)
 
-    def pull_state(self, uid: str) -> State:
+    @overload
+    def pull_state(self, uid: str, expected_type: ExpectectedStateType[S]) -> S: ...
+
+    @overload
+    def pull_state(self, uid: str, expected_type: None = None) -> State: ...
+
+    def pull_state(
+        self,
+        uid: str,
+        expected_type: ExpectectedStateType[S] | None = None,
+    ) -> S | State:
         name = self._name(uid)
         try:
             data = self._backend.pull(name)
-            return State(data, name=name).cast()
         except FileNotFoundError as exc:
             msg = f"Record with uid '{uid}' does not exist"
             raise FileNotFoundError(msg) from exc
+        else:
+            return State(data, name=name).cast(expected_type)
 
     def pull(self, uid: str) -> object:
-        state = self.pull_state(uid)
         if self._password is not None:
-            state = state.load().load(password=self._password)
+            state = self.pull_state(uid, Enc).load().load(password=self._password)
+        else:
+            state = self.pull_state(uid)
         if self._compression is not None:
             state = state.load()
         return state.load()
