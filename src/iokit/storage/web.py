@@ -2,7 +2,7 @@ __all__ = ["download_file"]
 
 from contextlib import suppress
 from pathlib import Path
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, TypeVar
 from urllib.parse import urlparse
 
 import requests
@@ -13,8 +13,16 @@ from iokit.state import State
 if TYPE_CHECKING:
     from datetime import datetime
 
+S = TypeVar("S", bound=State)
 
-def download_file(url: str, *, timeout: int = 60, keep_path: bool = False) -> State:
+
+def download_file(
+    url: str,
+    *,
+    timeout: int = 60,
+    keep_path: bool = False,
+    exp: type[S] | None = None,
+) -> type[S] | State:
     response = requests.get(url, timeout=timeout)
     if not response.ok:
         msg = f"Failed to download file: uri='{url}', status_code={response.status_code}"
@@ -30,4 +38,4 @@ def download_file(url: str, *, timeout: int = 60, keep_path: bool = False) -> St
     if not keep_path:
         name = Path(name).name
 
-    return State(response.content, name=name, time=mtime).cast()
+    return State(response.content, name=name, time=mtime).cast(exp=exp)
