@@ -15,11 +15,11 @@ def test_txt_save_load_file() -> None:
     text = "Hello, World!"
     state = Txt(text, name="text")
     with save_temp(state) as path:
-        assert load_file(path).load() == text
+        assert load_file(path, exp=Txt).load() == text
 
 
 def test_txt_state_japanese() -> None:
-    text = "こんにちは、世界！\nこれはテストファイルです。"  # noqa: RUF001
+    text = "こんにちは、世界!\nこれはテストファイルです。"
     state = Txt(text, name="text")
     assert state.load() == text
     assert state.size > len(text) * 2
