@@ -68,7 +68,7 @@ class StateName:
 
 
 S = TypeVar("S", bound="State")
-ExpectectedStateType = type[S] | tuple[type[S], ...]
+ExpectedStateType = type[S] | tuple[type[S], ...]
 
 
 class State(ChecksumMixin):
@@ -162,9 +162,9 @@ class State(ChecksumMixin):
     def cast(self, expected_type: None = None) -> Self: ...
 
     @overload
-    def cast(self, expected_type: ExpectectedStateType[S]) -> S: ...
+    def cast(self, expected_type: ExpectedStateType[S]) -> S: ...
 
-    def cast(self, expected_type: ExpectectedStateType[S] | None = None) -> S | Self:
+    def cast(self, expected_type: ExpectedStateType[S] | None = None) -> S | Self:
         try:
             klass = self._by_suffix(self.name.suffix)
             state = klass.__new__(klass)

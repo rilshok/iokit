@@ -14,7 +14,7 @@ from pathlib import Path
 from typing import Any, Literal, TypeVar, overload
 
 from iokit import Enc, auto_state, supported_extensions
-from iokit.state import ExpectectedStateType, State
+from iokit.state import ExpectedStateType, State
 from iokit.tools.time import fromtimestamp
 
 from .storage import BackendStorage, Storage
@@ -173,7 +173,7 @@ class StateStorage(Storage[Any]):
         raise FileNotFoundError(msg)
 
     @overload
-    def pull_state(self, uid: str, expected_type: ExpectectedStateType[S]) -> S: ...
+    def pull_state(self, uid: str, expected_type: ExpectedStateType[S]) -> S: ...
 
     @overload
     def pull_state(self, uid: str, expected_type: None = None) -> State: ...
@@ -181,7 +181,7 @@ class StateStorage(Storage[Any]):
     def pull_state(
         self,
         uid: str,
-        expected_type: ExpectectedStateType[S] | None = None,
+        expected_type: ExpectedStateType[S] | None = None,
     ) -> S | State:
         name = self._name(uid)
         try:

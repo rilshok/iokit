@@ -8,7 +8,7 @@ from urllib.parse import urlparse
 import requests
 from dateutil.parser import parse as datetimeparse
 
-from iokit.state import ExpectectedStateType, State
+from iokit.state import ExpectedStateType, State
 
 if TYPE_CHECKING:
     from datetime import datetime
@@ -19,7 +19,7 @@ S = TypeVar("S", bound=State)
 @overload
 def download_file(
     url: str,
-    expected_type: ExpectectedStateType[S],
+    expected_type: ExpectedStateType[S],
     *,
     timeout: int = 60,
     keep_path: bool = False,
@@ -38,7 +38,7 @@ def download_file(
 
 def download_file(
     url: str,
-    expected_type: ExpectectedStateType[S] | None = None,
+    expected_type: ExpectedStateType[S] | None = None,
     *,
     timeout: int = 60,
     keep_path: bool = False,
