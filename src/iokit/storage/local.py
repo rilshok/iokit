@@ -11,7 +11,7 @@ import tempfile
 from collections.abc import Generator, Iterator
 from contextlib import contextmanager
 from pathlib import Path
-from typing import Any, Literal, TypeVar
+from typing import Any, Literal, TypeVar, overload
 
 from iokit import State, auto_state, supported_extensions
 from iokit.tools.time import fromtimestamp
@@ -21,6 +21,14 @@ from .storage import BackendStorage, Storage
 PathLike = str | Path
 
 S = TypeVar("S", bound=State)
+
+
+@overload
+def load_file(path: PathLike, /, exp: type[S]) -> S: ...
+
+
+@overload
+def load_file(path: PathLike, /, exp: None = None) -> State: ...
 
 
 def load_file(path: PathLike, /, exp: type[S] | None = None) -> S | State:
