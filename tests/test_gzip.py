@@ -38,6 +38,5 @@ def test_gzip_save_load_file() -> None:
     data = {"a": 1, "b": 2}
     state = Gzip(Json(data, name="data"))
     with save_temp(state) as path:
-        assert load_file(path).load().load() == data
+        assert load_file(path, Gzip).load().load() == data
         assert path.as_posix().endswith(".json.gz")
-        assert load_file(path).load().load() == data

@@ -9,6 +9,7 @@ from contextlib import suppress
 from datetime import datetime
 from fnmatch import fnmatch
 from io import BytesIO
+from typing import TypeVar, overload
 
 from humanize import naturalsize
 from typing_extensions import Self
@@ -64,6 +65,10 @@ class StateName:
         if suffix:
             return cls(f"{stem}.{suffix}")
         return cls(str(stem))
+
+
+S = TypeVar("S", bound="State")
+ExpectedStateType = type[S] | tuple[type[S], ...]
 
 
 class State(ChecksumMixin):
@@ -153,21 +158,36 @@ class State(ChecksumMixin):
         msg = f"Unknown state suffix '{suffix}'"
         raise ValueError(msg)
 
-    def cast(self) -> "State":
-        with suppress(ValueError):
+    @overload
+    def cast(self, expected_type: None = None) -> Self: ...
+
+    @overload
+    def cast(self, expected_type: ExpectedStateType[S]) -> S: ...
+
+    def cast(self, expected_type: ExpectedStateType[S] | None = None) -> S | Self:
+        try:
             klass = self._by_suffix(self.name.suffix)
             state = klass.__new__(klass)
             state._data = self.data  # noqa: SLF001
             state._name = self.name  # noqa: SLF001
             state._time = self.time  # noqa: SLF001
-            return state
-        return self
+        except ValueError:
+            state = self
+        if expected_type is not None and not isinstance(state, expected_type):
+            if isinstance(expected_type, tuple):
+                expectation = " or ".join(repr(k.__name__) for k in expected_type)
+            else:
+                expectation = repr(expected_type.__name__)
+            msg = f"Expected state of type {expectation}, got '{type(state).__name__}'"
+            raise TypeError(msg)
+        return state
 
     def load(self) -> object:
         if not self.name.suffix:
             return self.data
-        state = self.cast()
-        if type(state) is State:  # pylint: disable=unidiomatic-typecheck
+        if type(self) is State:
+            state = self.cast()
+        if type(state) is State:
             msg = f"Cannot load state with suffix '{self.name.suffix}'"
             raise NotImplementedError(msg)
         return state.load()
