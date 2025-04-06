@@ -2,7 +2,7 @@ __all__ = ["download_file"]
 
 from contextlib import suppress
 from pathlib import Path
-from typing import TYPE_CHECKING, TypeVar
+from typing import TYPE_CHECKING, TypeVar, overload
 from urllib.parse import urlparse
 
 import requests
@@ -14,6 +14,26 @@ if TYPE_CHECKING:
     from datetime import datetime
 
 S = TypeVar("S", bound=State)
+
+
+@overload
+def download_file(
+    url: str,
+    *,
+    timeout: int = 60,
+    keep_path: bool = False,
+    exp: type[S],
+) -> S: ...
+
+
+@overload
+def download_file(
+    url: str,
+    *,
+    timeout: int = 60,
+    keep_path: bool = False,
+    exp: None = None,
+) -> State: ...
 
 
 def download_file(
