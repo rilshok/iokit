@@ -8,7 +8,7 @@ def test_save_temp_jsonl() -> None:
     state = Jsonl(data, name="test")
     with save_temp(state) as path:
         assert Path(path).name == "test.jsonl"
-        state_loaded = load_file(path)
+        state_loaded = load_file(path, exp=Jsonl)
         assert state.size == state_loaded.size
         assert Path(path).stat().st_size == state.size
         assert state_loaded.name.stem == "test"
