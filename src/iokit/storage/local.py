@@ -11,20 +11,31 @@ import tempfile
 from collections.abc import Generator, Iterator
 from contextlib import contextmanager
 from pathlib import Path
-from typing import Any, Literal
+from typing import Any, Literal, TypeVar, overload
 
-from iokit import State, auto_state, supported_extensions
+from iokit import Enc, auto_state, supported_extensions
+from iokit.state import ExpectedStateType, State
 from iokit.tools.time import fromtimestamp
 
 from .storage import BackendStorage, Storage
 
 PathLike = str | Path
 
+S = TypeVar("S", bound=State)
 
-def load_file(path: PathLike, /) -> State:
+
+@overload
+def load_file(path: PathLike, expected_type: type[S]) -> S: ...
+
+
+@overload
+def load_file(path: PathLike, expected_type: None = None) -> State: ...
+
+
+def load_file(path: PathLike, expected_type: type[S] | None = None) -> S | State:
     path = Path(path).resolve()
     mtime = fromtimestamp(path.stat().st_mtime)
-    return State(path.read_bytes(), name=path.name, time=mtime).cast()
+    return State(path.read_bytes(), name=path.name, time=mtime).cast(expected_type)
 
 
 def save_file(
@@ -161,19 +172,31 @@ class StateStorage(Storage[Any]):
         msg = f"Record with uid '{uid}' does not exist"
         raise FileNotFoundError(msg)
 
-    def pull_state(self, uid: str) -> State:
+    @overload
+    def pull_state(self, uid: str, expected_type: ExpectedStateType[S]) -> S: ...
+
+    @overload
+    def pull_state(self, uid: str, expected_type: None = None) -> State: ...
+
+    def pull_state(
+        self,
+        uid: str,
+        expected_type: ExpectedStateType[S] | None = None,
+    ) -> S | State:
         name = self._name(uid)
         try:
             data = self._backend.pull(name)
-            return State(data, name=name).cast()
         except FileNotFoundError as exc:
             msg = f"Record with uid '{uid}' does not exist"
             raise FileNotFoundError(msg) from exc
+        else:
+            return State(data, name=name).cast(expected_type)
 
     def pull(self, uid: str) -> object:
-        state = self.pull_state(uid)
         if self._password is not None:
-            state = state.load().load(password=self._password)
+            state = self.pull_state(uid, Enc).load().load(password=self._password)
+        else:
+            state = self.pull_state(uid)
         if self._compression is not None:
             state = state.load()
         return state.load()
