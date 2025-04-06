@@ -11,7 +11,7 @@ import tempfile
 from collections.abc import Generator, Iterator
 from contextlib import contextmanager
 from pathlib import Path
-from typing import Any, Literal
+from typing import Any, Literal, TypeVar
 
 from iokit import State, auto_state, supported_extensions
 from iokit.tools.time import fromtimestamp
@@ -20,11 +20,13 @@ from .storage import BackendStorage, Storage
 
 PathLike = str | Path
 
+S = TypeVar("S", bound=State)
 
-def load_file(path: PathLike, /) -> State:
+
+def load_file(path: PathLike, /, exp: type[S] | None = None) -> S | State:
     path = Path(path).resolve()
     mtime = fromtimestamp(path.stat().st_mtime)
-    return State(path.read_bytes(), name=path.name, time=mtime).cast()
+    return State(path.read_bytes(), name=path.name, time=mtime).cast(exp=exp)
 
 
 def save_file(
