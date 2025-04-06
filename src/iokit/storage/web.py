@@ -42,7 +42,7 @@ def download_file(
     timeout: int = 60,
     keep_path: bool = False,
     exp: type[S] | None = None,
-) -> type[S] | State:
+) -> S | State:
     response = requests.get(url, timeout=timeout)
     if not response.ok:
         msg = f"Failed to download file: uri='{url}', status_code={response.status_code}"
