@@ -15,7 +15,7 @@ def test_txt_save_load_file() -> None:
     text = "Hello, World!"
     state = Txt(text, name="text")
     with save_temp(state) as path:
-        assert load_file(path, exp=Txt).load() == text
+        assert load_file(path, Txt).load() == text
 
 
 def test_txt_state_japanese() -> None:

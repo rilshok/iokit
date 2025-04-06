@@ -158,12 +158,12 @@ class State(ChecksumMixin):
         raise ValueError(msg)
 
     @overload
-    def cast(self, *, exp: None = None) -> Self: ...
+    def cast(self, expected_type: None = None) -> Self: ...
 
     @overload
-    def cast(self, *, exp: type[S]) -> S: ...
+    def cast(self, expected_type: type[S]) -> S: ...
 
-    def cast(self, *, exp: type[S] | None = None) -> S | Self:
+    def cast(self, expected_type: type[S] | None = None) -> S | Self:
         try:
             klass = self._by_suffix(self.name.suffix)
             state = klass.__new__(klass)
@@ -172,8 +172,8 @@ class State(ChecksumMixin):
             state._time = self.time  # noqa: SLF001
         except ValueError:
             state = self
-        if exp is not None and not isinstance(state, exp):
-            msg = f"Expected state of type '{exp.__name__}', got '{type(state).__name__}'"
+        if expected_type is not None and not isinstance(state, expected_type):
+            msg = f"Expected state of type '{expected_type.__name__}', got '{type(state).__name__}'"
             raise TypeError(msg)
         return state
 

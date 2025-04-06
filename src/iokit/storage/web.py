@@ -19,29 +19,29 @@ S = TypeVar("S", bound=State)
 @overload
 def download_file(
     url: str,
+    expected_type: type[S],
     *,
     timeout: int = 60,
     keep_path: bool = False,
-    exp: type[S],
 ) -> S: ...
 
 
 @overload
 def download_file(
     url: str,
+    expected_type: None = None,
     *,
     timeout: int = 60,
     keep_path: bool = False,
-    exp: None = None,
 ) -> State: ...
 
 
 def download_file(
     url: str,
+    expected_type: type[S] | None = None,
     *,
     timeout: int = 60,
     keep_path: bool = False,
-    exp: type[S] | None = None,
 ) -> S | State:
     response = requests.get(url, timeout=timeout)
     if not response.ok:
@@ -58,4 +58,4 @@ def download_file(
     if not keep_path:
         name = Path(name).name
 
-    return State(response.content, name=name, time=mtime).cast(exp=exp)
+    return State(response.content, name=name, time=mtime).cast(expected_type)

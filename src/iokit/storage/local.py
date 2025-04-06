@@ -24,17 +24,17 @@ S = TypeVar("S", bound=State)
 
 
 @overload
-def load_file(path: PathLike, /, exp: type[S]) -> S: ...
+def load_file(path: PathLike, expected_type: type[S]) -> S: ...
 
 
 @overload
-def load_file(path: PathLike, /, exp: None = None) -> State: ...
+def load_file(path: PathLike, expected_type: None = None) -> State: ...
 
 
-def load_file(path: PathLike, /, exp: type[S] | None = None) -> S | State:
+def load_file(path: PathLike, expected_type: type[S] | None = None) -> S | State:
     path = Path(path).resolve()
     mtime = fromtimestamp(path.stat().st_mtime)
-    return State(path.read_bytes(), name=path.name, time=mtime).cast(exp=exp)
+    return State(path.read_bytes(), name=path.name, time=mtime).cast(expected_type)
 
 
 def save_file(
