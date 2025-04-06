@@ -68,6 +68,7 @@ class StateName:
 
 
 S = TypeVar("S", bound="State")
+ExpectectedStateType = type[S] | tuple[type[S], ...]
 
 
 class State(ChecksumMixin):
@@ -161,9 +162,9 @@ class State(ChecksumMixin):
     def cast(self, expected_type: None = None) -> Self: ...
 
     @overload
-    def cast(self, expected_type: type[S]) -> S: ...
+    def cast(self, expected_type: ExpectectedStateType[S]) -> S: ...
 
-    def cast(self, expected_type: type[S] | None = None) -> S | Self:
+    def cast(self, expected_type: ExpectectedStateType[S] | None = None) -> S | Self:
         try:
             klass = self._by_suffix(self.name.suffix)
             state = klass.__new__(klass)
@@ -173,7 +174,11 @@ class State(ChecksumMixin):
         except ValueError:
             state = self
         if expected_type is not None and not isinstance(state, expected_type):
-            msg = f"Expected state of type '{expected_type.__name__}', got '{type(state).__name__}'"
+            if isinstance(expected_type, tuple):
+                expectation = " or ".join(repr(k.__name__) for k in expected_type)
+            else:
+                expectation = repr(expected_type.__name__)
+            msg = f"Expected state of type {expectation}, got '{type(state).__name__}'"
             raise TypeError(msg)
         return state
 
