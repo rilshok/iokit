@@ -50,6 +50,9 @@ class Ogg(AudioState, suffix="ogg", suffixes=("ogg", "oga", "opus")):
     pass
 
 
+_MAX_CHANNELS = 8  # Maximum number of channels for a waveform
+
+
 @dataclass
 class Waveform:
     wave: NDArray[float32]
@@ -61,10 +64,10 @@ class Waveform:
         if self.wave.ndim != 2:  # noqa: PLR2004
             msg = f"Waveform must be 1D or 2D array, but got {self.wave.ndim}D"
             raise ValueError(msg)
-        if self.channels >= self.frames:
+        if self.channels >= _MAX_CHANNELS:
             msg = (
-                "Waveform must have more frames than channels,"
-                f" but got {self.frames} frames and {self.channels} channels."
+                f"Waveform must have less than {_MAX_CHANNELS} channels,"
+                f" but got {self.channels} channels."
             )
             raise ValueError(msg)
         if self.wave.dtype is not float32:
