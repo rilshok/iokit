@@ -10,6 +10,7 @@ __all__ = [
 import tempfile
 from collections.abc import Generator, Iterator
 from contextlib import contextmanager
+from io import BytesIO
 from pathlib import Path
 from typing import Any, Literal, TypeVar, overload
 
@@ -61,9 +62,16 @@ def save_file(
 
 
 @contextmanager
-def save_temp(state: State, /) -> Generator[Path, None, None]:
+def save_temp(state: State | bytes | BytesIO, /) -> Generator[Path, None, None]:
     with tempfile.TemporaryDirectory() as temp_dir:
-        yield save_file(state, root=temp_dir)
+        if isinstance(state, State):
+            yield save_file(state, root=temp_dir)
+            return
+        if isinstance(state, BytesIO):
+            state = state.getvalue()
+        path = Path(temp_dir) / "data"
+        path.write_bytes(state)
+        yield path
 
 
 class LocalStorage(BackendStorage):
