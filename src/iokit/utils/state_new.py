@@ -47,6 +47,10 @@ class BytesEngine(Engine[bytes]):
         return buffer.read()
 
 
+class Data(bytes):
+    pass
+
+
 class State:
     def __init__(self, key: str, timestamp: int | None = None) -> None:
         self.key = key
@@ -81,9 +85,9 @@ class State:
         return len(self.data)
 
     @property
-    def data(self) -> bytes:
+    def data(self) -> Data:
         with self.buffer as buffer:
-            return buffer.read()
+            return Data(buffer.read())
 
     @property
     def buffer(self) -> BinaryIO:
