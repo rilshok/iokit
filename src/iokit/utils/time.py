@@ -3,26 +3,25 @@ from typing import Self
 
 
 def fromtimestamp(timestamp: float) -> datetime:
-    return datetime.fromtimestamp(timestamp, UTC)
+    return Timestamp(timestamp).datetime
 
 
 def now() -> datetime:
-    return datetime.now(UTC)
+    return Timestamp.now().datetime
 
 
-class Timestamp(int):
-    def __new__(cls, dt: int | None = None) -> Self:
-        if dt is None:
-            dt = int(now().timestamp())
-        return super().__new__(cls, dt)
+class Timestamp(float):
+    @classmethod
+    def now(cls) -> Self:
+        return cls(datetime.now(UTC).timestamp())
 
     @classmethod
-    def from_dt(cls, dt: datetime) -> Self:
-        return cls(int(dt.timestamp()))
+    def from_datetime(cls, dt: datetime) -> Self:
+        return cls(dt.timestamp())
 
     @property
-    def dt(self) -> datetime:
+    def datetime(self) -> datetime:
         return datetime.fromtimestamp(self, tz=UTC)
 
-    def shift(self, td: timedelta) -> int:
-        return Timestamp.from_dt(self.dt + td)
+    def shift(self, td: timedelta) -> Self:
+        return type(self).from_datetime(self.datetime + td)
