@@ -110,8 +110,6 @@ select = [
     "NPY",
     "PERF",
     "PL",
-    "FIX",
-    "TD",
 ]
 ignore = [
     "RUF100",

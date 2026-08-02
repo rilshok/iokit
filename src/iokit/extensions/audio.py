@@ -137,6 +137,7 @@ class Waveform:
         return Waveform(self.wave[start:stop], self.freq)
 
     def display(self) -> None:
+        # TODO(@rilshok): rebase to _repr_html_
         from IPython.display import Audio, display
 
         return display(Audio(self.wave.T, rate=self.freq))
