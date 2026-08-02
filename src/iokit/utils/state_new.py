@@ -25,6 +25,10 @@ class Engine(Generic[T]):
     def decode(self, buffer: BinaryIO) -> T:
         raise NotImplementedError
 
+    @classmethod
+    def check_name(cls, name: str) -> bool:
+        return any(pattern(name) for pattern in cls.keys)
+
 
 class State:
     def __init__(self, key: str, timestamp: int | None = None) -> None:
