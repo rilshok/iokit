@@ -15,6 +15,9 @@ class Pattern(str):
     def __call__(self, string: str) -> bool:
         return fnmatch(string, self)
 
+    def __len__(self) -> int:
+        return len(self.replace("*", ""))
+
 
 class State:
     def __init__(self, name: str, timestamp: int | None = None) -> None:
