@@ -4,7 +4,7 @@ import gzip
 from datetime import datetime
 from io import BytesIO
 
-from iokit.state import State
+from iokit.utils.state import State
 
 
 class Gzip(State, suffix="gz"):

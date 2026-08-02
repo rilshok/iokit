@@ -9,7 +9,7 @@ import soundfile
 from numpy import float32
 from numpy.typing import NDArray
 
-from iokit.state import State, StateName
+from iokit.utils.state import State, StateName
 
 
 class AudioState(State, suffix=""):

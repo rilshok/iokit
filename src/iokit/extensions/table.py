@@ -5,7 +5,7 @@ from io import BytesIO
 
 from pandas import DataFrame, read_csv
 
-from iokit.state import State, StateName
+from iokit.utils.state import State, StateName
 
 
 class Csv(State, suffix="csv"):

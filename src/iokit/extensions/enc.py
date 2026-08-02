@@ -12,7 +12,7 @@ from cryptography.hazmat.primitives.ciphers.modes import GCM
 from cryptography.hazmat.primitives.padding import PKCS7
 from typing_extensions import Self
 
-from iokit.state import State, StateName
+from iokit.utils.state import State, StateName
 
 DEFAULT_SALT = b"170309"
 

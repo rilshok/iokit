@@ -3,7 +3,7 @@ __all__ = ["Dat"]
 
 from datetime import datetime
 
-from iokit.state import State, StateName
+from iokit.utils.state import State, StateName
 
 
 class Dat(State, suffix="dat"):

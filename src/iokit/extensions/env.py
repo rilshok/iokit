@@ -7,7 +7,7 @@ from tempfile import TemporaryDirectory
 
 import dotenv
 
-from iokit.state import State, StateName
+from iokit.utils.state import State, StateName
 
 
 class Env(State, suffix="env"):

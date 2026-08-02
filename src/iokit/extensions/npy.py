@@ -7,7 +7,7 @@ from typing import Any
 import numpy as np
 from numpy.typing import NDArray
 
-from iokit.state import State, StateName
+from iokit.utils.state import State, StateName
 
 
 class Npy(State, suffix="npy"):

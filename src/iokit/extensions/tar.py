@@ -5,8 +5,8 @@ from collections.abc import Iterable, Iterator
 from datetime import datetime
 from io import BytesIO
 
-from iokit.state import State, StateName
-from iokit.tools.time import fromtimestamp
+from iokit.utils.state import State, StateName
+from iokit.utils.time import fromtimestamp
 
 
 class Tar(State, suffix="tar"):

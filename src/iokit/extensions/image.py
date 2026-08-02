@@ -3,7 +3,7 @@ from io import BytesIO
 
 from PIL import Image
 
-from iokit.state import State, StateName
+from iokit.utils.state import State, StateName
 
 
 class ImageState(State, suffix=""):

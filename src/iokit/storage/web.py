@@ -8,7 +8,7 @@ from urllib.parse import urlparse
 import requests
 from dateutil.parser import parse as datetimeparse
 
-from iokit.state import ExpectedStateType, State
+from iokit.utils.state import ExpectedStateType, State
 
 if TYPE_CHECKING:
     from datetime import datetime

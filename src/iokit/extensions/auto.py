@@ -6,7 +6,7 @@ from typing import Literal
 from numpy import ndarray
 from pandas import DataFrame
 
-from iokit.state import State, StateName
+from iokit.utils.state import State, StateName
 
 from .audio import Waveform
 from .dat import Dat

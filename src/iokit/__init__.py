@@ -1,4 +1,3 @@
-__version__ = "0.3.4"
 __all__ = [
     "ChecksumMixin",
     "Csv",
@@ -38,7 +37,6 @@ __all__ = [
 ]
 
 
-from .checksum import ChecksumMixin
 from .extensions import (
     Csv,
     Dat,
@@ -65,5 +63,6 @@ from .extensions import (
     decrypt,
     encrypt,
 )
-from .state import State, filter_states, find_state, supported_extensions
 from .storage import ReadOnlyStorage, Storage, download_file, load_file, save_file, save_temp
+from .utils.checksum import ChecksumMixin
+from .utils.state import State, filter_states, find_state, supported_extensions

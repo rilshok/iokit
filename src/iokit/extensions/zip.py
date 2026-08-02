@@ -6,7 +6,7 @@ from datetime import datetime
 from io import BytesIO
 from zipfile import ZipFile
 
-from iokit.state import State, StateName
+from iokit.utils.state import State, StateName
 
 
 class Zip(State, suffix="zip"):

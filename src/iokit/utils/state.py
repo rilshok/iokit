@@ -14,7 +14,7 @@ from typing import TypeVar, overload
 from humanize import naturalsize
 from typing_extensions import Self
 
-from iokit.tools.time import now
+from iokit.utils.time import now
 
 from .checksum import ChecksumMixin
 

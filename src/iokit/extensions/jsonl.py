@@ -7,7 +7,7 @@ from typing import Any
 
 from jsonlines import Reader, Writer
 
-from iokit.state import State, StateName
+from iokit.utils.state import State, StateName
 
 from .json import json_dumps
 

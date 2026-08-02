@@ -3,7 +3,7 @@ __all__ = ["Txt"]
 
 from datetime import datetime
 
-from iokit.state import State, StateName
+from iokit.utils.state import State, StateName
 
 
 class Txt(State, suffix="txt"):
