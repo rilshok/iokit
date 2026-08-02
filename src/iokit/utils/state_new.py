@@ -1,15 +1,22 @@
-from abc import ABC, abstractmethod
+from fnmatch import fnmatch
 from io import BytesIO
-from typing import BinaryIO
+from typing import BinaryIO, Generic, TypeVar
 
 from .time import Timestamp
+
+T = TypeVar("T", bound=object)
 
 
 class Name(str):
     pass
 
 
-class State(ABC):
+class Pattern(str):
+    def __call__(self, string: str) -> bool:
+        return fnmatch(string, self)
+
+
+class State:
     def __init__(self, name: str, timestamp: int | None = None) -> None:
         self._name = Name(name)
         self._timestamp = Timestamp.now() if timestamp is None else Timestamp(timestamp)
@@ -23,7 +30,6 @@ class State(ABC):
         return self._name
 
     @property
-    @abstractmethod
     def size(self) -> int:
         return len(self.data)
 
@@ -35,3 +41,13 @@ class State(ABC):
     @property
     def buffer(self) -> BinaryIO:
         return BytesIO(self.data)
+
+
+class Engine(Generic[T]):
+    names: tuple[Pattern, ...]
+
+    def encode(self, data: T) -> BinaryIO:
+        raise NotImplementedError
+
+    def decode(self, buffer: BinaryIO) -> T:
+        raise NotImplementedError
