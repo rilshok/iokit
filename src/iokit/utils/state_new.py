@@ -1,7 +1,7 @@
 from fnmatch import fnmatch
 from io import BytesIO
 from pathlib import Path
-from typing import BinaryIO, Generic, TypeVar
+from typing import Any, BinaryIO, Generic, TypeVar
 
 from .time import Timestamp
 
@@ -28,6 +28,23 @@ class Engine(Generic[T]):
     @classmethod
     def check_name(cls, name: str) -> bool:
         return any(pattern(name) for pattern in cls.keys)
+
+    @classmethod
+    def find_best_engine(cls, name: str) -> "type[Engine[Any]]":
+        scores: dict[type[Engine[Any]], int] = {}
+        for kls in cls.__subclasses__():
+            for key in kls.keys:
+                if key(name):
+                    scores[kls] = max(scores.get(kls, 0), len(key))
+        return max(scores, key=scores.__getitem__, default=BytesEngine)
+
+
+class BytesEngine(Engine[bytes]):
+    def encode(self, data: bytes) -> BinaryIO:
+        return BytesIO(data)
+
+    def decode(self, buffer: BinaryIO) -> bytes:
+        return buffer.read()
 
 
 class State:
@@ -74,6 +91,6 @@ class State:
 
     def load(self, engine: Engine[T] | None) -> T:
         if engine is None:
-            raise NotImplementedError
+            engine = Engine.find_best_engine(self.name)()
         with self.buffer as buffer:
             return engine.decode(buffer)
