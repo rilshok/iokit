@@ -1,7 +1,8 @@
 from collections.abc import Iterable
 from fnmatch import fnmatch
 from io import SEEK_END, SEEK_SET, BufferedReader, BytesIO, RawIOBase
-from pathlib import Path
+from os.path import relpath as _relpath
+from pathlib import Path, PurePath
 from typing import TYPE_CHECKING, Any, BinaryIO, Generic, TypeVar
 
 from .time import Timestamp
@@ -66,7 +67,7 @@ class Data(bytes):
 
 
 class State:
-    def __init__(self, key: str, timestamp: int | None = None) -> None:
+    def __init__(self, key: str, timestamp: float | None = None) -> None:
         self.key = key
         self._timestamp = Timestamp.now() if timestamp is None else Timestamp(timestamp)
 
@@ -75,7 +76,7 @@ class State:
         return self._timestamp
 
     @timestamp.setter
-    def timestamp(self, value: int | None) -> None:
+    def timestamp(self, value: float | None) -> None:
         self._timestamp = Timestamp.now() if value is None else Timestamp(value)
 
     @property
@@ -84,11 +85,7 @@ class State:
 
     @key.setter
     def key(self, value: str) -> None:
-        key = Path(value)
-        if key.is_absolute():
-            msg = "Key must be relative, not absolute"
-            raise ValueError(msg)
-        self._key = key.as_posix()
+        self._key = str(value)
 
     @property
     def name(self) -> str:
@@ -116,6 +113,14 @@ class State:
             raise ValueError(msg)
         with self.buffer as buffer:
             return codec.decode(buffer)
+
+    @property
+    def copy(self) -> "LoadedState":
+        return LoadedState(
+            data=self.data,
+            key=self.key,
+            timestamp=self.timestamp,
+        )
 
 
 class _StreamView(RawIOBase):
@@ -150,7 +155,7 @@ class _StreamView(RawIOBase):
 
 
 class BufferedState(State):
-    def __init__(self, buffer: BinaryIO, key: str, timestamp: int | None = None) -> None:
+    def __init__(self, buffer: BinaryIO, key: str, timestamp: float | None = None) -> None:
         super().__init__(key=key, timestamp=timestamp)
         if not buffer.readable():
             msg = "Buffer must be readable"
@@ -169,8 +174,37 @@ class BufferedState(State):
         return self._source.seek(0, SEEK_END)
 
 
+class FileState(State):
+    def __init__(
+        self,
+        path: str | Path,
+        *,
+        exist: bool = True,
+        relpath: bool = True,
+    ) -> None:
+        self.path = Path(path)
+        if exist and not self.path.is_file():
+            msg = f"Path is not a regular file: {path}"
+            raise ValueError(msg)
+        if relpath:
+            key = PurePath(_relpath(self.path, Path.cwd())).as_posix()
+        else:
+            key = self.path.as_posix()
+
+        timestamp = self.path.stat().st_mtime
+        super().__init__(key=key, timestamp=timestamp)
+
+    @property
+    def buffer(self) -> BufferedReader:
+        return self.path.open("rb")
+
+    @property
+    def size(self) -> int:
+        return self.path.stat().st_size
+
+
 class LoadedState(State):
-    def __init__(self, data: bytes, key: str, timestamp: int | None = None) -> None:
+    def __init__(self, data: bytes, key: str, timestamp: float | None = None) -> None:
         super().__init__(key=key, timestamp=timestamp)
         self._data = data
 
