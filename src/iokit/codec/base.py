@@ -53,6 +53,7 @@ class CodecSpec:
     attriute: str
     config: dict[str, Any]
     requirements: list[Requirement]
+    cacheble: bool
 
     def __post_init__(self) -> None:
         unhashable = [name for name, value in self.config.items() if not _hashable(value)]
@@ -93,7 +94,8 @@ class CodecSpec:
             msg = ""
             raise TypeError(msg)
         codec = kls(**obj.config)
-        _CODEC_CACHE[hash(obj)] = codec
+        if obj.cacheble:
+            _CODEC_CACHE[hash(obj)] = codec
         return codec
 
 
@@ -106,6 +108,7 @@ def registrate(
     requirements: Iterable[str] | None = None,
     *,
     override: bool = False,
+    cacheble: bool = True,
     **kwargs: object,
 ) -> None:
     requirements = set(requirements or ())
@@ -123,6 +126,7 @@ def registrate(
             attriute=attr,
             config=kwargs,
             requirements=[Requirement(r) for r in requirements],
+            cacheble=cacheble,
         ),
     )
     if override:
@@ -183,3 +187,4 @@ registrate("*.zip", "iokit.codec.zip:ZipCodec", buffered=False)
 registrate("*.yaml", "iokit.codec.yaml:YamlCodec")
 registrate("*.yml", "iokit.codec.yaml:YamlCodec")
 registrate("*.txt", "iokit.codec.text:TextCodec", encoding="utf-8")
+registrate("*.enc", "iokit.codec.crypto:CryptographyCodec", cacheble=False, password="", salt="")  # noqa: S106
