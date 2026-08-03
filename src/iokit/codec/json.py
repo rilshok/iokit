@@ -15,17 +15,30 @@ class JsonCodec(Codec[D]):
         ensure_ascii: bool = False,
         allow_nan: bool = False,
     ) -> None:
+        self._compact = compact
+        self._ensure_ascii = ensure_ascii
+        self._allow_nan = allow_nan
         item_sep = "," if compact else ", "
         key_sep = ":" if compact else ": "
-        self._dumps = json.JSONEncoder(
+        self._encode = json.JSONEncoder(
             ensure_ascii=ensure_ascii,
             allow_nan=allow_nan,
             sort_keys=False,
             separators=(item_sep, key_sep),
         ).encode
 
+    def __repr__(self) -> str:
+        return (
+            f"JsonCodec("
+            f"compact={self._compact}, "
+            f"ensure_ascii={self._ensure_ascii}, "
+            f"allow_nan={self._allow_nan}"
+            ")"
+        )
+
     def encode(self, data: D) -> BytesIO:
-        return BytesIO(self._dumps(data).encode("utf-8"))
+        return BytesIO(self._encode(data).encode("utf-8"))
 
     def decode(self, buffer: BinaryIO) -> D:
-        return json.load(buffer)
+        with buffer:
+            return json.load(buffer)
