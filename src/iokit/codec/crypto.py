@@ -3,14 +3,13 @@ __all__ = ["SecretState", "decrypt", "encrypt"]
 import struct
 from hashlib import sha256
 from io import BytesIO
-from typing import BinaryIO
+from typing import BinaryIO, Self
 
 from cryptography.exceptions import InvalidTag
 from cryptography.hazmat.primitives.ciphers.algorithms import AES
 from cryptography.hazmat.primitives.ciphers.base import Cipher
 from cryptography.hazmat.primitives.ciphers.modes import GCM
 from cryptography.hazmat.primitives.padding import PKCS7
-from typing_extensions import Self
 
 from iokit.codec.base import Codec
 from iokit.utils.state_new import LoadedState, State
