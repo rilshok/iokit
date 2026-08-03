@@ -97,7 +97,7 @@ class CodecSpec:
         return codec
 
 
-_CODEC_REGISTRY: dict[Pattern, CodecSpec] = {}
+_CODEC_REGISTRY: list[tuple[Pattern, CodecSpec]] = []
 
 
 def registrate(
@@ -116,21 +116,56 @@ def registrate(
     if not module or not attr:
         msg = ""
         raise ValueError(msg)
-    if not override and pattern in _CODEC_REGISTRY:
-        msg = ""
-        raise ValueError(msg)
-    _CODEC_REGISTRY[Pattern(pattern)] = CodecSpec(
-        module=module,
-        attriute=attr,
-        config=kwargs,
-        requirements=[Requirement(r) for r in requirements],
+    entry = (
+        Pattern(pattern),
+        CodecSpec(
+            module=module,
+            attriute=attr,
+            config=kwargs,
+            requirements=[Requirement(r) for r in requirements],
+        ),
     )
+    if override:
+        _CODEC_REGISTRY.insert(0, entry)
+    else:
+        _CODEC_REGISTRY.append(entry)
+
+
+def _install_hint(spec: CodecSpec) -> str:
+    missing = [r for r in spec.requirements if not _satisfies(r)]
+    codec = f"{spec.module}:{spec.attriute}"
+    if not missing:
+        return f"{codec} (module {spec.module!r} is not importable)"
+    packages = " ".join(sorted({r.name for r in missing}))
+    return f"{codec}: pip install {packages}"
 
 
 def best_codec(name: str, **config: object) -> Codec[Any]:
     name = name.lower()
-    pattern = max((pattern for pattern in _CODEC_REGISTRY if pattern(name)), key=Pattern.__len__)
-    return _CODEC_REGISTRY[pattern].produce(**config)
+    matched = [(pattern, spec) for pattern, spec in _CODEC_REGISTRY if pattern(name)]
+    if not matched:
+        msg = f"No codec registered for {name!r}"
+        raise LookupError(msg)
+
+    score = max(len(pattern) for pattern, _ in matched)
+    candidates = [spec for pattern, spec in matched if len(pattern) == score]
+
+    failures: list[tuple[CodecSpec, ModuleNotFoundError]] = []
+    for spec in candidates:
+        try:
+            return spec.produce(**config)
+        except ModuleNotFoundError as exc:  # noqa: PERF203
+            failures.append((spec, exc))
+
+    if len(failures) == 1:
+        raise failures[0][1]
+
+    options = "; ".join(_install_hint(spec) for spec, _ in failures)
+    msg = (
+        f"No codec for {name!r} could be created, all {len(failures)} candidates are missing "
+        f"their dependencies. Install one of the following option groups: {options}"
+    )
+    raise ModuleNotFoundError(msg) from failures[-1][1]
 
 
 registrate("*", "iokit.codec.bin:BinCodec")
