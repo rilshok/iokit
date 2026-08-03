@@ -93,7 +93,7 @@ class State:
     def buffer(self) -> BinaryIO:
         return BytesIO(self.data)
 
-    def load(self, engine: Engine[T] | None) -> T:
+    def load(self, engine: Engine[T] | None = None) -> T:
         if engine is None:
             engine = Engine.find_best_engine(self.name)()
         with self.buffer as buffer:
