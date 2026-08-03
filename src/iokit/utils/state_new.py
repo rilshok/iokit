@@ -14,6 +14,8 @@ if TYPE_CHECKING:
 
 T = TypeVar("T", bound=object)
 
+ExpectedType = type[T] | tuple[type[T], ...]
+
 
 class Data(bytes):
     pass
@@ -61,13 +63,27 @@ class State:
     def buffer(self) -> BinaryIO:
         return BytesIO(self.data)
 
-    def load(self, codec: Codec[T] | None = None, **config: object) -> T:
+    def load(
+        self,
+        codec: Codec[T] | None = None,
+        *,
+        expected_type: ExpectedType[T] | None = None,
+        **config: object,
+    ) -> T:
         if codec is None:
             codec = best_codec(self.name, **config)
         elif config:
             msg = "Cannot pass both engine instance and keyword arguments"
             raise ValueError(msg)
-        return codec.decode(self.buffer)
+        data = codec.decode(self.buffer)
+        if expected_type is not None and not isinstance(data, expected_type):
+            if isinstance(expected_type, tuple):
+                expectation = " or ".join(repr(k.__name__) for k in expected_type)
+            else:
+                expectation = repr(expected_type.__name__)
+            msg = f"Expected loaded data of type {expectation}, got '{type(data).__name__}'"
+            raise TypeError(msg)
+        return data
 
     @property
     def copy(self) -> "LoadedState":
