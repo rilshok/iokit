@@ -40,6 +40,8 @@ class Engine(Generic[T]):
 
 
 class BytesEngine(Engine[bytes]):
+    keys = (Pattern("*"),)
+
     def encode(self, data: bytes) -> BinaryIO:
         return BytesIO(data)
 
