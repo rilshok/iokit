@@ -1,3 +1,4 @@
+from collections.abc import Iterable
 from fnmatch import fnmatch
 from io import BytesIO
 from pathlib import Path
@@ -13,11 +14,11 @@ class Pattern(str):
         return len(self.replace("*", ""))
 
     def __call__(self, string: str) -> bool:
-        return fnmatch(string, str(self))
+        return fnmatch(name=string, pat=str(self))
 
 
 class Codec(Generic[T]):
-    keys: tuple[Pattern, ...]
+    keys: str | Iterable[str]
 
     def encode(self, data: T) -> BinaryIO:
         raise NotImplementedError
@@ -26,11 +27,8 @@ class Codec(Generic[T]):
         raise NotImplementedError
 
     @classmethod
-    def check_name(cls, name: str) -> bool:
-        return any(pattern(name) for pattern in cls.keys)
-
-    @classmethod
     def best_codec(cls, name: str) -> type["Codec[Any]"]:
+        name = name.lower()
         scores: dict[type[Codec[Any]], int] = {}
         stack: list[type[Codec[Any]]] = [cls]
         seen: set[type[Codec[Any]]] = set()
@@ -40,14 +38,18 @@ class Codec(Generic[T]):
                 continue
             seen.add(kls)
             stack.extend(kls.__subclasses__())
-            for key in getattr(kls, "keys", ()):
-                if key(name):
-                    scores[kls] = max(scores.get(kls, 0), len(key))
-        return max(scores, key=scores.__getitem__, default=BytesCodec)
+            keys = getattr(kls, "keys", ())
+            if isinstance(keys, str):
+                keys = (keys,)
+            for key in keys:
+                pattern = Pattern(key.lower())
+                if pattern(name):
+                    scores[kls] = max(scores.get(kls, 0), len(pattern))
+        return max(scores, key=scores.__getitem__)
 
 
 class BytesCodec(Codec[bytes]):
-    keys = (Pattern("*"),)
+    keys = "*"
 
     def encode(self, data: bytes) -> BinaryIO:
         return BytesIO(data)

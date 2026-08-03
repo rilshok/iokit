@@ -2,13 +2,13 @@ import json
 from io import BytesIO
 from typing import Any, BinaryIO
 
-from iokit.utils.state_new import Codec, Pattern
+from iokit.utils.state_new import Codec
 
 D = dict[str, Any] | list[Any] | str
 
 
 class JsonCodec(Codec[D]):
-    keys = (Pattern("*.json"),)
+    keys = "*.json"
 
     def __init__(
         self,
