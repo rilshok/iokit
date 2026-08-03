@@ -54,8 +54,8 @@ class Codec(Generic[T]):
         return max(scores, key=scores.__getitem__)
 
 
-class BytesCodec(Codec[bytes]):
-    keys = "*"
+class BinCodec(Codec[bytes]):
+    keys = "*", "*.bin", "*.dat"
 
     def encode(self, data: bytes) -> BinaryIO:
         return BytesIO(data)
