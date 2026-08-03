@@ -30,10 +30,17 @@ class Codec(Generic[T]):
         return any(pattern(name) for pattern in cls.keys)
 
     @classmethod
-    def find_best_engine(cls, name: str) -> "type[Codec[Any]]":
+    def best_codec(cls, name: str) -> type["Codec[Any]"]:
         scores: dict[type[Codec[Any]], int] = {}
-        for kls in cls.__subclasses__():
-            for key in kls.keys:
+        stack: list[type[Codec[Any]]] = [cls]
+        seen: set[type[Codec[Any]]] = set()
+        while stack:
+            kls = stack.pop()
+            if kls in seen:
+                continue
+            seen.add(kls)
+            stack.extend(kls.__subclasses__())
+            for key in getattr(kls, "keys", ()):
                 if key(name):
                     scores[kls] = max(scores.get(kls, 0), len(key))
         return max(scores, key=scores.__getitem__, default=BytesCodec)
@@ -95,11 +102,15 @@ class State:
     def buffer(self) -> BinaryIO:
         return BytesIO(self.data)
 
-    def load(self, engine: Codec[T] | None = None) -> T:
-        if engine is None:
-            engine = Codec.find_best_engine(self.name)()
+    def load(self, codec: Codec[T] | None = None, **kwargs: object) -> T:
+        if codec is None:
+            engine_cls = Codec.best_codec(self.name)
+            codec = engine_cls(**kwargs)
+        elif kwargs:
+            msg = "Cannot pass both engine instance and keyword arguments"
+            raise ValueError(msg)
         with self.buffer as buffer:
-            return engine.decode(buffer)
+            return codec.decode(buffer)
 
 
 class BufferedState(State):
