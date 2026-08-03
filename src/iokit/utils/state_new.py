@@ -185,18 +185,16 @@ class FileState(State):
         self,
         path: str | Path,
         *,
-        exist: bool = True,
-        relpath: bool = True,
+        key_is_relpath: bool = True,
     ) -> None:
         self.path = Path(path)
-        if exist and not self.path.is_file():
-            msg = f"Path is not a regular file: {path}"
-            raise ValueError(msg)
-        if relpath:
+        if not self.path.is_file():
+            msg = "Path is not a regular file"
+            raise FileNotFoundError(msg)
+        if key_is_relpath:
             key = PurePath(_relpath(self.path, Path.cwd())).as_posix()
         else:
             key = self.path.as_posix()
-
         timestamp = self.path.stat().st_mtime
         super().__init__(key=key, timestamp=timestamp)
 
