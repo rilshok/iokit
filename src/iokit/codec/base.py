@@ -105,12 +105,14 @@ _CODEC_REGISTRY: list[tuple[Pattern, CodecSpec]] = []
 def registrate(
     pattern: str,
     spec: str,
-    requirements: Iterable[str] | None = None,
+    requirements: str | Iterable[str] | None = None,
     *,
     override: bool = False,
     cacheble: bool = True,
     **kwargs: object,
 ) -> None:
+    if isinstance(requirements, str):
+        requirements = [requirements]
     requirements = set(requirements or ())
     if pattern.lower() != pattern:
         msg = ""
@@ -172,19 +174,25 @@ def best_codec(name: str, **config: object) -> Codec[Any]:
     raise ModuleNotFoundError(msg) from failures[-1][1]
 
 
-registrate("*", "iokit.codec.bin:BinCodec")
-registrate("*.bin", "iokit.codec.bin:BinCodec")
-registrate("*.dat", "iokit.codec.bin:BinCodec")
+registrate(pattern="*", spec="iokit.codec.bin:BinCodec")
+registrate(pattern="*.bin", spec="iokit.codec.bin:BinCodec")
+registrate(pattern="*.dat", spec="iokit.codec.bin:BinCodec")
 registrate(
-    "*.json",
-    "iokit.codec.json:JsonCodec",
+    pattern="*.json",
+    spec="iokit.codec.json:JsonCodec",
     compact=False,
     ensure_ascii=False,
     allow_nan=False,
 )
-
-registrate("*.zip", "iokit.codec.zip:ZipCodec", buffered=False)
-registrate("*.yaml", "iokit.codec.yaml:YamlCodec")
-registrate("*.yml", "iokit.codec.yaml:YamlCodec")
-registrate("*.txt", "iokit.codec.text:TextCodec", encoding="utf-8")
-registrate("*.enc", "iokit.codec.crypto:CryptographyCodec", cacheble=False, password="", salt="")  # noqa: S106
+registrate(pattern="*.zip", spec="iokit.codec.zip:ZipCodec", buffered=False)
+registrate(pattern="*.yaml", spec="iokit.codec.yaml:YamlCodec")
+registrate(pattern="*.yml", spec="iokit.codec.yaml:YamlCodec")
+registrate(pattern="*.txt", spec="iokit.codec.text:TextCodec", encoding="utf-8")
+registrate(
+    pattern="*.enc",
+    spec="iokit.codec.crypto:CryptographyCodec",
+    requirements="cryptography>=41.0.7",
+    cacheble=False,
+    password="",
+    salt="",
+)
