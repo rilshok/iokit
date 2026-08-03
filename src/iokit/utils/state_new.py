@@ -1,10 +1,13 @@
 from collections.abc import Iterable
 from fnmatch import fnmatch
-from io import BytesIO
+from io import SEEK_END, SEEK_SET, BufferedReader, BytesIO, RawIOBase
 from pathlib import Path
-from typing import Any, BinaryIO, Generic, TypeVar
+from typing import TYPE_CHECKING, Any, BinaryIO, Generic, TypeVar
 
 from .time import Timestamp
+
+if TYPE_CHECKING:
+    from _typeshed import WriteableBuffer
 
 T = TypeVar("T", bound=object)
 
@@ -115,16 +118,55 @@ class State:
             return codec.decode(buffer)
 
 
+class _StreamView(RawIOBase):
+    """Independent read cursor over a shared seekable stream. Closing it spares the source."""
+
+    def __init__(self, source: BinaryIO) -> None:
+        super().__init__()
+        self._source = source
+        self._position = 0
+
+    def readable(self) -> bool:
+        return True
+
+    def seekable(self) -> bool:
+        return True
+
+    def tell(self) -> int:
+        return self._position
+
+    def seek(self, offset: int, whence: int = SEEK_SET) -> int:
+        self._source.seek(self._position)
+        self._position = self._source.seek(offset, whence)
+        return self._position
+
+    def readinto(self, buffer: "WriteableBuffer") -> int:
+        view = memoryview(buffer).cast("B")
+        self._source.seek(self._position)
+        chunk = self._source.read(view.nbytes)
+        view[: len(chunk)] = chunk
+        self._position += len(chunk)
+        return len(chunk)
+
+
 class BufferedState(State):
     def __init__(self, buffer: BinaryIO, key: str, timestamp: int | None = None) -> None:
         super().__init__(key=key, timestamp=timestamp)
-        self._buffer = buffer
+        if not buffer.readable():
+            msg = "Buffer must be readable"
+            raise ValueError(msg)
+        if not buffer.seekable():
+            msg = "Buffer must be seekable"
+            raise ValueError(msg)
+        self._source = buffer
 
     @property
-    def buffer(self) -> BinaryIO:
-        if self._buffer.tell() != 0:
-            self._buffer.seek(0)
-        return self._buffer
+    def buffer(self) -> BufferedReader:
+        return BufferedReader(_StreamView(self._source))
+
+    @property
+    def size(self) -> int:
+        return self._source.seek(0, SEEK_END)
 
 
 class LoadedState(State):
