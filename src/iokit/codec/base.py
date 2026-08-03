@@ -182,3 +182,4 @@ registrate(
 registrate("*.zip", "iokit.codec.zip:ZipCodec", buffered=False)
 registrate("*.yaml", "iokit.codec.yaml:YamlCodec")
 registrate("*.yml", "iokit.codec.yaml:YamlCodec")
+registrate("*.txt", "iokit.codec.text:TextCodec", encoding="utf-8")
