@@ -67,8 +67,7 @@ class State:
         elif config:
             msg = "Cannot pass both engine instance and keyword arguments"
             raise ValueError(msg)
-        with self.buffer as buffer:
-            return codec.decode(buffer)
+        return codec.decode(self.buffer)
 
     @property
     def copy(self) -> "LoadedState":
@@ -112,6 +111,7 @@ class _StreamView(RawIOBase):
 
 class BufferedState(State):
     def __init__(self, buffer: BinaryIO, key: str, timestamp: float | None = None) -> None:
+        self._source = buffer
         super().__init__(key=key, timestamp=timestamp)
         if not buffer.readable():
             msg = "Buffer must be readable"
@@ -119,7 +119,9 @@ class BufferedState(State):
         if not buffer.seekable():
             msg = "Buffer must be seekable"
             raise ValueError(msg)
-        self._source = buffer
+
+    def __del__(self) -> None:
+        self._source.close()
 
     @property
     def buffer(self) -> BufferedReader:
