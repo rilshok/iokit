@@ -5,6 +5,8 @@ from os.path import relpath as _relpath
 from pathlib import Path, PurePath
 from typing import TYPE_CHECKING, Any, BinaryIO, Generic, TypeVar
 
+from humanize import naturalsize
+
 from .time import Timestamp
 
 if TYPE_CHECKING:
@@ -70,6 +72,10 @@ class State:
     def __init__(self, key: str, timestamp: float | None = None) -> None:
         self.key = key
         self._timestamp = Timestamp.now() if timestamp is None else Timestamp(timestamp)
+
+    def __repr__(self) -> str:
+        size = naturalsize(self.size, gnu=True)
+        return f"{self.key} ({size})"
 
     @property
     def timestamp(self) -> Timestamp:
