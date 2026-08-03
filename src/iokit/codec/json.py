@@ -29,7 +29,7 @@ class JsonCodec(Codec[D]):
 
     def __repr__(self) -> str:
         return (
-            f"JsonCodec("
+            f"{type(self).__name__}("
             f"compact={self._compact}, "
             f"ensure_ascii={self._ensure_ascii}, "
             f"allow_nan={self._allow_nan}"
