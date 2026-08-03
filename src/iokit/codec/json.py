@@ -8,8 +8,6 @@ D = dict[str, Any] | list[Any] | str
 
 
 class JsonCodec(Codec[D]):
-    keys = "*.json"
-
     def __init__(
         self,
         *,

@@ -1,11 +1,11 @@
-from collections.abc import Iterable
-from fnmatch import fnmatch
 from io import SEEK_END, SEEK_SET, BufferedReader, BytesIO, RawIOBase
 from os.path import relpath as _relpath
 from pathlib import Path, PurePath
-from typing import TYPE_CHECKING, Any, BinaryIO, Generic, TypeVar
+from typing import TYPE_CHECKING, BinaryIO, TypeVar
 
 from humanize import naturalsize
+
+from iokit.codec.base import Codec, best_codec
 
 from .time import Timestamp
 
@@ -13,55 +13,6 @@ if TYPE_CHECKING:
     from _typeshed import WriteableBuffer
 
 T = TypeVar("T", bound=object)
-
-
-class Pattern(str):
-    def __len__(self) -> int:
-        return len(self.replace("*", ""))
-
-    def __call__(self, string: str) -> bool:
-        return fnmatch(name=string, pat=str(self))
-
-
-class Codec(Generic[T]):
-    keys: str | Iterable[str]
-
-    def encode(self, data: T) -> BinaryIO:
-        raise NotImplementedError
-
-    def decode(self, buffer: BinaryIO) -> T:
-        raise NotImplementedError
-
-    @classmethod
-    def best_codec(cls, name: str) -> type["Codec[Any]"]:
-        name = name.lower()
-        scores: dict[type[Codec[Any]], int] = {}
-        stack: list[type[Codec[Any]]] = [cls]
-        seen: set[type[Codec[Any]]] = set()
-        while stack:
-            kls = stack.pop()
-            if kls in seen:
-                continue
-            seen.add(kls)
-            stack.extend(kls.__subclasses__())
-            keys = getattr(kls, "keys", ())
-            if isinstance(keys, str):
-                keys = (keys,)
-            for key in keys:
-                pattern = Pattern(key.lower())
-                if pattern(name):
-                    scores[kls] = max(scores.get(kls, 0), len(pattern))
-        return max(scores, key=scores.__getitem__)
-
-
-class BinCodec(Codec[bytes]):
-    keys = "*", "*.bin", "*.dat"
-
-    def encode(self, data: bytes) -> BinaryIO:
-        return BytesIO(data)
-
-    def decode(self, buffer: BinaryIO) -> bytes:
-        return buffer.read()
 
 
 class Data(bytes):
@@ -110,11 +61,10 @@ class State:
     def buffer(self) -> BinaryIO:
         return BytesIO(self.data)
 
-    def load(self, codec: Codec[T] | None = None, **kwargs: object) -> T:
+    def load(self, codec: Codec[T] | None = None, **config: object) -> T:
         if codec is None:
-            engine_cls = Codec.best_codec(self.name)
-            codec = engine_cls(**kwargs)
-        elif kwargs:
+            codec = best_codec(self.name, **config)
+        elif config:
             msg = "Cannot pass both engine instance and keyword arguments"
             raise ValueError(msg)
         with self.buffer as buffer:
