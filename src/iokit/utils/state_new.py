@@ -16,7 +16,7 @@ class Pattern(str):
         return fnmatch(string, str(self))
 
 
-class Engine(Generic[T]):
+class Codec(Generic[T]):
     keys: tuple[Pattern, ...]
 
     def encode(self, data: T) -> BinaryIO:
@@ -30,16 +30,16 @@ class Engine(Generic[T]):
         return any(pattern(name) for pattern in cls.keys)
 
     @classmethod
-    def find_best_engine(cls, name: str) -> "type[Engine[Any]]":
-        scores: dict[type[Engine[Any]], int] = {}
+    def find_best_engine(cls, name: str) -> "type[Codec[Any]]":
+        scores: dict[type[Codec[Any]], int] = {}
         for kls in cls.__subclasses__():
             for key in kls.keys:
                 if key(name):
                     scores[kls] = max(scores.get(kls, 0), len(key))
-        return max(scores, key=scores.__getitem__, default=BytesEngine)
+        return max(scores, key=scores.__getitem__, default=BytesCodec)
 
 
-class BytesEngine(Engine[bytes]):
+class BytesCodec(Codec[bytes]):
     keys = (Pattern("*"),)
 
     def encode(self, data: bytes) -> BinaryIO:
@@ -95,8 +95,30 @@ class State:
     def buffer(self) -> BinaryIO:
         return BytesIO(self.data)
 
-    def load(self, engine: Engine[T] | None = None) -> T:
+    def load(self, engine: Codec[T] | None = None) -> T:
         if engine is None:
-            engine = Engine.find_best_engine(self.name)()
+            engine = Codec.find_best_engine(self.name)()
         with self.buffer as buffer:
             return engine.decode(buffer)
+
+
+class BufferedState(State):
+    def __init__(self, buffer: BinaryIO, key: str, timestamp: int | None = None) -> None:
+        super().__init__(key=key, timestamp=timestamp)
+        self._buffer = buffer
+
+    @property
+    def buffer(self) -> BinaryIO:
+        if self._buffer.tell() != 0:
+            self._buffer.seek(0)
+        return self._buffer
+
+
+class LoadedState(State):
+    def __init__(self, data: bytes, key: str, timestamp: int | None = None) -> None:
+        super().__init__(key=key, timestamp=timestamp)
+        self._data = data
+
+    @property
+    def data(self) -> Data:
+        return Data(self._data)
