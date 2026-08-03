@@ -1,6 +1,6 @@
 import importlib.metadata as md
 from collections.abc import Iterable
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from fnmatch import fnmatch
 from importlib import import_module
 from typing import Any, BinaryIO, Generic, TypeVar
@@ -74,15 +74,8 @@ class CodecSpec:
         return hash(state)
 
     def produce(self, **config: object) -> Codec[Any]:
-        if config:
-            obj = CodecSpec(
-                module=self.module,
-                attriute=self.attriute,
-                config=self.config | config,
-                requirements=self.requirements,
-            )
-        else:
-            obj = self
+        merged = self.config | config
+        obj = replace(self, config={key: merged[key] for key in self.config}) if config else self
 
         if codec := _CODEC_CACHE.get(hash(obj)):
             return codec
@@ -150,3 +143,5 @@ registrate(
     ensure_ascii=False,
     allow_nan=False,
 )
+
+registrate("*.zip", "iokit.codec.zip:ZipCodec", buffered=False)
