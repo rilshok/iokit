@@ -13,7 +13,7 @@ class Pattern(str):
         return len(self.replace("*", ""))
 
     def __call__(self, string: str) -> bool:
-        return fnmatch(string, self)
+        return fnmatch(string, str(self))
 
 
 class Engine(Generic[T]):
