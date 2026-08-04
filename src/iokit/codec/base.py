@@ -238,18 +238,17 @@ registrate(
 )
 
 _AUDIO_CODECS = {
-    Extension.WAV,
-    Extension.FLAC,
-    Extension.MP3,
-    Extension.OGG,
-    Extension.OGA,
-    Extension.OPUS,
+    Extension.WAV: "Wav",
+    Extension.FLAC: "Flac",
+    Extension.MP3: "Mp3",
+    Extension.OGG: "Ogg",
+    Extension.OGA: "Ogg",  # `.oga` is an ogg container, told apart only by its extension
+    Extension.OPUS: "Opus",
 }
 
-for _extension in _AUDIO_CODECS:
+for _extension, _prefix in _AUDIO_CODECS.items():
     # Both backends claim the same patterns, and the first registered one wins as long as its
     # dependencies are installed, so soundfile is the default and torchaudio the fallback.
-    _prefix = _extension.value.capitalize()
     registrate(
         pattern=_extension.pattern,
         spec=f"iokit.codec.soundfile:{_prefix}SoundfileCodec",
