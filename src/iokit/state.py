@@ -9,6 +9,7 @@ from typing import TYPE_CHECKING, Any, BinaryIO, Generic, Self, TypeVar
 from humanize import naturalsize
 
 from iokit.codec.base import Codec, best_codec
+from iokit.dtype.data import Data
 from iokit.dtype.extension import Extension
 from iokit.utils.time import Timestamp
 
@@ -22,10 +23,6 @@ if TYPE_CHECKING:
 
 
 T = TypeVar("T", bound=object)
-
-
-class Data(bytes):
-    pass
 
 
 class State(Generic[T]):
