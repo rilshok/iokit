@@ -206,6 +206,14 @@ registrate(
     ensure_ascii=False,
     allow_nan=False,
 )
+registrate(
+    pattern="*.jsonl",
+    spec="iokit.codec.jsonl:JsonlCodec",
+    requirements="jsonlines>=4.0.0",
+    compact=True,
+    ensure_ascii=False,
+    allow_nan=False,
+)
 registrate(pattern="*.zip", spec="iokit.codec.zip:ZipCodec", buffered=False)
 registrate(pattern="*.gz", spec="iokit.codec.gz:GzipCodec", compression=1)
 registrate(pattern="*.*.gz", spec="iokit.codec.gz:GzipCodec", compression=1)
