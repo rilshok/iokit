@@ -18,12 +18,24 @@ class Codec(Generic[T]):
         raise NotImplementedError
 
 
+_WRAPPER_PREFIX = "*.*"
+
+
 class Pattern(str):
     def __len__(self) -> int:
         return len(self.replace("*", ""))
 
     def __call__(self, string: str) -> bool:
         return fnmatch(name=string, pat=str(self))
+
+    @property
+    def wrapper(self) -> bool:
+        """Whether the pattern, like `*.*.gz`, describes a container around another format."""
+        return self.startswith(_WRAPPER_PREFIX)
+
+    def unwrap(self, name: str) -> str:
+        """Strip the container suffix, leaving the name of whatever the container holds."""
+        return name.removesuffix(self.removeprefix(_WRAPPER_PREFIX))
 
 
 def _satisfies(req: Requirement) -> bool:
@@ -72,12 +84,16 @@ class CodecSpec:
         )
         return hash(state)
 
-    def produce(self, **config: object) -> Codec[Any]:
+    def produce(self, codec: Codec[Any] | None = None, /, **config: object) -> Codec[Any]:
         merged = self.config | config
-        obj = replace(self, config={key: merged[key] for key in self.config}) if config else self
+        merged = {key: merged[key] for key in self.config}
+        if codec is not None:
+            # A wrapper codec is only as reusable as the codec it holds, so it is not cached.
+            merged["codec"] = codec
+        obj = replace(self, config=merged, cacheble=self.cacheble and codec is None)
 
-        if codec := _CODEC_CACHE.get(hash(obj)):
-            return codec
+        if cached := _CODEC_CACHE.get(hash(obj)):
+            return cached
 
         requirements = [r for r in obj.requirements if not _satisfies(r)]
         if requirements:
@@ -91,10 +107,10 @@ class CodecSpec:
         if not issubclass(kls, Codec):
             msg = ""
             raise TypeError(msg)
-        codec = kls(**obj.config)
+        produced: Codec[Any] = kls(**obj.config)
         if obj.cacheble:
-            _CODEC_CACHE[hash(obj)] = codec
-        return codec
+            _CODEC_CACHE[hash(obj)] = produced
+        return produced
 
 
 _CODEC_REGISTRY: list[tuple[Pattern, CodecSpec]] = []
@@ -118,6 +134,9 @@ def registrate(
     module, _, attr = spec.partition(":")
     if not module or not attr:
         msg = ""
+        raise ValueError(msg)
+    if pattern == _WRAPPER_PREFIX:
+        msg = f"Wrapper pattern {pattern!r} has no suffix left to unwrap"
         raise ValueError(msg)
     entry = (
         Pattern(pattern),
@@ -144,20 +163,25 @@ def _install_hint(spec: CodecSpec) -> str:
     return f"{codec}: pip install {packages}"
 
 
-def best_codec(name: str, **config: object) -> Codec[Any]:
-    name = name.lower()
+def _candidates(name: str) -> list[tuple[Pattern, CodecSpec]]:
+    """Registry entries claiming the name, narrowed down to the most specific patterns."""
     matched = [(pattern, spec) for pattern, spec in _CODEC_REGISTRY if pattern(name)]
     if not matched:
         msg = f"No codec registered for {name!r}"
         raise LookupError(msg)
-
     score = max(len(pattern) for pattern, _ in matched)
-    candidates = [spec for pattern, spec in matched if len(pattern) == score]
+    return [(pattern, spec) for pattern, spec in matched if len(pattern) == score]
 
+
+def best_codec(name: str, **config: object) -> Codec[Any]:
+    name = name.lower()
     failures: list[tuple[CodecSpec, ModuleNotFoundError]] = []
-    for spec in candidates:
+    for pattern, spec in _candidates(name):
+        # a wrapper takes over the suffix it matched and delegates the rest of the name, so
+        # `data.json.gz` resolves to a gzip codec holding the codec of `data.json`.
         try:
-            return spec.produce(**config)
+            codec = best_codec(pattern.unwrap(name), **config) if pattern.wrapper else None
+            return spec.produce(codec, **config)
         except ModuleNotFoundError as exc:  # noqa: PERF203
             failures.append((spec, exc))
 
@@ -183,6 +207,8 @@ registrate(
     allow_nan=False,
 )
 registrate(pattern="*.zip", spec="iokit.codec.zip:ZipCodec", buffered=False)
+registrate(pattern="*.gz", spec="iokit.codec.gz:GzipCodec", compression=1)
+registrate(pattern="*.*.gz", spec="iokit.codec.gz:GzipCodec", compression=1)
 registrate(pattern="*.yaml", spec="iokit.codec.yaml:YamlCodec")
 registrate(pattern="*.yml", spec="iokit.codec.yaml:YamlCodec")
 registrate(pattern="*.txt", spec="iokit.codec.text:TextCodec", encoding="utf-8")
