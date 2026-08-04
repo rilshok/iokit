@@ -228,6 +228,18 @@ registrate(
     interpolate=False,
 )
 registrate(
+    pattern="*.npy",
+    spec="iokit.codec.numpy:NumpyCodec",
+    requirements="numpy>=1.21.1",
+    allow_pickle=False,
+)
+registrate(
+    pattern="*.npz",
+    spec="iokit.codec.numpy:CompressedNumpyCodec",
+    requirements="numpy>=1.21.1",
+    allow_pickle=False,
+)
+registrate(
     pattern="*.csv",
     spec="iokit.codec.pandas:CsvCodec",
     requirements="pandas>=1.5.3",
