@@ -18,7 +18,7 @@ from numpy import ascontiguousarray
 from torch import from_numpy
 
 from iokit.codec.base import Codec
-from iokit.utils.waveform import Waveform
+from iokit.dtype.waveform import Waveform
 
 
 @contextmanager

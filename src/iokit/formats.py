@@ -7,7 +7,7 @@ from iokit.codec.base import best_codec
 from .state import Data, LoadedState, State
 
 if TYPE_CHECKING:
-    from iokit.utils.waveform import Waveform
+    from iokit.dtype.waveform import Waveform
 
 T = TypeVar("T", bound=object)
 

@@ -12,7 +12,7 @@ from typing import BinaryIO
 import soundfile
 
 from iokit.codec.base import Codec
-from iokit.utils.waveform import Waveform
+from iokit.dtype.waveform import Waveform
 
 
 class _SoundfileCodec(Codec[Waveform]):

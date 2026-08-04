@@ -6,8 +6,8 @@ from typing import Literal
 from numpy import ndarray
 from pandas import DataFrame
 
+from iokit.dtype.waveform import Waveform
 from iokit.utils.state import State, StateName
-from iokit.utils.waveform import Waveform
 
 from .audio import Flac, Mp3, Ogg, Wav
 from .dat import Dat

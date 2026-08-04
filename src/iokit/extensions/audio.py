@@ -6,8 +6,8 @@ from io import BytesIO
 
 import soundfile
 
+from iokit.dtype.waveform import Waveform
 from iokit.utils.state import State, StateName
-from iokit.utils.waveform import Waveform
 
 
 class AudioState(State, suffix=""):
