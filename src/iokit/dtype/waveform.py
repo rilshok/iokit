@@ -74,8 +74,8 @@ class Waveform:
         return Waveform(self.wave.mean(axis=1), self.freq)
 
     def _to_audio(self, kls: type[A], name: str, timestamp: float | None = None) -> A:
-        if not name.lower().endswith(kls.__extension__):
-            name += kls.__extension__
+        if not name.lower().endswith(ext := kls.extension()):
+            name += ext
         return kls(data=self, key=name, timestamp=timestamp)
 
     def to_wav(self, name: str, timestamp: float | None = None) -> Wav:

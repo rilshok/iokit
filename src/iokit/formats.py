@@ -2,8 +2,8 @@ from collections.abc import Generator, Iterable
 from importlib import import_module
 from typing import TYPE_CHECKING, Any, Self, TypeVar
 
-from iokit.codec.base import best_codec
-
+from .codec.base import best_codec
+from .dtype.extension import Extension
 from .state import Data, LoadedState, State
 
 if TYPE_CHECKING:
@@ -13,7 +13,7 @@ T = TypeVar("T", bound=object)
 
 
 class FormatState(LoadedState[T]):
-    __extension__: str
+    __extension__: Extension
     __expected__: type[T] | None = None
 
     def __init__(self, data: T | Data, key: str, timestamp: float | None = None) -> None:
@@ -25,10 +25,14 @@ class FormatState(LoadedState[T]):
                 super().__init__(data=content.read(), key=key, timestamp=timestamp)
 
     @classmethod
+    def extension(cls) -> str:
+        return cls.__extension__.value
+
+    @classmethod
     def _assert_key(cls, key: str) -> None:
-        if key.lower().endswith(cls.__extension__):
+        if key.lower().endswith(cls.extension()):
             return
-        msg = f"Key must end with {cls.__extension__!r} extension"
+        msg = f"Key must end with {cls.extension()!r} extension"
         raise ValueError(msg)
 
     @classmethod
@@ -49,25 +53,25 @@ class FormatState(LoadedState[T]):
 
 
 class Dat(FormatState[bytes]):
-    __extension__ = ".dat"
+    __extension__ = Extension.DAT
     __expected__ = bytes
 
 
 class Bin(Dat):
-    __extension__ = ".bin"
+    __extension__ = Extension.BIN
 
 
 class Json(FormatState[dict[str, Any] | list[Any] | str]):
-    __extension__ = ".json"
+    __extension__ = Extension.JSON
     __expected__ = dict | list | str
 
 
 class Jsonl(Json):
-    __extension__ = ".jsonl"
+    __extension__ = Extension.JSONL
 
 
 class Zip(Iterable[State[Any]]):
-    __extension__ = ".zip"
+    __extension__ = Extension.ZIP
     __expected__ = Generator
 
 
@@ -77,14 +81,14 @@ A = TypeVar("A", bound="Audio")
 class Audio(FormatState["Waveform"]):
     def load(self, **config: object) -> "Waveform":
         return self._load(
-            expected_type=import_module("iokit.utils.waveform").Waveform,
+            expected_type=import_module("iokit.dtype.waveform").Waveform,
             codec=None,
             **config,
         )
 
     def _to_audio(self, kls: type[A]) -> A:
         self._assert_key(self.key)
-        new_key = self.key.removesuffix(self.__extension__) + kls.__extension__
+        new_key = self.key.removesuffix(self.extension()) + kls.extension()
         return kls(data=self.load(), key=new_key, timestamp=self.timestamp)
 
     def to_flac(self) -> "Flac":
@@ -107,24 +111,24 @@ class Audio(FormatState["Waveform"]):
 
 
 class Flac(Audio):
-    __extension__ = ".flac"
+    __extension__ = Extension.FLAC
 
 
 class Wav(Audio):
-    __extension__ = ".wav"
+    __extension__ = Extension.WAV
 
 
 class Mp3(Audio):
-    __extension__ = ".mp3"
+    __extension__ = Extension.MP3
 
 
 class Ogg(Audio):
-    __extension__ = ".ogg"
+    __extension__ = Extension.OGG
 
 
 class Oga(Ogg):
-    __extension__ = ".oga"
+    __extension__ = Extension.OGA
 
 
 class Opus(Ogg):
-    __extension__ = ".opus"
+    __extension__ = Extension.OPUS
