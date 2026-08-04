@@ -1,4 +1,3 @@
-import importlib.metadata as md
 from collections.abc import Iterable
 from dataclasses import dataclass, replace
 from importlib import import_module
@@ -6,6 +5,7 @@ from typing import Any, BinaryIO, Generic, TypeVar
 
 from packaging.requirements import Requirement
 
+from iokit.utils.dependency import satisfies
 from iokit.utils.pattern import WRAPPER_PREFIX, Pattern
 
 T = TypeVar("T", bound=object)
@@ -17,14 +17,6 @@ class Codec(Generic[T]):
 
     def decode(self, buffer: BinaryIO) -> T:
         raise NotImplementedError
-
-
-def _satisfies(req: Requirement) -> bool:
-    try:
-        version = md.version(req.name)
-    except md.PackageNotFoundError:
-        return False
-    return req.specifier.contains(version, prereleases=True)
 
 
 def _hashable(value: object) -> bool:
@@ -76,7 +68,7 @@ class CodecSpec:
         if cached := _CODEC_CACHE.get(hash(obj)):
             return cached
 
-        requirements = [r for r in obj.requirements if not _satisfies(r)]
+        requirements = [r for r in obj.requirements if not satisfies(r)]
         if requirements:
             req_str = ", ".join(str(r) for r in requirements)
             install_cmd = "pip install " + " ".join(r.name for r in requirements)
@@ -136,7 +128,7 @@ def registrate(
 
 
 def _install_hint(spec: CodecSpec) -> str:
-    missing = [r for r in spec.requirements if not _satisfies(r)]
+    missing = [r for r in spec.requirements if not satisfies(r)]
     codec = f"{spec.module}:{spec.attriute}"
     if not missing:
         return f"{codec} (module {spec.module!r} is not importable)"
