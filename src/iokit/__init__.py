@@ -63,6 +63,7 @@ from .extensions import (
     decrypt,
     encrypt,
 )
-from .storage import ReadOnlyStorage, Storage, download_file, load_file, save_file, save_temp
+from .storage import ReadOnlyStorage, Storage, download_file
 from .utils.checksum import ChecksumMixin
+from .utils.io import load_file, save_file, save_temp
 from .utils.state import State, filter_states, find_state, supported_extensions

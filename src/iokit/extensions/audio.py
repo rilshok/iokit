@@ -56,7 +56,7 @@ class AudioState(State, suffix=""):
     def _load_by_torchaudio(self) -> "Waveform":
         from torchaudio import load
 
-        from iokit.storage.local import save_temp
+        from iokit.utils.io import save_temp
 
         with save_temp(self.buffer) as temp:
             path = temp.rename(temp.with_suffix(f".{self._suffix}"))
