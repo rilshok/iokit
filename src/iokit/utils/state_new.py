@@ -1,6 +1,7 @@
 from io import SEEK_END, SEEK_SET, BufferedReader, BytesIO, RawIOBase
 from os.path import relpath as _relpath
 from pathlib import Path, PurePath
+from types import UnionType
 from typing import TYPE_CHECKING, BinaryIO, TypeVar
 
 from humanize import naturalsize
@@ -13,8 +14,6 @@ if TYPE_CHECKING:
     from _typeshed import WriteableBuffer
 
 T = TypeVar("T", bound=object)
-
-ExpectedType = type[T] | tuple[type[T], ...]
 
 
 class Data(bytes):
@@ -65,9 +64,9 @@ class State:
 
     def load(
         self,
-        codec: Codec[T] | None = None,
+        expected_type: type[T] | UnionType | None = None,
         *,
-        expected_type: ExpectedType[T] | None = None,
+        codec: Codec[T] | None = None,
         **config: object,
     ) -> T:
         if codec is None:
@@ -77,11 +76,8 @@ class State:
             raise ValueError(msg)
         data = codec.decode(self.buffer)
         if expected_type is not None and not isinstance(data, expected_type):
-            if isinstance(expected_type, tuple):
-                expectation = " or ".join(repr(k.__name__) for k in expected_type)
-            else:
-                expectation = repr(expected_type.__name__)
-            msg = f"Expected loaded data of type {expectation}, got '{type(data).__name__}'"
+            expectation = getattr(expected_type, "__name__", str(expected_type))
+            msg = f"Expected loaded data of type '{expectation}', got '{type(data).__name__}'"
             raise TypeError(msg)
         return data
 
