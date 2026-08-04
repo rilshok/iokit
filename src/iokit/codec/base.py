@@ -11,8 +11,6 @@ T = TypeVar("T", bound=object)
 
 
 class Codec(Generic[T]):
-    keys: str | Iterable[str]
-
     def encode(self, data: T) -> BinaryIO:
         raise NotImplementedError
 
