@@ -1,11 +1,12 @@
 import importlib.metadata as md
 from collections.abc import Iterable
 from dataclasses import dataclass, replace
-from fnmatch import fnmatch
 from importlib import import_module
 from typing import Any, BinaryIO, Generic, TypeVar
 
 from packaging.requirements import Requirement
+
+from iokit.utils.pattern import WRAPPER_PREFIX, Pattern
 
 T = TypeVar("T", bound=object)
 
@@ -16,26 +17,6 @@ class Codec(Generic[T]):
 
     def decode(self, buffer: BinaryIO) -> T:
         raise NotImplementedError
-
-
-_WRAPPER_PREFIX = "*.*"
-
-
-class Pattern(str):
-    def __len__(self) -> int:
-        return len(self.replace("*", ""))
-
-    def __call__(self, string: str) -> bool:
-        return fnmatch(name=string, pat=str(self))
-
-    @property
-    def wrapper(self) -> bool:
-        """Whether the pattern, like `*.*.gz`, describes a container around another format."""
-        return self.startswith(_WRAPPER_PREFIX)
-
-    def unwrap(self, name: str) -> str:
-        """Strip the container suffix, leaving the name of whatever the container holds."""
-        return name.removesuffix(self.removeprefix(_WRAPPER_PREFIX))
 
 
 def _satisfies(req: Requirement) -> bool:
@@ -135,7 +116,7 @@ def registrate(
     if not module or not attr:
         msg = ""
         raise ValueError(msg)
-    if pattern == _WRAPPER_PREFIX:
+    if pattern == WRAPPER_PREFIX:
         msg = f"Wrapper pattern {pattern!r} has no suffix left to unwrap"
         raise ValueError(msg)
     entry = (
