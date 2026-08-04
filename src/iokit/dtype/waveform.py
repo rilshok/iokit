@@ -6,7 +6,7 @@ from typing import TypeVar
 from numpy import float32
 from numpy.typing import NDArray
 
-from iokit.formats import Audio, Flac, Mp3, Oga, Ogg, Opus, Wav
+from iokit.state import Audio, Flac, Mp3, Oga, Ogg, Opus, Wav
 
 _MAX_CHANNELS = 8  # Maximum number of channels for a waveform
 
