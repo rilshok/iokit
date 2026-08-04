@@ -7,8 +7,9 @@ from numpy import ndarray
 from pandas import DataFrame
 
 from iokit.utils.state import State, StateName
+from iokit.utils.waveform import Waveform
 
-from .audio import Waveform
+from .audio import Flac, Mp3, Ogg, Wav
 from .dat import Dat
 from .enc import Enc, SecretState
 from .gz import Gzip
@@ -64,13 +65,13 @@ def auto_state(  # noqa: C901, PLR0911, PLR0913, PLR0912
         case Waveform():
             match waveform_to:
                 case "wav":
-                    return data.to_wav(name=name, time=time)
+                    return Wav(data, name=name, time=time)
                 case "flac":
-                    return data.to_flac(name=name, time=time)
+                    return Flac(data, name=name, time=time)
                 case "mp3":
-                    return data.to_mp3(name=name, time=time)
+                    return Mp3(data, name=name, time=time)
                 case "ogg":
-                    return data.to_ogg(name=name, time=time)
+                    return Ogg(data, name=name, time=time)
         case SecretState():
             return Enc(data, name=name, time=time)
         case bytes():
