@@ -2,11 +2,11 @@ from io import SEEK_END, SEEK_SET, BufferedReader, BytesIO, RawIOBase
 from os.path import relpath as _relpath
 from pathlib import Path, PurePath
 from types import UnionType
-from typing import TYPE_CHECKING, BinaryIO, TypeVar
+from typing import TYPE_CHECKING, Any, BinaryIO, Generic, Self, TypeVar
 
 from humanize import naturalsize
 
-from iokit.codec.base import Codec, best_codec
+from iokit.codec.base import Codec, Pattern, best_codec
 
 from .time import Timestamp
 
@@ -20,7 +20,7 @@ class Data(bytes):
     pass
 
 
-class State:
+class State(Generic[T]):
     def __init__(self, key: str, timestamp: float | None = None) -> None:
         self.key = key
         self._timestamp = Timestamp.now() if timestamp is None else Timestamp(timestamp)
@@ -62,7 +62,7 @@ class State:
     def buffer(self) -> BinaryIO:
         return BytesIO(self.data)
 
-    def load(
+    def _load(
         self,
         expected_type: type[T] | UnionType | None = None,
         *,
@@ -81,8 +81,11 @@ class State:
             raise TypeError(msg)
         return data
 
+    def load(self, **config: object) -> T:
+        return self._load(expected_type=None, codec=None, **config)
+
     @property
-    def copy(self) -> "LoadedState":
+    def copy(self) -> "State[T]":
         return LoadedState(
             data=self.data,
             key=self.key,
@@ -121,7 +124,7 @@ class _StreamView(RawIOBase):
         return len(chunk)
 
 
-class BufferedState(State):
+class BufferedState(State[T]):
     def __init__(self, buffer: BinaryIO, key: str, timestamp: float | None = None) -> None:
         self._source = buffer
         super().__init__(key=key, timestamp=timestamp)
@@ -144,7 +147,7 @@ class BufferedState(State):
         return self._source.seek(0, SEEK_END)
 
 
-class FileState(State):
+class FileState(State[T]):
     def __init__(
         self,
         path: str | Path,
@@ -171,7 +174,7 @@ class FileState(State):
         return self.path.stat().st_size
 
 
-class LoadedState(State):
+class LoadedState(State[T]):
     def __init__(self, data: bytes, key: str, timestamp: float | None = None) -> None:
         super().__init__(key=key, timestamp=timestamp)
         self._data = data
@@ -179,3 +182,36 @@ class LoadedState(State):
     @property
     def data(self) -> Data:
         return Data(self._data)
+
+
+V = TypeVar("V", bound=object)
+
+
+class FormatState(LoadedState[T]):
+    __patterns__: tuple[str | Pattern, ...]
+    __expected__: type[T] | None = None
+
+    def __init__(self, data: T | Data, key: str, timestamp: float | None = None) -> None:
+        if not any(Pattern(p)(key) for p in self.__patterns__):
+            msg = ""
+            raise ValueError(msg)
+        if isinstance(data, Data):
+            super().__init__(data=data, key=key, timestamp=timestamp)
+        else:
+            with best_codec(key).encode(data) as content:
+                super().__init__(data=content.read(), key=key, timestamp=timestamp)
+
+    @classmethod
+    def from_state(cls, state: State[Any]) -> Self:
+        return cls(data=state.data, key=state.key, timestamp=state.timestamp)
+
+    def load(self, **config: object) -> T:
+        return self._load(expected_type=self.__expected__, codec=None, **config)
+
+    @property
+    def copy(self) -> State[T]:
+        return type(self)(
+            data=self.load(),
+            key=self.key,
+            timestamp=self.timestamp,
+        )
