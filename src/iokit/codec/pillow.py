@@ -9,6 +9,9 @@ from iokit.codec.base import Codec
 class _PillowCodec(Codec[Image.Image]):
     __extension__: str
 
+    def __repr__(self) -> str:
+        return f"{type(self).__name__}()"
+
     def encode(self, data: Image.Image) -> BytesIO:
         buffer = BytesIO()
         data.save(buffer, format=self.__extension__)

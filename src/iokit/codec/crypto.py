@@ -122,10 +122,19 @@ class SecretState:
         return cls(data=data)
 
 
+_MASK = "..."
+
+
 class CryptographyCodec(Codec[State]):
     def __init__(self, password: bytes | str = "", salt: bytes | str = "") -> None:
         self._password = password
         self._salt = salt
+
+    def __repr__(self) -> str:
+        # a mask hides both the secret and its length
+        password = _MASK if self._password else ""
+        salt = _MASK if self._salt else ""
+        return f"{type(self).__name__}({password=!r}, {salt=!r})"
 
     def encode(self, data: State) -> BytesIO:
         state = SecretState.pack(state=data, password=self._password, salt=self._salt)
