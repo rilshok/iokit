@@ -7,8 +7,7 @@ from typing import TYPE_CHECKING, Any, BinaryIO, Generic, Self, TypeVar
 from humanize import naturalsize
 
 from iokit.codec.base import Codec, Pattern, best_codec
-
-from .utils.time import Timestamp
+from iokit.utils.time import Timestamp
 
 if TYPE_CHECKING:
     from _typeshed import WriteableBuffer
