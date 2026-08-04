@@ -215,6 +215,7 @@ registrate(
     allow_nan=False,
 )
 registrate(pattern="*.zip", spec="iokit.codec.zip:ZipCodec", buffered=False)
+registrate(pattern="*.tar", spec="iokit.codec.tar:TarCodec", buffered=False)
 registrate(pattern="*.gz", spec="iokit.codec.gz:GzipCodec", compression=1)
 registrate(pattern="*.*.gz", spec="iokit.codec.gz:GzipCodec", compression=1)
 registrate(pattern="*.yaml", spec="iokit.codec.yaml:YamlCodec")
