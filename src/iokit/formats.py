@@ -26,9 +26,9 @@ class FormatState(LoadedState[T]):
 
     @classmethod
     def _assert_key(cls, key: str) -> None:
-        if key.endswith(cls.__extension__):
+        if key.lower().endswith(cls.__extension__):
             return
-        msg = ""
+        msg = f"Key must end with {cls.__extension__!r} extension"
         raise ValueError(msg)
 
     @classmethod
