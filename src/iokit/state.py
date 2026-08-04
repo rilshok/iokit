@@ -1,3 +1,4 @@
+from collections.abc import Generator, Iterable
 from io import SEEK_END, SEEK_SET, BufferedReader, BytesIO, RawIOBase
 from os.path import relpath as _relpath
 from pathlib import Path, PurePath
@@ -74,11 +75,15 @@ class State(Generic[T]):
             msg = "Cannot pass both engine instance and keyword arguments"
             raise ValueError(msg)
         data = codec.decode(self.buffer)
-        if expected_type is not None and not isinstance(data, expected_type):
-            expectation = getattr(expected_type, "__name__", str(expected_type))
-            msg = f"Expected loaded data of type '{expectation}', got '{type(data).__name__}'"
-            raise TypeError(msg)
-        return data
+        if expected_type is None:
+            return data
+        if isinstance(expected_type, tuple) and len(expected_type) == 0:
+            return data
+        if isinstance(data, expected_type):
+            return data
+        expectation = getattr(expected_type, "__name__", str(expected_type))
+        msg = f"Expected loaded data of type '{expectation}', got '{type(data).__name__}'"
+        raise TypeError(msg)
 
     def load(self, **config: object) -> T:
         return self._load(expected_type=None, codec=None, **config)
@@ -187,18 +192,25 @@ V = TypeVar("V", bound=object)
 
 
 class FormatState(LoadedState[T]):
-    __patterns__: tuple[str | Pattern, ...]
+    __patterns__: str | tuple[str, ...]
     __expected__: type[T] | None = None
 
     def __init__(self, data: T | Data, key: str, timestamp: float | None = None) -> None:
-        if not any(Pattern(p)(key) for p in self.__patterns__):
-            msg = ""
+        if not any(p(key) for p in self._patterns()):
+            patterns = " or ".join(repr(p) for p in self._patterns())
+            msg = f"Key does not match any of the allowed patterns: {patterns}"
             raise ValueError(msg)
         if isinstance(data, Data):
             super().__init__(data=data, key=key, timestamp=timestamp)
         else:
             with best_codec(key).encode(data) as content:
                 super().__init__(data=content.read(), key=key, timestamp=timestamp)
+
+    @classmethod
+    def _patterns(cls) -> tuple[Pattern, ...]:
+        if isinstance(cls.__patterns__, str):
+            return (Pattern(cls.__patterns__),)
+        return tuple(map(Pattern, cls.__patterns__))
 
     @classmethod
     def from_state(cls, state: State[Any]) -> Self:
@@ -214,3 +226,26 @@ class FormatState(LoadedState[T]):
             key=self.key,
             timestamp=self.timestamp,
         )
+
+
+class Dat(FormatState[bytes]):
+    __patterns__ = "*.dat"
+    __expected__ = bytes
+
+
+class Bin(Dat):
+    __patterns__ = "*.bin"
+
+
+class Json(FormatState[dict[str, Any] | list[Any] | str]):
+    __patterns__ = "*.json"
+    __expected__ = dict | list | str
+
+
+class Jsonl(Json):
+    __patterns__ = "*.jsonl"
+
+
+class Zip(Iterable[State[Any]]):
+    __patterns__ = "*.zip"
+    __expected__ = Generator
