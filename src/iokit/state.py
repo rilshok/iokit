@@ -1,4 +1,5 @@
 from collections.abc import Generator, Iterable
+from importlib import import_module
 from io import SEEK_END, SEEK_SET, BufferedReader, BytesIO, RawIOBase
 from os.path import relpath as _relpath
 from pathlib import Path, PurePath
@@ -7,11 +8,14 @@ from typing import TYPE_CHECKING, Any, BinaryIO, Generic, Self, TypeVar
 
 from humanize import naturalsize
 
-from iokit.codec.base import Codec, Pattern, best_codec
+from iokit.codec.base import Codec, best_codec
 from iokit.utils.time import Timestamp
 
 if TYPE_CHECKING:
     from _typeshed import WriteableBuffer
+
+    from iokit.utils.waveform import Waveform
+
 
 T = TypeVar("T", bound=object)
 
@@ -192,14 +196,11 @@ V = TypeVar("V", bound=object)
 
 
 class FormatState(LoadedState[T]):
-    __patterns__: str | tuple[str, ...]
+    __extension__: str
     __expected__: type[T] | None = None
 
     def __init__(self, data: T | Data, key: str, timestamp: float | None = None) -> None:
-        if not any(p(key) for p in self._patterns()):
-            patterns = " or ".join(repr(p) for p in self._patterns())
-            msg = f"Key does not match any of the allowed patterns: {patterns}"
-            raise ValueError(msg)
+        self._assert_key(key)
         if isinstance(data, Data):
             super().__init__(data=data, key=key, timestamp=timestamp)
         else:
@@ -207,13 +208,15 @@ class FormatState(LoadedState[T]):
                 super().__init__(data=content.read(), key=key, timestamp=timestamp)
 
     @classmethod
-    def _patterns(cls) -> tuple[Pattern, ...]:
-        if isinstance(cls.__patterns__, str):
-            return (Pattern(cls.__patterns__),)
-        return tuple(map(Pattern, cls.__patterns__))
+    def _assert_key(cls, key: str) -> None:
+        if key.endswith(cls.__extension__):
+            return
+        msg = ""
+        raise ValueError(msg)
 
     @classmethod
     def from_state(cls, state: State[Any]) -> Self:
+        cls._assert_key(state.key)
         return cls(data=state.data, key=state.key, timestamp=state.timestamp)
 
     def load(self, **config: object) -> T:
@@ -229,23 +232,82 @@ class FormatState(LoadedState[T]):
 
 
 class Dat(FormatState[bytes]):
-    __patterns__ = "*.dat"
+    __extension__ = ".dat"
     __expected__ = bytes
 
 
 class Bin(Dat):
-    __patterns__ = "*.bin"
+    __extension__ = ".bin"
 
 
 class Json(FormatState[dict[str, Any] | list[Any] | str]):
-    __patterns__ = "*.json"
+    __extension__ = ".json"
     __expected__ = dict | list | str
 
 
 class Jsonl(Json):
-    __patterns__ = "*.jsonl"
+    __extension__ = ".jsonl"
 
 
 class Zip(Iterable[State[Any]]):
-    __patterns__ = "*.zip"
+    __extension__ = ".zip"
     __expected__ = Generator
+
+
+A = TypeVar("A", bound="Audio")
+
+
+class Audio(FormatState["Waveform"]):
+    def load(self, **config: object) -> "Waveform":
+        return self._load(
+            expected_type=import_module("iokit.utils.waveform").Waveform,
+            codec=None,
+            **config,
+        )
+
+    def _to_audio(self, kls: type[A]) -> A:
+        self._assert_key(self.key)
+        new_key = self.key.removesuffix(self.__extension__) + kls.__extension__
+        return kls(data=self.load(), key=new_key, timestamp=self.timestamp)
+
+    def to_flac(self) -> "Flac":
+        return self._to_audio(Flac)
+
+    def to_wav(self) -> "Wav":
+        return self._to_audio(Wav)
+
+    def to_mp3(self) -> "Mp3":
+        return self._to_audio(Mp3)
+
+    def to_ogg(self) -> "Ogg":
+        return self._to_audio(Ogg)
+
+    def to_oga(self) -> "Oga":
+        return self._to_audio(Oga)
+
+    def to_opus(self) -> "Opus":
+        return self._to_audio(Opus)
+
+
+class Flac(Audio):
+    __extension__ = ".flac"
+
+
+class Wav(Audio):
+    __extension__ = ".wav"
+
+
+class Mp3(Audio):
+    __extension__ = ".mp3"
+
+
+class Ogg(Audio):
+    __extension__ = ".ogg"
+
+
+class Oga(Ogg):
+    __extension__ = ".oga"
+
+
+class Opus(Ogg):
+    __extension__ = ".opus"
