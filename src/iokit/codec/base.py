@@ -5,6 +5,7 @@ from typing import Any, BinaryIO, Generic, TypeVar
 
 from packaging.requirements import Requirement
 
+from iokit.dtype.extension import Extension
 from iokit.utils.dependency import satisfies
 from iokit.utils.pattern import WRAPPER_PREFIX, Pattern
 
@@ -90,7 +91,7 @@ _CODEC_REGISTRY: list[tuple[Pattern, CodecSpec]] = []
 
 
 def registrate(
-    pattern: str,
+    pattern: Pattern,
     spec: str,
     requirements: str | Iterable[str] | None = None,
     *,
@@ -112,7 +113,7 @@ def registrate(
         msg = f"Wrapper pattern {pattern!r} has no suffix left to unwrap"
         raise ValueError(msg)
     entry = (
-        Pattern(pattern),
+        pattern,
         CodecSpec(
             module=module,
             attriute=attr,
@@ -169,66 +170,66 @@ def best_codec(name: str, **config: object) -> Codec[Any]:
     raise ModuleNotFoundError(msg) from failures[-1][1]
 
 
-registrate(pattern="*", spec="iokit.codec.bin:BinCodec")
-registrate(pattern="*.bin", spec="iokit.codec.bin:BinCodec")
-registrate(pattern="*.dat", spec="iokit.codec.bin:BinCodec")
+registrate(pattern=Pattern("*"), spec="iokit.codec.bin:BinCodec")
+registrate(pattern=Extension.BIN.pattern, spec="iokit.codec.bin:BinCodec")
+registrate(pattern=Extension.DAT.pattern, spec="iokit.codec.bin:BinCodec")
 registrate(
-    pattern="*.json",
+    pattern=Extension.JSON.pattern,
     spec="iokit.codec.json:JsonCodec",
     compact=False,
     ensure_ascii=False,
     allow_nan=False,
 )
 registrate(
-    pattern="*.jsonl",
+    pattern=Extension.JSONL.pattern,
     spec="iokit.codec.jsonl:JsonlCodec",
     requirements="jsonlines>=4.0.0",
     compact=True,
     ensure_ascii=False,
     allow_nan=False,
 )
-registrate(pattern="*.zip", spec="iokit.codec.zip:ZipCodec", buffered=False)
-registrate(pattern="*.tar", spec="iokit.codec.tar:TarCodec", buffered=False)
-registrate(pattern="*.gz", spec="iokit.codec.gz:GzipCodec", compression=1)
-registrate(pattern="*.*.gz", spec="iokit.codec.gz:GzipCodec", compression=1)
-registrate(pattern="*.yaml", spec="iokit.codec.yaml:YamlCodec")
-registrate(pattern="*.yml", spec="iokit.codec.yaml:YamlCodec")
-registrate(pattern="*.txt", spec="iokit.codec.text:TextCodec", encoding="utf-8")
+registrate(pattern=Extension.ZIP.pattern, spec="iokit.codec.zip:ZipCodec", buffered=False)
+registrate(pattern=Extension.TAR.pattern, spec="iokit.codec.tar:TarCodec", buffered=False)
+registrate(pattern=Extension.GZ.pattern, spec="iokit.codec.gz:GzipCodec", compression=1)
+registrate(pattern=Extension.GZ.pattern_wrapper, spec="iokit.codec.gz:GzipCodec", compression=1)
+registrate(pattern=Extension.YAML.pattern, spec="iokit.codec.yaml:YamlCodec")
+registrate(pattern=Extension.YML.pattern, spec="iokit.codec.yaml:YamlCodec")
+registrate(pattern=Extension.TXT.pattern, spec="iokit.codec.text:TextCodec", encoding="utf-8")
 registrate(
-    pattern="*.env",
+    pattern=Extension.ENV.pattern,
     spec="iokit.codec.dotenv:DotenvCodec",
     requirements="python-dotenv>=1.0.1",
     encoding="utf-8",
     interpolate=False,
 )
 registrate(
-    pattern="*.npy",
+    pattern=Extension.NPY.pattern,
     spec="iokit.codec.numpy:NumpyCodec",
     requirements="numpy>=1.21.1",
     allow_pickle=False,
 )
 registrate(
-    pattern="*.npz",
+    pattern=Extension.NPZ.pattern,
     spec="iokit.codec.numpy:CompressedNumpyCodec",
     requirements="numpy>=1.21.1",
     allow_pickle=False,
 )
 registrate(
-    pattern="*.csv",
+    pattern=Extension.CSV.pattern,
     spec="iokit.codec.pandas:CsvCodec",
     requirements="pandas>=1.5.3",
     encoding="utf-8",
     index=False,
 )
 registrate(
-    pattern="*.tsv",
+    pattern=Extension.TSV.pattern,
     spec="iokit.codec.pandas:TsvCodec",
     requirements="pandas>=1.5.3",
     encoding="utf-8",
     index=False,
 )
 registrate(
-    pattern="*.enc",
+    pattern=Extension.ENC.pattern,
     spec="iokit.codec.crypto:CryptographyCodec",
     requirements="cryptography>=41.0.7",
     cacheble=False,
@@ -237,95 +238,96 @@ registrate(
 )
 
 _AUDIO_CODECS = {
-    "wav": "Wav",
-    "flac": "Flac",
-    "mp3": "Mp3",
-    "ogg": "Ogg",
-    "oga": "Ogg",  # audio-only ogg
-    "opus": "Opus",  # opus in an ogg container
+    Extension.WAV,
+    Extension.FLAC,
+    Extension.MP3,
+    Extension.OGG,
+    Extension.OGA,
+    Extension.OPUS,
 }
 
-for _extension, _format in _AUDIO_CODECS.items():
+for _extension in _AUDIO_CODECS:
     # Both backends claim the same patterns, and the first registered one wins as long as its
     # dependencies are installed, so soundfile is the default and torchaudio the fallback.
+    _prefix = _extension.value.capitalize()
     registrate(
-        pattern=f"*.{_extension}",
-        spec=f"iokit.codec.soundfile:{_format}SoundfileCodec",
+        pattern=_extension.pattern,
+        spec=f"iokit.codec.soundfile:{_prefix}SoundfileCodec",
         requirements=["soundfile>=0.12.1", "numpy>=1.21.1"],
         subtype=None,
     )
     registrate(
-        pattern=f"*.{_extension}",
-        spec=f"iokit.codec.torchaudio:{_format}TorchaudioCodec",
+        pattern=_extension.pattern,
+        spec=f"iokit.codec.torchaudio:{_prefix}TorchaudioCodec",
         requirements=["torchaudio>=2.0.0", "numpy>=1.21.1"],
     )
 
 _PILLOW_CODECS = {
-    "jfif": "Jpeg",  # JPEG File Interchange Format
-    "jpe": "Jpeg",  # variant extension
-    "jpg": "Jpeg",
-    "jpeg": "Jpeg",
-    "bmp": "Bmp",
-    "dib": "Dib",  # Device Independent Bitmap
-    "gif": "Gif",
-    "pbm": "Ppm",  # Portable Bitmap
-    "pgm": "Ppm",  # Portable Graymap
-    "ppm": "Ppm",  # Portable Pixmap
-    "pnm": "Ppm",  # Portable Anymap (any format)
-    "pfm": "Ppm",  # Portable FloatMap
-    "png": "Png",
-    "apng": "Png",  # Animated PNG
-    "avif": "Avif",  # AV1 Image File Format
-    "avifs": "Avif",  # AVIF sequence (animated)
-    "blp": "Blp",  # Blizzard Picture (game assets)
-    "cur": "Cur",  # Windows cursor (read-only)
-    "pcx": "Pcx",  # ZSoft Paintbrush
-    "dcx": "Dcx",  # Multi-page PCX
-    "dds": "Dds",  # DirectDraw Surface (DirectX textures)
-    "fli": "Fli",  # Autodesk Animator animation
-    "flc": "Fli",  # Autodesk Animator animation variant
-    "ftc": "Ftex",  # Fabrik Texture
-    "ftu": "Ftex",  # Fabrik Texture variant
-    "gbr": "Gbr",  # GIMP brush file
-    "jp2": "Jpeg2000",  # JPEG 2000
-    "j2k": "Jpeg2000",  # JPEG 2000 codestream
-    "jpc": "Jpeg2000",  # JPEG 2000 codestream
-    "jpf": "Jpeg2000",  # JPEG 2000 file
-    "jpx": "Jpeg2000",  # JPEG 2000 extended
-    "j2c": "Jpeg2000",  # JPEG 2000 codestream
-    "icns": "Icns",  # macOS icon
-    "ico": "Ico",  # Windows icon
-    "im": "Im",  # GEOS Image
-    "tif": "Tiff",
-    "tiff": "Tiff",
-    "mpo": "Mpo",  # Multi-Picture Object (Canon, Fujifilm)
-    "msp": "Msp",  # Microsoft Paint bitmap
-    "palm": "Palm",  # Palm Pilot bitmap
-    "pcd": "Pcd",  # Kodak PhotoCD
-    "pxr": "Pixar",  # Pixar texture
-    "psd": "Psd",  # Adobe Photoshop (read-only)
-    "qoi": "Qoi",  # Quite OK Image Format
-    "bw": "Sgi",  # SGI black and white
-    "rgb": "Sgi",  # SGI 3 color channels
-    "rgba": "Sgi",  # SGI 3 color channels and alpha
-    "sgi": "Sgi",  # SGI Image File Format
-    "int": "Sgi",  # SGI black and white integer
-    "inta": "Sgi",  # SGI black and white with alpha
-    "ras": "Sun",  # Sun Raster
-    "tga": "Tga",  # Targa/TARGA image
-    "icb": "Tga",  # Targa (inverted)
-    "vda": "Tga",  # Targa variant
-    "vst": "Tga",  # Targa variant
-    "webp": "Webp",
-    "wmf": "Wmf",  # Windows Metafile
-    "emf": "Wmf",  # Enhanced Metafile (Windows)
-    "xbm": "Xbm",  # X11 Bitmap
-    "xpm": "Xpm",  # X11 Pixmap
+    Extension.JFIF: "Jpeg",
+    Extension.JPE: "Jpeg",
+    Extension.JPG: "Jpeg",
+    Extension.JPEG: "Jpeg",
+    Extension.BMP: "Bmp",
+    Extension.DIB: "Dib",
+    Extension.GIF: "Gif",
+    Extension.PBM: "Ppm",
+    Extension.PGM: "Ppm",
+    Extension.PPM: "Ppm",
+    Extension.PNM: "Ppm",
+    Extension.PFM: "Ppm",
+    Extension.PNG: "Png",
+    Extension.APNG: "Png",
+    Extension.AVIF: "Avif",
+    Extension.AVIFS: "Avif",
+    Extension.BLP: "Blp",
+    Extension.CUR: "Cur",
+    Extension.PCX: "Pcx",
+    Extension.DCX: "Dcx",
+    Extension.DDS: "Dds",
+    Extension.FLI: "Fli",
+    Extension.FLC: "Fli",
+    Extension.FTC: "Ftex",
+    Extension.FTU: "Ftex",
+    Extension.GBR: "Gbr",
+    Extension.JP2: "Jpeg2000",
+    Extension.J2K: "Jpeg2000",
+    Extension.JPC: "Jpeg2000",
+    Extension.JPF: "Jpeg2000",
+    Extension.JPX: "Jpeg2000",
+    Extension.J2C: "Jpeg2000",
+    Extension.ICNS: "Icns",
+    Extension.ICO: "Ico",
+    Extension.IM: "Im",
+    Extension.TIF: "Tiff",
+    Extension.TIFF: "Tiff",
+    Extension.MPO: "Mpo",
+    Extension.MSP: "Msp",
+    Extension.PALM: "Palm",
+    Extension.PCD: "Pcd",
+    Extension.PXR: "Pixar",
+    Extension.PSD: "Psd",
+    Extension.QOI: "Qoi",
+    Extension.BW: "Sgi",
+    Extension.RGB: "Sgi",
+    Extension.RGBA: "Sgi",
+    Extension.SGI: "Sgi",
+    Extension.INT: "Sgi",
+    Extension.INTA: "Sgi",
+    Extension.RAS: "Sun",
+    Extension.TGA: "Tga",
+    Extension.ICB: "Tga",
+    Extension.VDA: "Tga",
+    Extension.VST: "Tga",
+    Extension.WEBP: "Webp",
+    Extension.WMF: "Wmf",
+    Extension.EMF: "Wmf",
+    Extension.XBM: "Xbm",
+    Extension.XPM: "Xpm",
 }
 
 for _extension, _format in _PILLOW_CODECS.items():
     registrate(
-        pattern=f"*.{_extension}",
+        pattern=_extension.pattern,
         spec=f"iokit.codec.pillow:{_format}PillowCodec",
         requirements="Pillow>=10.4.0",
     )

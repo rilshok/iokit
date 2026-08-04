@@ -4,8 +4,8 @@ from iokit.utils.pattern import Pattern
 
 
 class Extension(Enum):
-    DAT = ".dat"
     BIN = ".bin"
+    DAT = ".dat"
     JSON = ".json"
     JSONL = ".jsonl"
     ZIP = ".zip"
@@ -15,6 +15,82 @@ class Extension(Enum):
     OGG = ".ogg"
     OGA = ".oga"
     OPUS = ".opus"
+    TAR = ".tar"
+    GZ = ".gz"
+    YAML = ".yaml"
+    YML = ".yml"
+    TXT = ".txt"
+    ENV = ".env"
+    NPY = ".npy"
+    NPZ = ".npz"
+    CSV = ".csv"
+    TSV = ".tsv"
+    ENC = ".enc"
+    JFIF = ".jfif"  # JPEG File Interchange Format
+    JPE = ".jpe"  # JPEG variant extension
+    JPG = ".jpg"
+    JPEG = ".jpeg"
+    BMP = ".bmp"
+    DIB = ".dib"  # Device Independent Bitmap
+    GIF = ".gif"
+    PBM = ".pbm"  # Portable Bitmap
+    PGM = ".pgm"  # Portable Graymap
+    PPM = ".ppm"  # Portable Pixmap
+    PNM = ".pnm"  # Portable Anymap (any format)
+    PFM = ".pfm"  # Portable FloatMap
+    PNG = ".png"
+    APNG = ".apng"  # Animated PNG
+    AVIF = ".avif"  # AV1 Image File Format
+    AVIFS = ".avifs"  # AVIF sequence (animated)
+    BLP = ".blp"  # Blizzard Picture (game assets)
+    CUR = ".cur"  # Windows cursor (read-only)
+    PCX = ".pcx"  # ZSoft Paintbrush
+    DCX = ".dcx"  # Multi-page PCX
+    DDS = ".dds"  # DirectDraw Surface (DirectX textures)
+    FLI = ".fli"  # Autodesk Animator animation
+    FLC = ".flc"  # Autodesk Animator animation variant
+    FTC = ".ftc"  # Fabrik Texture
+    FTU = ".ftu"  # Fabrik Texture variant
+    GBR = ".gbr"  # GIMP brush file
+    JP2 = ".jp2"  # JPEG 2000
+    J2K = ".j2k"  # JPEG 2000 codestream
+    JPC = ".jpc"  # JPEG 2000 codestream
+    JPF = ".jpf"  # JPEG 2000 file
+    JPX = ".jpx"  # JPEG 2000 extended
+    J2C = ".j2c"  # JPEG 2000 codestream
+    ICNS = ".icns"  # macOS icon
+    ICO = ".ico"  # Windows icon
+    IM = ".im"  # GEOS Image
+    TIF = ".tif"
+    TIFF = ".tiff"
+    MPO = ".mpo"  # Multi-Picture Object (Canon, Fujifilm)
+    MSP = ".msp"  # Microsoft Paint bitmap
+    PALM = ".palm"  # Palm Pilot bitmap
+    PCD = ".pcd"  # Kodak PhotoCD
+    PXR = ".pxr"  # Pixar texture
+    PSD = ".psd"  # Adobe Photoshop (read-only)
+    QOI = ".qoi"  # Quite OK Image Format
+    BW = ".bw"  # SGI black and white
+    RGB = ".rgb"  # SGI 3 color channels
+    RGBA = ".rgba"  # SGI 3 color channels and alpha
+    SGI = ".sgi"  # SGI Image File Format
+    INT = ".int"  # SGI black and white integer
+    INTA = ".inta"  # SGI black and white with alpha
+    RAS = ".ras"  # Sun Raster
+    TGA = ".tga"  # Targa/TARGA image
+    ICB = ".icb"  # Targa (inverted)
+    VDA = ".vda"  # Targa variant
+    VST = ".vst"  # Targa variant
+    WEBP = ".webp"
+    WMF = ".wmf"  # Windows Metafile
+    EMF = ".emf"  # Enhanced Metafile (Windows)
+    XBM = ".xbm"  # X11 Bitmap
+    XPM = ".xpm"  # X11 Pixmap
 
+    @property
     def pattern(self) -> Pattern:
         return Pattern(f"*{self.value}")
+
+    @property
+    def pattern_wrapper(self) -> Pattern:
+        return Pattern(f"*.*{self.value}")
