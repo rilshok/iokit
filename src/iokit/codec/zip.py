@@ -4,7 +4,7 @@ from collections.abc import Iterable
 from contextlib import suppress
 from datetime import datetime
 from io import BytesIO
-from typing import BinaryIO
+from typing import Any, BinaryIO
 from zipfile import ZipFile
 
 from iokit.codec.base import Codec
@@ -12,14 +12,14 @@ from iokit.state import BufferedState, LoadedState, State
 from iokit.utils.time import Timestamp
 
 
-class ZipCodec(Codec[Iterable[State]]):
+class ZipCodec(Codec[Iterable[State[Any]]]):
     def __init__(self, *, buffered: bool = False) -> None:
         self._buffered = buffered
 
     def __repr__(self) -> str:
         return f"{type(self).__name__}(buffered={self._buffered})"
 
-    def encode(self, data: Iterable[State]) -> BytesIO:
+    def encode(self, data: Iterable[State[Any]]) -> BytesIO:
         buffer = BytesIO()
         with ZipFile(buffer, mode="w") as archive:
             for state in data:
@@ -27,7 +27,7 @@ class ZipCodec(Codec[Iterable[State]]):
         buffer.seek(0)
         return buffer
 
-    def decode(self, buffer: BinaryIO) -> Iterable[State]:
+    def decode(self, buffer: BinaryIO) -> Iterable[State[Any]]:
         with buffer, ZipFile(buffer, mode="r") as archive:
             for file in archive.namelist():
                 info = archive.getinfo(file)
