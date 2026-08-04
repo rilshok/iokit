@@ -24,6 +24,7 @@ class ZipCodec(Codec[Iterable[State]]):
         with ZipFile(buffer, mode="w") as archive:
             for state in data:
                 archive.writestr(str(state.name), data=state.data)
+        buffer.seek(0)
         return buffer
 
     def decode(self, buffer: BinaryIO) -> Iterable[State]:
