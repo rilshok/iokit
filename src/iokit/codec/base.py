@@ -196,3 +196,73 @@ registrate(
     password="",
     salt="",
 )
+
+_PILLOW_CODECS = {
+    "jfif": "Jpeg",  # JPEG File Interchange Format
+    "jpe": "Jpeg",  # variant extension
+    "jpg": "Jpeg",
+    "jpeg": "Jpeg",
+    "bmp": "Bmp",
+    "dib": "Dib",  # Device Independent Bitmap
+    "gif": "Gif",
+    "pbm": "Ppm",  # Portable Bitmap
+    "pgm": "Ppm",  # Portable Graymap
+    "ppm": "Ppm",  # Portable Pixmap
+    "pnm": "Ppm",  # Portable Anymap (any format)
+    "pfm": "Ppm",  # Portable FloatMap
+    "png": "Png",
+    "apng": "Png",  # Animated PNG
+    "avif": "Avif",  # AV1 Image File Format
+    "avifs": "Avif",  # AVIF sequence (animated)
+    "blp": "Blp",  # Blizzard Picture (game assets)
+    "cur": "Cur",  # Windows cursor (read-only)
+    "pcx": "Pcx",  # ZSoft Paintbrush
+    "dcx": "Dcx",  # Multi-page PCX
+    "dds": "Dds",  # DirectDraw Surface (DirectX textures)
+    "fli": "Fli",  # Autodesk Animator animation
+    "flc": "Fli",  # Autodesk Animator animation variant
+    "ftc": "Ftex",  # Fabrik Texture
+    "ftu": "Ftex",  # Fabrik Texture variant
+    "gbr": "Gbr",  # GIMP brush file
+    "jp2": "Jpeg2000",  # JPEG 2000
+    "j2k": "Jpeg2000",  # JPEG 2000 codestream
+    "jpc": "Jpeg2000",  # JPEG 2000 codestream
+    "jpf": "Jpeg2000",  # JPEG 2000 file
+    "jpx": "Jpeg2000",  # JPEG 2000 extended
+    "j2c": "Jpeg2000",  # JPEG 2000 codestream
+    "icns": "Icns",  # macOS icon
+    "ico": "Ico",  # Windows icon
+    "im": "Im",  # GEOS Image
+    "tif": "Tiff",
+    "tiff": "Tiff",
+    "mpo": "Mpo",  # Multi-Picture Object (Canon, Fujifilm)
+    "msp": "Msp",  # Microsoft Paint bitmap
+    "palm": "Palm",  # Palm Pilot bitmap
+    "pcd": "Pcd",  # Kodak PhotoCD
+    "pxr": "Pixar",  # Pixar texture
+    "psd": "Psd",  # Adobe Photoshop (read-only)
+    "qoi": "Qoi",  # Quite OK Image Format
+    "bw": "Sgi",  # SGI black and white
+    "rgb": "Sgi",  # SGI 3 color channels
+    "rgba": "Sgi",  # SGI 3 color channels and alpha
+    "sgi": "Sgi",  # SGI Image File Format
+    "int": "Sgi",  # SGI black and white integer
+    "inta": "Sgi",  # SGI black and white with alpha
+    "ras": "Sun",  # Sun Raster
+    "tga": "Tga",  # Targa/TARGA image
+    "icb": "Tga",  # Targa (inverted)
+    "vda": "Tga",  # Targa variant
+    "vst": "Tga",  # Targa variant
+    "webp": "Webp",
+    "wmf": "Wmf",  # Windows Metafile
+    "emf": "Wmf",  # Enhanced Metafile (Windows)
+    "xbm": "Xbm",  # X11 Bitmap
+    "xpm": "Xpm",  # X11 Pixmap
+}
+
+for _extension, _format in _PILLOW_CODECS.items():
+    registrate(
+        pattern=f"*.{_extension}",
+        spec=f"iokit.codec.pillow:{_format}PillowCodec",
+        requirements="Pillow>=10.4.0",
+    )
