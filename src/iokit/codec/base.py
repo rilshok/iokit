@@ -263,6 +263,30 @@ registrate(
     salt="",
 )
 
+_AUDIO_CODECS = {
+    "wav": "Wav",
+    "flac": "Flac",
+    "mp3": "Mp3",
+    "ogg": "Ogg",
+    "oga": "Ogg",  # audio-only ogg
+    "opus": "Opus",  # opus in an ogg container
+}
+
+for _extension, _format in _AUDIO_CODECS.items():
+    # Both backends claim the same patterns, and the first registered one wins as long as its
+    # dependencies are installed, so soundfile is the default and torchaudio the fallback.
+    registrate(
+        pattern=f"*.{_extension}",
+        spec=f"iokit.codec.soundfile:{_format}SoundfileCodec",
+        requirements=["soundfile>=0.12.1", "numpy>=1.21.1"],
+        subtype=None,
+    )
+    registrate(
+        pattern=f"*.{_extension}",
+        spec=f"iokit.codec.torchaudio:{_format}TorchaudioCodec",
+        requirements=["torchaudio>=2.0.0", "numpy>=1.21.1"],
+    )
+
 _PILLOW_CODECS = {
     "jfif": "Jpeg",  # JPEG File Interchange Format
     "jpe": "Jpeg",  # variant extension

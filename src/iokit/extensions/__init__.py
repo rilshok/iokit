@@ -26,7 +26,9 @@ __all__ = [
     "encrypt",
 ]
 
-from .audio import Flac, Mp3, Ogg, Wav, Waveform
+from iokit.utils.waveform import Waveform
+
+from .audio import Flac, Mp3, Ogg, Wav
 from .auto import auto_state
 from .dat import Dat
 from .enc import Enc, SecretState, decrypt, encrypt
