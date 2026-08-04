@@ -220,6 +220,20 @@ registrate(
     interpolate=False,
 )
 registrate(
+    pattern="*.csv",
+    spec="iokit.codec.pandas:CsvCodec",
+    requirements="pandas>=1.5.3",
+    encoding="utf-8",
+    index=False,
+)
+registrate(
+    pattern="*.tsv",
+    spec="iokit.codec.pandas:TsvCodec",
+    requirements="pandas>=1.5.3",
+    encoding="utf-8",
+    index=False,
+)
+registrate(
     pattern="*.enc",
     spec="iokit.codec.crypto:CryptographyCodec",
     requirements="cryptography>=41.0.7",
