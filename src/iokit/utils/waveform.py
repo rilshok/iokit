@@ -1,11 +1,16 @@
 __all__ = ["Waveform"]
 
 from dataclasses import dataclass
+from typing import TypeVar
 
 from numpy import float32
 from numpy.typing import NDArray
 
+from iokit.formats import Audio, Flac, Mp3, Oga, Ogg, Opus, Wav
+
 _MAX_CHANNELS = 8  # Maximum number of channels for a waveform
+
+A = TypeVar("A", bound=Audio)
 
 
 @dataclass
@@ -68,9 +73,25 @@ class Waveform:
             return self.copy()
         return Waveform(self.wave.mean(axis=1), self.freq)
 
+    def _to_audio(self, kls: type[A], name: str, timestamp: float | None = None) -> A:
+        if not name.lower().endswith(kls.__extension__):
+            name += kls.__extension__
+        return kls(data=self, key=name, timestamp=timestamp)
 
-# TODO(@rilshok): def to_state(self, name: str, timestamp: datetime | float | None= None) -> State:
-# TODO(@rilshok): def to_flac(self, name: str, timestamp: datetime | float | None= None) -> State:
-# TODO(@rilshok): def to_wav(self, name: str, timestamp: datetime | float | None= None) -> State:
-# TODO(@rilshok): def to_mp3(self, name: str, timestamp: datetime | float | None= None) -> State:
-# TODO(@rilshok): def to_ogg(self, name: str, timestamp: datetime | float | None= None) -> State:
+    def to_wav(self, name: str, timestamp: float | None = None) -> Wav:
+        return self._to_audio(Wav, name=name, timestamp=timestamp)
+
+    def to_flac(self, name: str, timestamp: float | None = None) -> Flac:
+        return self._to_audio(Flac, name=name, timestamp=timestamp)
+
+    def to_mp3(self, name: str, timestamp: float | None = None) -> Mp3:
+        return self._to_audio(Mp3, name=name, timestamp=timestamp)
+
+    def to_ogg(self, name: str, timestamp: float | None = None) -> Ogg:
+        return self._to_audio(Ogg, name=name, timestamp=timestamp)
+
+    def to_oga(self, name: str, timestamp: float | None = None) -> Oga:
+        return self._to_audio(Oga, name=name, timestamp=timestamp)
+
+    def to_opus(self, name: str, timestamp: float | None = None) -> Opus:
+        return self._to_audio(Opus, name=name, timestamp=timestamp)
