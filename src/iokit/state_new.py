@@ -8,7 +8,7 @@ from humanize import naturalsize
 
 from iokit.codec.base import Codec, Pattern, best_codec
 
-from .time import Timestamp
+from .utils.time import Timestamp
 
 if TYPE_CHECKING:
     from _typeshed import WriteableBuffer

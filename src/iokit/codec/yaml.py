@@ -6,7 +6,7 @@ from typing import Any, BinaryIO
 
 import yaml
 
-from iokit.utils.state_new import Codec
+from iokit.codec.base import Codec
 
 D = dict[str, Any] | list[Any] | str
 

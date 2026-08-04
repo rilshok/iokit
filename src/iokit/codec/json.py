@@ -2,7 +2,7 @@ import json
 from io import BytesIO
 from typing import Any, BinaryIO
 
-from iokit.utils.state_new import Codec
+from iokit.codec.base import Codec
 
 D = dict[str, Any] | list[Any] | str
 

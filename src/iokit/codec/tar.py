@@ -6,7 +6,7 @@ from io import BytesIO
 from typing import BinaryIO
 
 from iokit.codec.base import Codec
-from iokit.utils.state_new import BufferedState, LoadedState, State
+from iokit.state_new import BufferedState, LoadedState, State
 
 
 class TarCodec(Codec[Iterable[State]]):

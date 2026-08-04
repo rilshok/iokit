@@ -12,7 +12,7 @@ from cryptography.hazmat.primitives.ciphers.modes import GCM
 from cryptography.hazmat.primitives.padding import PKCS7
 
 from iokit.codec.base import Codec
-from iokit.utils.state_new import LoadedState, State
+from iokit.state_new import LoadedState, State
 
 
 def _to_bytes(data: bytes | str) -> bytes:
