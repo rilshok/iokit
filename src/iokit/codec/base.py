@@ -187,6 +187,13 @@ registrate(pattern="*.yaml", spec="iokit.codec.yaml:YamlCodec")
 registrate(pattern="*.yml", spec="iokit.codec.yaml:YamlCodec")
 registrate(pattern="*.txt", spec="iokit.codec.text:TextCodec", encoding="utf-8")
 registrate(
+    pattern="*.env",
+    spec="iokit.codec.dotenv:DotenvCodec",
+    requirements="python-dotenv>=1.0.1",
+    encoding="utf-8",
+    interpolate=False,
+)
+registrate(
     pattern="*.enc",
     spec="iokit.codec.crypto:CryptographyCodec",
     requirements="cryptography>=41.0.7",
