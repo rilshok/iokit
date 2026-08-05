@@ -29,13 +29,22 @@ def _hashable(value: object) -> bool:
 
 _CODEC_CACHE: dict[int, Codec[Any]] = {}
 
+Requirements = str | Requirement | Iterable[str | Requirement]
+
+
+def _requirements(requirements: Requirements | None) -> list[Requirement]:
+    """The named requirements as parsed `Requirement`s, deduplicated and ordered for hashing."""
+    if isinstance(requirements, str | Requirement):
+        requirements = [requirements]
+    return [Requirement(r) for r in sorted({str(r) for r in requirements or ()})]
+
 
 @dataclass
 class CodecSpec:
     module: str
     attriute: str
     config: dict[str, Any]
-    requirements: list[Requirement]
+    requirements: Requirements | None
     cacheble: bool
 
     def __post_init__(self) -> None:
@@ -46,16 +55,20 @@ class CodecSpec:
             raise TypeError(msg)
 
         self.config = {name: self.config[name] for name in sorted(self.config)}
-        self.requirements = sorted(self.requirements, key=str)
+        self.requirements = _requirements(self.requirements)
 
     def __hash__(self) -> int:
         state = (
             self.module,
             self.attriute,
             tuple((k, hash(v)) for k, v in self.config.items()),
-            tuple(str(r) for r in self.requirements),
+            tuple(str(r) for r in _requirements(self.requirements)),
         )
         return hash(state)
+
+    def missing(self) -> list[Requirement]:
+        """The requirements this spec names that the environment does not satisfy."""
+        return [r for r in _requirements(self.requirements) if not satisfies(r)]
 
     def produce(self, **config: object) -> Codec[Any]:
         merged = self.config | config
@@ -65,10 +78,9 @@ class CodecSpec:
         if cached := _CODEC_CACHE.get(hash(obj)):
             return cached
 
-        requirements = [r for r in obj.requirements if not satisfies(r)]
-        if requirements:
-            req_str = ", ".join(str(r) for r in requirements)
-            install_cmd = "pip install " + " ".join(r.name for r in requirements)
+        if missing := obj.missing():
+            req_str = ", ".join(str(r) for r in missing)
+            install_cmd = "pip install " + " ".join(r.name for r in missing)
             msg = f"Missing required packages: {req_str}. Install with: {install_cmd}"
             raise ModuleNotFoundError(msg)
 
@@ -98,15 +110,12 @@ def _suffix(extension: Extension | str) -> str:
 def registrate(
     ext: Extension | str,
     spec: str,
-    requirements: str | Iterable[str] | None = None,
+    requirements: Requirements | None = None,
     *,
     override: bool = False,
     cacheble: bool = True,
     **kwargs: object,
 ) -> None:
-    if isinstance(requirements, str):
-        requirements = [requirements]
-    requirements = set(requirements or ())
     module, _, attr = spec.partition(":")
     if not module or not attr:
         msg = ""
@@ -117,7 +126,7 @@ def registrate(
             module=module,
             attriute=attr,
             config=kwargs,
-            requirements=[Requirement(r) for r in requirements],
+            requirements=requirements,
             cacheble=cacheble,
         ),
     )
@@ -127,13 +136,13 @@ def registrate(
         _CODEC_REGISTRY.append(entry)
 
 
-def _install_hint(spec: CodecSpec) -> str:
-    missing = [r for r in spec.requirements if not satisfies(r)]
-    codec = f"{spec.module}:{spec.attriute}"
+def _install_hint(codec: CodecSpec) -> str:
+    missing = codec.missing()
+    spec = f"{codec.module}:{codec.attriute}"
     if not missing:
-        return f"{codec} (module {spec.module!r} is not importable)"
+        return f"{spec} (module {codec.module!r} is not importable)"
     packages = " ".join(sorted({r.name for r in missing}))
-    return f"{codec}: pip install {packages}"
+    return f"{spec}: pip install {packages}"
 
 
 def _candidates(name: str) -> Iterator[CodecSpec]:
