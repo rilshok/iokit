@@ -20,7 +20,7 @@ class TarCodec(Codec[Iterable[State]]):
         buffer = BytesIO()
         with tarfile.open(fileobj=buffer, mode="w") as archive:
             for state in data:
-                info = tarfile.TarInfo(name=state.key)
+                info = tarfile.TarInfo(name=state.path)
                 info.size = state.size
                 info.mtime = int(state.timestamp)
                 archive.addfile(tarinfo=info, fileobj=state.buffer)
@@ -39,12 +39,12 @@ class TarCodec(Codec[Iterable[State]]):
                     if self._buffered:
                         yield BufferedState(
                             buffer=member_buffer,
-                            key=member.name,
+                            path=member.name,
                             timestamp=member.mtime,
                         )
                     else:
                         yield LoadedState(
                             data=member_buffer.read(),
-                            key=member.name,
+                            path=member.name,
                             timestamp=member.mtime,
                         )

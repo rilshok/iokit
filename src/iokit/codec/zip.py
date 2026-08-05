@@ -38,6 +38,6 @@ class ZipCodec(Codec[Iterable[State[Any]]]):
                     timestamp = Timestamp.from_datetime(datetime(*info.date_time))
                 with archive.open(file) as member_buffer:
                     if self._buffered:
-                        yield BufferedState(buffer=member_buffer, key=file, timestamp=timestamp)
+                        yield BufferedState(buffer=member_buffer, path=file, timestamp=timestamp)
                     else:
-                        yield LoadedState(data=member_buffer.read(), key=file, timestamp=timestamp)
+                        yield LoadedState(data=member_buffer.read(), path=file, timestamp=timestamp)
