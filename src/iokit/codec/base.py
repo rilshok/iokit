@@ -1,4 +1,4 @@
-from collections.abc import Iterable
+from collections.abc import Iterable, Iterator
 from dataclasses import dataclass, replace
 from importlib import import_module
 from typing import Any, BinaryIO, Generic, TypeVar
@@ -7,7 +7,6 @@ from packaging.requirements import Requirement
 
 from iokit.dtype.extension import Extension
 from iokit.utils.dependency import satisfies
-from iokit.utils.pattern import Pattern
 
 T = TypeVar("T", bound=object)
 
@@ -58,13 +57,10 @@ class CodecSpec:
         )
         return hash(state)
 
-    def produce(self, codec: Codec[Any] | None = None, /, **config: object) -> Codec[Any]:
+    def produce(self, **config: object) -> Codec[Any]:
         merged = self.config | config
         merged = {key: merged[key] for key in self.config}
-        if codec is not None:
-            # A wrapper codec is only as reusable as the codec it holds, so it is not cached.
-            merged["codec"] = codec
-        obj = replace(self, config=merged, cacheble=self.cacheble and codec is None)
+        obj = replace(self, config=merged)
 
         if cached := _CODEC_CACHE.get(hash(obj)):
             return cached
@@ -87,11 +83,20 @@ class CodecSpec:
         return produced
 
 
-_CODEC_REGISTRY: list[tuple[Pattern, CodecSpec]] = []
+_CODEC_REGISTRY: list[tuple[str, CodecSpec]] = []
+
+
+def _suffix(extension: Extension | str) -> str:
+    """The extension as it trails a name: lowercase and dotted, `""` standing for any name."""
+    suffix = extension.value if isinstance(extension, Extension) else extension
+    suffix = suffix.strip().lower()
+    if suffix and not suffix.startswith("."):
+        suffix = f".{suffix}"
+    return suffix
 
 
 def registrate(
-    pattern: Pattern,
+    ext: Extension | str,
     spec: str,
     requirements: str | Iterable[str] | None = None,
     *,
@@ -102,15 +107,12 @@ def registrate(
     if isinstance(requirements, str):
         requirements = [requirements]
     requirements = set(requirements or ())
-    if pattern.lower() != pattern:
-        msg = ""
-        raise ValueError(msg)
     module, _, attr = spec.partition(":")
     if not module or not attr:
         msg = ""
         raise ValueError(msg)
     entry = (
-        pattern,
+        _suffix(ext),
         CodecSpec(
             module=module,
             attriute=attr,
@@ -134,25 +136,24 @@ def _install_hint(spec: CodecSpec) -> str:
     return f"{codec}: pip install {packages}"
 
 
-def _candidates(name: str) -> list[tuple[Pattern, CodecSpec]]:
-    """Registry entries claiming the name, narrowed down to the most specific patterns."""
-    matched = [(pattern, spec) for pattern, spec in _CODEC_REGISTRY if pattern(name)]
+def _candidates(name: str) -> Iterator[CodecSpec]:
+    """Registry entries claiming the name, narrowed down to the longest extensions."""
+    matched = [(ext, spec) for ext, spec in _CODEC_REGISTRY if name.endswith(ext)]
     if not matched:
         msg = f"No codec registered for {name!r}"
         raise LookupError(msg)
-    score = max(len(pattern) for pattern, _ in matched)
-    return [(pattern, spec) for pattern, spec in matched if len(pattern) == score]
+    score = max(len(ext) for ext, _ in matched)
+    for ext, spec in matched:
+        if len(ext) == score:
+            yield spec
 
 
 def best_codec(name: str, **config: object) -> Codec[Any]:
     name = name.lower()
     failures: list[tuple[CodecSpec, ModuleNotFoundError]] = []
-    for pattern, spec in _candidates(name):
-        # a wrapper takes over the suffix it matched and delegates the rest of the name, so
-        # `data.json.gz` resolves to a gzip codec holding the codec of `data.json`.
+    for spec in _candidates(name):
         try:
-            codec = best_codec(pattern.unwrap(name), **config) if pattern.wrapper else None
-            return spec.produce(codec, **config)
+            return spec.produce(**config)
         except ModuleNotFoundError as exc:  # noqa: PERF203
             failures.append((spec, exc))
 
@@ -167,66 +168,65 @@ def best_codec(name: str, **config: object) -> Codec[Any]:
     raise ModuleNotFoundError(msg) from failures[-1][1]
 
 
-registrate(pattern=Pattern("*"), spec="iokit.codec.bin:BinCodec")
-registrate(pattern=Extension.BIN.pattern, spec="iokit.codec.bin:BinCodec")
-registrate(pattern=Extension.DAT.pattern, spec="iokit.codec.bin:BinCodec")
+registrate(ext=Extension.NULL, spec="iokit.codec.bin:BinCodec")
+registrate(ext=Extension.BIN, spec="iokit.codec.bin:BinCodec")
+registrate(ext=Extension.DAT, spec="iokit.codec.bin:BinCodec")
 registrate(
-    pattern=Extension.JSON.pattern,
+    ext=Extension.JSON,
     spec="iokit.codec.json:JsonCodec",
     compact=False,
     ensure_ascii=False,
     allow_nan=False,
 )
 registrate(
-    pattern=Extension.JSONL.pattern,
+    ext=Extension.JSONL,
     spec="iokit.codec.jsonl:JsonlCodec",
     requirements="jsonlines>=4.0.0",
     compact=True,
     ensure_ascii=False,
     allow_nan=False,
 )
-registrate(pattern=Extension.ZIP.pattern, spec="iokit.codec.zip:ZipCodec", buffered=False)
-registrate(pattern=Extension.TAR.pattern, spec="iokit.codec.tar:TarCodec", buffered=False)
-registrate(pattern=Extension.GZ.pattern, spec="iokit.codec.gz:GzipCodec", compression=1)
-registrate(pattern=Extension.GZ.pattern_wrapper, spec="iokit.codec.gz:GzipCodec", compression=1)
-registrate(pattern=Extension.YAML.pattern, spec="iokit.codec.yaml:YamlCodec")
-registrate(pattern=Extension.YML.pattern, spec="iokit.codec.yaml:YamlCodec")
-registrate(pattern=Extension.TXT.pattern, spec="iokit.codec.text:TextCodec", encoding="utf-8")
+registrate(ext=Extension.ZIP, spec="iokit.codec.zip:ZipCodec", buffered=False)
+registrate(ext=Extension.TAR, spec="iokit.codec.tar:TarCodec", buffered=False)
+registrate(ext=Extension.GZ, spec="iokit.codec.gz:GzipCodec", compression=1)
+registrate(ext=Extension.YAML, spec="iokit.codec.yaml:YamlCodec")
+registrate(ext=Extension.YML, spec="iokit.codec.yaml:YamlCodec")
+registrate(ext=Extension.TXT, spec="iokit.codec.text:TextCodec", encoding="utf-8")
 registrate(
-    pattern=Extension.ENV.pattern,
+    ext=Extension.ENV,
     spec="iokit.codec.dotenv:DotenvCodec",
     requirements="python-dotenv>=1.0.1",
     encoding="utf-8",
     interpolate=False,
 )
 registrate(
-    pattern=Extension.NPY.pattern,
+    ext=Extension.NPY,
     spec="iokit.codec.numpy:NumpyCodec",
     requirements="numpy>=1.21.1",
     allow_pickle=False,
 )
 registrate(
-    pattern=Extension.NPZ.pattern,
+    ext=Extension.NPZ,
     spec="iokit.codec.numpy:CompressedNumpyCodec",
     requirements="numpy>=1.21.1",
     allow_pickle=False,
 )
 registrate(
-    pattern=Extension.CSV.pattern,
+    ext=Extension.CSV,
     spec="iokit.codec.pandas:CsvCodec",
     requirements="pandas>=1.5.3",
     encoding="utf-8",
     index=False,
 )
 registrate(
-    pattern=Extension.TSV.pattern,
+    ext=Extension.TSV,
     spec="iokit.codec.pandas:TsvCodec",
     requirements="pandas>=1.5.3",
     encoding="utf-8",
     index=False,
 )
 registrate(
-    pattern=Extension.ENC.pattern,
+    ext=Extension.ENC,
     spec="iokit.codec.crypto:CryptographyCodec",
     requirements="cryptography>=41.0.7",
     cacheble=False,
@@ -247,13 +247,13 @@ for _extension, _prefix in _AUDIO_CODECS.items():
     # Both backends claim the same patterns, and the first registered one wins as long as its
     # dependencies are installed, so soundfile is the default and torchaudio the fallback.
     registrate(
-        pattern=_extension.pattern,
+        ext=_extension,
         spec=f"iokit.codec.soundfile:{_prefix}SoundfileCodec",
         requirements=["soundfile>=0.12.1", "numpy>=1.21.1"],
         subtype=None,
     )
     registrate(
-        pattern=_extension.pattern,
+        ext=_extension,
         spec=f"iokit.codec.torchaudio:{_prefix}TorchaudioCodec",
         requirements=["torchaudio>=2.0.0", "numpy>=1.21.1"],
     )
@@ -323,7 +323,7 @@ _PILLOW_CODECS = {
 
 for _extension, _format in _PILLOW_CODECS.items():
     registrate(
-        pattern=_extension.pattern,
+        ext=_extension,
         spec=f"iokit.codec.pillow:{_format}PillowCodec",
         requirements="Pillow>=10.4.0",
     )
