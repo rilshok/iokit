@@ -1,9 +1,8 @@
 from enum import Enum
 
-from iokit.utils.pattern import Pattern
-
 
 class Extension(Enum):
+    NULL = ""
     BIN = ".bin"
     DAT = ".dat"
     JSON = ".json"
@@ -86,7 +85,3 @@ class Extension(Enum):
     EMF = ".emf"  # Enhanced Metafile (Windows)
     XBM = ".xbm"  # X11 Bitmap
     XPM = ".xpm"  # X11 Pixmap
-
-    @property
-    def pattern(self) -> Pattern:
-        return Pattern(f"*{self.value}")
