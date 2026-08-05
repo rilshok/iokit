@@ -41,14 +41,14 @@ def download(
     timeout: int = 60,
     keep_path: bool = False,
 ) -> F | LoadedState[Any]:
-    """Download a file into a state, keyed after the path of the url.
+    """Download a file into a state, pathed after the path of the url.
 
     Args:
         url: The address to fetch.
         expected_type: The format the downloaded state is expected to be in, its extension
-            checked against the key. Left out, the state stays untyped.
+            checked against the path. Left out, the state stays untyped.
         timeout: Seconds to wait for the response.
-        keep_path: Whether the key holds the whole url path instead of just the file name.
+        keep_path: Whether the path holds the whole url path instead of just the file name.
 
     Returns:
         The downloaded state, timestamped after `Last-Modified` when the server sends it.
@@ -64,11 +64,11 @@ def download(
         with suppress(Exception):
             timestamp = Timestamp.from_datetime(datetimeparse(mtime))
 
-    key = urlparse(url).path
+    path = urlparse(url).path
     if not keep_path:
-        key = Path(key).name
+        path = Path(path).name
 
-    state: LoadedState[Any] = LoadedState(response.content, key=key, timestamp=timestamp)
+    state: LoadedState[Any] = LoadedState(response.content, path=path, timestamp=timestamp)
     if expected_type is None:
         return state
     return expected_type.from_state(state)
