@@ -2,7 +2,6 @@ __all__ = [
     "Csv",
     "Dat",
     "Enc",
-    "Enc",
     "Env",
     "Flac",
     "Gzip",
@@ -21,7 +20,6 @@ __all__ = [
     "Waveform",
     "Yaml",
     "Zip",
-    "auto_state",
     "decrypt",
     "encrypt",
 ]
@@ -29,7 +27,6 @@ __all__ = [
 from iokit.dtype.waveform import Waveform
 
 from .audio import Flac, Mp3, Ogg, Wav
-from .auto import auto_state
 from .dat import Dat
 from .enc import Enc, SecretState, decrypt, encrypt
 from .env import Env
