@@ -2,22 +2,21 @@ from iokit import Gzip, Tar, Txt, find_state
 
 
 def test_tar_state() -> None:
-    state1 = Txt("First file", name="text1")
-    state2 = Txt("Second file", name="text2")
-    archive = Tar([state1, state2], name="archive")
+    state1 = Txt("First file", stem="text1")
+    state2 = Txt("Second file", stem="text2")
+    archive = Tar([state1, state2], stem="archive")
     assert archive.name == "archive.tar"
-    assert archive.name.stem == "archive"
-    assert archive.name.suffix == "tar"
-    assert archive.name.suffixes == ("tar",)
+    assert archive.stem == "archive"
+    assert archive.extension() == ".tar"
     states = archive.load()
     assert find_state(states, "text1.txt").load() == "First file"
     assert find_state(states, "text2.txt").load() == "Second file"
 
 
 def test_tar_compress() -> None:
-    state1 = Txt("First file", name="text1")
-    state2 = Txt("Second file", name="text2")
-    archive = Tar([state1, state2], name="archive")
+    state1 = Txt("First file", stem="text1")
+    state2 = Txt("Second file", stem="text2")
+    archive = Tar([state1, state2], stem="archive")
     archive1_gz = Gzip(archive)
     archive2_gz = Gzip(archive)
 

@@ -1,18 +1,19 @@
 from collections.abc import Iterable
+from typing import Any
 
 from iokit import Json, State, filter_states
 
 
-def filter_states_(states: Iterable[State], pattern: str) -> list[State]:
+def filter_states_(states: Iterable[State[Any]], pattern: str) -> list[State[Any]]:
     return list(filter_states(states, pattern))
 
 
 def test_filter_states() -> None:
-    banana = Json({"name": "banana"}, name="banana")
-    tomato = Json({"name": "tomato"}, name="tomato")
-    orange = Json({"name": "orange"}, name="orange")
-    cherry = Json({"name": "cherry"}, name="cherry")
-    potato = Json({"name": "potato"}, name="potato")
+    banana = Json({"name": "banana"}, stem="banana")
+    tomato = Json({"name": "tomato"}, stem="tomato")
+    orange = Json({"name": "orange"}, stem="orange")
+    cherry = Json({"name": "cherry"}, path="cherry.json")
+    potato = Json({"name": "potato"}, stem="potato", path="potato.json")
 
     states = [banana, tomato, orange, cherry, potato]
 
