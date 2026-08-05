@@ -39,8 +39,18 @@ def _requirements(requirements: Requirements | None) -> list[Requirement]:
     return [Requirement(r) for r in sorted({str(r) for r in requirements or ()})]
 
 
+def _suffix(extension: Extension | str) -> str:
+    """The extension as it trails a name: lowercase and dotted, `""` standing for any name."""
+    suffix = extension.value if isinstance(extension, Extension) else extension
+    suffix = suffix.strip().lower()
+    if suffix and not suffix.startswith("."):
+        suffix = f".{suffix}"
+    return suffix
+
+
 @dataclass
 class CodecSpec:
+    ext: Extension | str
     spec: str
     config: dict[str, Any]
     requirements: Requirements | None
@@ -57,8 +67,18 @@ class CodecSpec:
             msg = f"Codec config values must be hashable, got unhashable: {names}"
             raise TypeError(msg)
 
+        self.ext = _suffix(self.ext)
         self.config = {name: self.config[name] for name in sorted(self.config)}
         self.requirements = _requirements(self.requirements)
+
+    @property
+    def suffix(self) -> str:
+        """The extension this spec is registered for, as it trails a name."""
+        return _suffix(self.ext)
+
+    def claims(self, name: str) -> bool:
+        """Whether the name carries this extension, an empty one claiming every name."""
+        return name.endswith(self.suffix)
 
     @property
     def module(self) -> str:
@@ -107,16 +127,7 @@ class CodecSpec:
         return produced
 
 
-_CODEC_REGISTRY: list[tuple[str, CodecSpec]] = []
-
-
-def _suffix(extension: Extension | str) -> str:
-    """The extension as it trails a name: lowercase and dotted, `""` standing for any name."""
-    suffix = extension.value if isinstance(extension, Extension) else extension
-    suffix = suffix.strip().lower()
-    if suffix and not suffix.startswith("."):
-        suffix = f".{suffix}"
-    return suffix
+_CODEC_REGISTRY: list[CodecSpec] = []
 
 
 def registrate(
@@ -128,14 +139,12 @@ def registrate(
     cacheble: bool = True,
     **kwargs: object,
 ) -> None:
-    entry = (
-        _suffix(ext),
-        CodecSpec(
-            spec=spec,
-            config=kwargs,
-            requirements=requirements,
-            cacheble=cacheble,
-        ),
+    entry = CodecSpec(
+        ext=ext,
+        spec=spec,
+        config=kwargs,
+        requirements=requirements,
+        cacheble=cacheble,
     )
     if override:
         _CODEC_REGISTRY.insert(0, entry)
@@ -153,14 +162,14 @@ def _install_hint(codec: CodecSpec) -> str:
 
 def _candidates(name: str) -> Iterator[CodecSpec]:
     """Registry entries claiming the name, narrowed down to the longest extensions."""
-    matched = [(ext, spec) for ext, spec in _CODEC_REGISTRY if name.endswith(ext)]
+    matched = [codec for codec in _CODEC_REGISTRY if codec.claims(name)]
     if not matched:
         msg = f"No codec registered for {name!r}"
         raise LookupError(msg)
-    score = max(len(ext) for ext, _ in matched)
-    for ext, spec in matched:
-        if len(ext) == score:
-            yield spec
+    score = max(len(codec.suffix) for codec in matched)
+    for codec in matched:
+        if len(codec.suffix) == score:
+            yield codec
 
 
 def best_codec(name: str, **config: object) -> Codec[Any]:
