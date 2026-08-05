@@ -41,13 +41,16 @@ def _requirements(requirements: Requirements | None) -> list[Requirement]:
 
 @dataclass
 class CodecSpec:
-    module: str
-    attriute: str
+    spec: str
     config: dict[str, Any]
     requirements: Requirements | None
     cacheble: bool
 
     def __post_init__(self) -> None:
+        if not self.module or not self.attribute:
+            msg = f"Codec spec must read as 'module:attribute', got {self.spec!r}"
+            raise ValueError(msg)
+
         unhashable = [name for name, value in self.config.items() if not _hashable(value)]
         if unhashable:
             names = ", ".join(f"{name}={self.config[name]!r}" for name in sorted(unhashable))
@@ -57,10 +60,19 @@ class CodecSpec:
         self.config = {name: self.config[name] for name in sorted(self.config)}
         self.requirements = _requirements(self.requirements)
 
+    @property
+    def module(self) -> str:
+        """The module the codec class lives in, the part of the spec before the colon."""
+        return self.spec.partition(":")[0]
+
+    @property
+    def attribute(self) -> str:
+        """The name the codec class goes by in its module, the part after the colon."""
+        return self.spec.partition(":")[2]
+
     def __hash__(self) -> int:
         state = (
-            self.module,
-            self.attriute,
+            self.spec,
             tuple((k, hash(v)) for k, v in self.config.items()),
             tuple(str(r) for r in _requirements(self.requirements)),
         )
@@ -85,9 +97,9 @@ class CodecSpec:
             raise ModuleNotFoundError(msg)
 
         module = import_module(obj.module)
-        kls = getattr(module, obj.attriute)
-        if not issubclass(kls, Codec):
-            msg = ""
+        kls = getattr(module, obj.attribute)
+        if not isinstance(kls, type) or not issubclass(kls, Codec):
+            msg = f"Codec spec {obj.spec!r} must name a Codec subclass, got {kls!r}"
             raise TypeError(msg)
         produced: Codec[Any] = kls(**obj.config)
         if obj.cacheble:
@@ -116,15 +128,10 @@ def registrate(
     cacheble: bool = True,
     **kwargs: object,
 ) -> None:
-    module, _, attr = spec.partition(":")
-    if not module or not attr:
-        msg = ""
-        raise ValueError(msg)
     entry = (
         _suffix(ext),
         CodecSpec(
-            module=module,
-            attriute=attr,
+            spec=spec,
             config=kwargs,
             requirements=requirements,
             cacheble=cacheble,
@@ -138,11 +145,10 @@ def registrate(
 
 def _install_hint(codec: CodecSpec) -> str:
     missing = codec.missing()
-    spec = f"{codec.module}:{codec.attriute}"
     if not missing:
-        return f"{spec} (module {codec.module!r} is not importable)"
+        return f"{codec.spec} (module {codec.module!r} is not importable)"
     packages = " ".join(sorted({r.name for r in missing}))
-    return f"{spec}: pip install {packages}"
+    return f"{codec.spec}: pip install {packages}"
 
 
 def _candidates(name: str) -> Iterator[CodecSpec]:
