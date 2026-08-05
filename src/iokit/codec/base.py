@@ -7,7 +7,7 @@ from packaging.requirements import Requirement
 
 from iokit.dtype.extension import Extension
 from iokit.utils.dependency import satisfies
-from iokit.utils.pattern import WRAPPER_PREFIX, Pattern
+from iokit.utils.pattern import Pattern
 
 T = TypeVar("T", bound=object)
 
@@ -108,9 +108,6 @@ def registrate(
     module, _, attr = spec.partition(":")
     if not module or not attr:
         msg = ""
-        raise ValueError(msg)
-    if pattern == WRAPPER_PREFIX:
-        msg = f"Wrapper pattern {pattern!r} has no suffix left to unwrap"
         raise ValueError(msg)
     entry = (
         pattern,
