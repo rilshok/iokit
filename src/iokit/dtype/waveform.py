@@ -73,25 +73,59 @@ class Waveform:
             return self.copy()
         return Waveform(self.wave.mean(axis=1), self.freq)
 
-    def _to_audio(self, kls: type[A], name: str, timestamp: float | None = None) -> A:
-        if not name.lower().endswith(ext := kls.extension()):
-            name += ext
-        return kls(data=self, key=name, timestamp=timestamp)
+    def _to_audio(
+        self,
+        kls: type[A],
+        stem: str | None = None,
+        path: str | None = None,
+        timestamp: float | None = None,
+    ) -> A:
+        return kls(data=self, stem=stem, path=path, timestamp=timestamp)
 
-    def to_wav(self, name: str, timestamp: float | None = None) -> Wav:
-        return self._to_audio(Wav, name=name, timestamp=timestamp)
+    def to_wav(
+        self,
+        stem: str | None = None,
+        path: str | None = None,
+        timestamp: float | None = None,
+    ) -> Wav:
+        return self._to_audio(Wav, stem=stem, path=path, timestamp=timestamp)
 
-    def to_flac(self, name: str, timestamp: float | None = None) -> Flac:
-        return self._to_audio(Flac, name=name, timestamp=timestamp)
+    def to_flac(
+        self,
+        stem: str | None = None,
+        path: str | None = None,
+        timestamp: float | None = None,
+    ) -> Flac:
+        return self._to_audio(Flac, stem=stem, path=path, timestamp=timestamp)
 
-    def to_mp3(self, name: str, timestamp: float | None = None) -> Mp3:
-        return self._to_audio(Mp3, name=name, timestamp=timestamp)
+    def to_mp3(
+        self,
+        stem: str | None = None,
+        path: str | None = None,
+        timestamp: float | None = None,
+    ) -> Mp3:
+        return self._to_audio(Mp3, stem=stem, path=path, timestamp=timestamp)
 
-    def to_ogg(self, name: str, timestamp: float | None = None) -> Ogg:
-        return self._to_audio(Ogg, name=name, timestamp=timestamp)
+    def to_ogg(
+        self,
+        stem: str | None = None,
+        path: str | None = None,
+        timestamp: float | None = None,
+    ) -> Ogg:
+        return self._to_audio(Ogg, stem=stem, path=path, timestamp=timestamp)
 
-    def to_oga(self, name: str, timestamp: float | None = None) -> Oga:
-        return self._to_audio(Oga, name=name, timestamp=timestamp)
+    def to_oga(
+        self,
+        stem: str | None = None,
+        path: str | None = None,
+        timestamp: float | None = None,
+    ) -> Oga:
+        return self._to_audio(Oga, stem=stem, path=path, timestamp=timestamp)
 
-    def to_opus(self, name: str, timestamp: float | None = None) -> Opus:
-        return self._to_audio(Opus, name=name, timestamp=timestamp)
+    def to_opus(
+        self,
+        stem: str | None = None,
+        path: str | None = None,
+        timestamp: float | None = None,
+    ) -> Opus:
+        return self._to_audio(Opus, stem=stem, path=path, timestamp=timestamp)
