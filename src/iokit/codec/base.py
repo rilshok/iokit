@@ -19,14 +19,6 @@ class Codec(Generic[T]):
         raise NotImplementedError
 
 
-def _hashable(value: object) -> bool:
-    try:
-        hash(value)
-    except TypeError:
-        return False
-    return True
-
-
 _CODEC_CACHE: dict[int, Codec[Any]] = {}
 
 Requirements = str | Requirement | Iterable[str | Requirement]
@@ -61,24 +53,20 @@ class CodecSpec:
             msg = f"Codec spec must read as 'module:attribute', got {self.spec!r}"
             raise ValueError(msg)
 
-        unhashable = [name for name, value in self.config.items() if not _hashable(value)]
-        if unhashable:
-            names = ", ".join(f"{name}={self.config[name]!r}" for name in sorted(unhashable))
-            msg = f"Codec config values must be hashable, got unhashable: {names}"
-            raise TypeError(msg)
-
         self.ext = _suffix(self.ext)
         self.config = {name: self.config[name] for name in sorted(self.config)}
         self.requirements = _requirements(self.requirements)
+
+        try:
+            hash(self)
+        except TypeError as exc:
+            msg = f"Codec config values must be hashable, got {self.config}"
+            raise TypeError(msg) from exc
 
     @property
     def suffix(self) -> str:
         """The extension this spec is registered for, as it trails a name."""
         return _suffix(self.ext)
-
-    def claims(self, name: str) -> bool:
-        """Whether the name carries this extension, an empty one claiming every name."""
-        return name.endswith(self.suffix)
 
     @property
     def module(self) -> str:
@@ -98,19 +86,14 @@ class CodecSpec:
         )
         return hash(state)
 
-    def missing(self) -> list[Requirement]:
-        """The requirements this spec names that the environment does not satisfy."""
-        return [r for r in _requirements(self.requirements) if not satisfies(r)]
-
     def produce(self, **config: object) -> Codec[Any]:
         merged = self.config | config
-        merged = {key: merged[key] for key in self.config}
-        obj = replace(self, config=merged)
+        obj = replace(self, config={key: merged[key] for key in self.config})
 
         if cached := _CODEC_CACHE.get(hash(obj)):
             return cached
 
-        if missing := obj.missing():
+        if missing := [r for r in _requirements(obj.requirements) if not satisfies(r)]:
             req_str = ", ".join(str(r) for r in missing)
             install_cmd = "pip install " + " ".join(r.name for r in missing)
             msg = f"Missing required packages: {req_str}. Install with: {install_cmd}"
@@ -152,17 +135,9 @@ def registrate(
         _CODEC_REGISTRY.append(entry)
 
 
-def _install_hint(codec: CodecSpec) -> str:
-    missing = codec.missing()
-    if not missing:
-        return f"{codec.spec} (module {codec.module!r} is not importable)"
-    packages = " ".join(sorted({r.name for r in missing}))
-    return f"{codec.spec}: pip install {packages}"
-
-
 def _candidates(name: str) -> Iterator[CodecSpec]:
     """Registry entries claiming the name, narrowed down to the longest extensions."""
-    matched = [codec for codec in _CODEC_REGISTRY if codec.claims(name)]
+    matched = [codec for codec in _CODEC_REGISTRY if name.endswith(codec.suffix)]
     if not matched:
         msg = f"No codec registered for {name!r}"
         raise LookupError(msg)
@@ -173,23 +148,22 @@ def _candidates(name: str) -> Iterator[CodecSpec]:
 
 
 def best_codec(name: str, **config: object) -> Codec[Any]:
-    name = name.lower()
-    failures: list[tuple[CodecSpec, ModuleNotFoundError]] = []
-    for spec in _candidates(name):
+    failures: list[ModuleNotFoundError] = []
+    for codec in _candidates(name.lower()):
         try:
-            return spec.produce(**config)
+            return codec.produce(**config)
         except ModuleNotFoundError as exc:  # noqa: PERF203
-            failures.append((spec, exc))
+            failures.append(exc)
 
     if len(failures) == 1:
-        raise failures[0][1]
+        raise failures[0]
 
-    options = "; ".join(_install_hint(spec) for spec, _ in failures)
+    reasons = "; ".join(str(exc) for exc in failures)
     msg = (
-        f"No codec for {name!r} could be created, all {len(failures)} candidates are missing "
-        f"their dependencies. Install one of the following option groups: {options}"
+        f"No codec for {name!r} could be created, all {len(failures)} candidates failed, "
+        f"any one of them would do: {reasons}"
     )
-    raise ModuleNotFoundError(msg) from failures[-1][1]
+    raise ModuleNotFoundError(msg) from failures[-1]
 
 
 registrate(ext=Extension.NULL, spec="iokit.codec.bin:BinCodec")
