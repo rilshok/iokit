@@ -90,7 +90,3 @@ class Extension(Enum):
     @property
     def pattern(self) -> Pattern:
         return Pattern(f"*{self.value}")
-
-    @property
-    def pattern_wrapper(self) -> Pattern:
-        return Pattern(f"*.*{self.value}")
