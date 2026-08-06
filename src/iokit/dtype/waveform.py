@@ -1,56 +1,16 @@
-__all__ = ["Flac", "Mp3", "Ogg", "Wav", "Waveform"]
+__all__ = ["Waveform"]
 
 from dataclasses import dataclass
-from datetime import datetime
-from io import BytesIO
+from typing import TypeVar
 
-import soundfile
 from numpy import float32
 from numpy.typing import NDArray
 
-from iokit.state import State, StateName
-
-
-class AudioState(State, suffix=""):
-    def __init__(
-        self,
-        data: "Waveform",
-        /,
-        name: str | StateName = "",
-        *,
-        time: datetime | None = None,
-    ) -> None:
-        with BytesIO() as buffer:
-            soundfile.write(
-                file=buffer,
-                data=data.wave,
-                samplerate=data.freq,
-                format=self._suffix,
-            )
-            super().__init__(buffer.getvalue(), name=name, time=time)
-
-    def load(self) -> "Waveform":
-        wave, freq = soundfile.read(self.buffer, always_2d=True)
-        return Waveform(wave=wave, freq=freq)
-
-
-class Flac(AudioState, suffix="flac"):
-    pass
-
-
-class Wav(AudioState, suffix="wav"):
-    pass
-
-
-class Mp3(AudioState, suffix="mp3"):
-    pass
-
-
-class Ogg(AudioState, suffix="ogg", suffixes=("ogg", "oga", "opus")):
-    pass
-
+from iokit.state import Audio, Flac, Mp3, Oga, Ogg, Opus, Wav
 
 _MAX_CHANNELS = 8  # Maximum number of channels for a waveform
+
+A = TypeVar("A", bound=Audio)
 
 
 @dataclass
@@ -70,7 +30,7 @@ class Waveform:
                 f" but got {self.channels} channels."
             )
             raise ValueError(msg)
-        if self.wave.dtype is not float32:
+        if self.wave.dtype != float32:
             self.wave = self.wave.astype(float32)
 
     @property
@@ -103,6 +63,7 @@ class Waveform:
         return Waveform(self.wave[start:stop], self.freq)
 
     def display(self) -> None:
+        # TODO(@rilshok): rebase to _repr_html_
         from IPython.display import Audio, display
 
         return display(Audio(self.wave.T, rate=self.freq))
@@ -112,14 +73,59 @@ class Waveform:
             return self.copy()
         return Waveform(self.wave.mean(axis=1), self.freq)
 
-    def to_flac(self, name: str | StateName, *, time: datetime | None = None) -> Flac:
-        return Flac(self, name=name, time=time)
+    def _to_audio(
+        self,
+        kls: type[A],
+        stem: str | None = None,
+        path: str | None = None,
+        timestamp: float | None = None,
+    ) -> A:
+        return kls(data=self, stem=stem, path=path, timestamp=timestamp)
 
-    def to_wav(self, name: str | StateName, *, time: datetime | None = None) -> Wav:
-        return Wav(self, name=name, time=time)
+    def to_wav(
+        self,
+        stem: str | None = None,
+        path: str | None = None,
+        timestamp: float | None = None,
+    ) -> Wav:
+        return self._to_audio(Wav, stem=stem, path=path, timestamp=timestamp)
 
-    def to_mp3(self, name: str | StateName, *, time: datetime | None = None) -> Mp3:
-        return Mp3(self, name=name, time=time)
+    def to_flac(
+        self,
+        stem: str | None = None,
+        path: str | None = None,
+        timestamp: float | None = None,
+    ) -> Flac:
+        return self._to_audio(Flac, stem=stem, path=path, timestamp=timestamp)
 
-    def to_ogg(self, name: str | StateName, *, time: datetime | None = None) -> Ogg:
-        return Ogg(self, name=name, time=time)
+    def to_mp3(
+        self,
+        stem: str | None = None,
+        path: str | None = None,
+        timestamp: float | None = None,
+    ) -> Mp3:
+        return self._to_audio(Mp3, stem=stem, path=path, timestamp=timestamp)
+
+    def to_ogg(
+        self,
+        stem: str | None = None,
+        path: str | None = None,
+        timestamp: float | None = None,
+    ) -> Ogg:
+        return self._to_audio(Ogg, stem=stem, path=path, timestamp=timestamp)
+
+    def to_oga(
+        self,
+        stem: str | None = None,
+        path: str | None = None,
+        timestamp: float | None = None,
+    ) -> Oga:
+        return self._to_audio(Oga, stem=stem, path=path, timestamp=timestamp)
+
+    def to_opus(
+        self,
+        stem: str | None = None,
+        path: str | None = None,
+        timestamp: float | None = None,
+    ) -> Opus:
+        return self._to_audio(Opus, stem=stem, path=path, timestamp=timestamp)

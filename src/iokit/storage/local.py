@@ -2,68 +2,18 @@ __all__ = [
     "LocalStorage",
     "MemoryStorage",
     "StateStorage",
-    "load_file",
-    "save_file",
-    "save_temp",
 ]
 
-import tempfile
-from collections.abc import Generator, Iterator
-from contextlib import contextmanager
-from pathlib import Path
-from typing import Any, Literal, TypeVar, overload
+from collections.abc import Iterator
+from pathlib import Path, PurePath
+from typing import Any, TypeVar, overload
 
-from iokit import Enc, auto_state, supported_extensions
-from iokit.state import ExpectedStateType, State
-from iokit.tools.time import fromtimestamp
+from iokit.codec.base import best_codec
+from iokit.state import Enc, FormatState, Gzip, LoadedState, State
 
 from .storage import BackendStorage, Storage
 
-PathLike = str | Path
-
-S = TypeVar("S", bound=State)
-
-
-@overload
-def load_file(path: PathLike, expected_type: type[S]) -> S: ...
-
-
-@overload
-def load_file(path: PathLike, expected_type: None = None) -> State: ...
-
-
-def load_file(path: PathLike, expected_type: type[S] | None = None) -> S | State:
-    path = Path(path).resolve()
-    mtime = fromtimestamp(path.stat().st_mtime)
-    return State(path.read_bytes(), name=path.name, time=mtime).cast(expected_type)
-
-
-def save_file(
-    state: State,
-    /,
-    root: PathLike = "",
-    *,
-    parents: bool = False,
-    force: bool = False,
-) -> Path:
-    root = Path(root).resolve()
-    path = (root / str(state.name)).resolve()
-    if not path.is_relative_to(root):
-        msg = f"Path is outside of root: root='{root!s}', state.name='{state.name!s}'"
-        raise ValueError(msg)
-    if path.exists() and not force:
-        msg = f"File already exists: path='{path!s}'"
-        raise FileExistsError(msg)
-    root.mkdir(parents=parents, exist_ok=True)
-    path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_bytes(state.data)
-    return path
-
-
-@contextmanager
-def save_temp(state: State, /) -> Generator[Path, None, None]:
-    with tempfile.TemporaryDirectory() as temp_dir:
-        yield save_file(state, root=temp_dir)
+S = TypeVar("S", bound=FormatState[Any])
 
 
 class LocalStorage(BackendStorage):
@@ -71,33 +21,50 @@ class LocalStorage(BackendStorage):
         super().__init__()
         self._root = Path(root).resolve()
 
+    def _path(self, uid: str) -> Path:
+        """Return the path holding the record, checked to stay under the storage root."""
+        path = (self._root / uid).resolve()
+        if not path.is_relative_to(self._root):
+            msg = f"Record with uid '{uid}' would land outside of the storage root"
+            raise ValueError(msg)
+        return path
+
     def pull(self, uid: str) -> bytes:
-        return load_file(self._root / uid).data
+        path = self._path(uid)
+        if not path.is_file():
+            msg = f"Record with uid '{uid}' does not exist"
+            raise FileNotFoundError(msg)
+        return path.read_bytes()
 
     def push(self, uid: str, record: bytes, *, force: bool = False) -> None:
-        try:
-            save_file(State(record, name=uid), root=self._root, force=force)
-        except FileExistsError as exc:
+        path = self._path(uid)
+        if path.exists() and not force:
             msg = f"Record with uid '{uid}' already exists"
-            raise FileExistsError(msg) from exc
+            raise FileExistsError(msg)
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_bytes(record)
 
     def remove(self, uid: str) -> None:
-        path = Path(self._root / uid)
-        if not path.exists():
+        path = self._path(uid)
+        if not path.is_file():
             msg = f"Record with uid '{uid}' does not exist"
             raise FileNotFoundError(msg)
         path.unlink()
 
     def exists(self, uid: str) -> bool:
-        return Path(self._root / uid).exists()
+        return self._path(uid).is_file()
 
     def index(self, prefix: str | None = None) -> Iterator[str]:
-        pattern = "*" if prefix is None else f"{prefix}*"
-        for p in self._root.rglob(pattern):
-            uid = str(p.relative_to(self._root))
-            if uid.startswith("."):
+        for path in self._root.rglob("*"):
+            if not path.is_file():
                 continue
-            yield uid
+            relative = path.relative_to(self._root)
+            # nothing hidden is a record, however deep it lies
+            if any(part.startswith(".") for part in relative.parts):
+                continue
+            uid = relative.as_posix()
+            if prefix is None or uid.startswith(prefix):
+                yield uid
 
 
 class MemoryStorage(BackendStorage):
@@ -128,105 +95,113 @@ class MemoryStorage(BackendStorage):
         return uid in self._records
 
     def index(self, prefix: str | None = None) -> Iterator[str]:
-        for uid in self._records:
+        # a snapshot, so that pushing or removing while walking the index is not an error
+        for uid in list(self._records):
             if prefix is None or uid.startswith(prefix):
                 yield uid
 
 
 class StateStorage(Storage[Any]):
-    def __init__(  # noqa: PLR0913
+    """Objects kept as states in a byte backend, the format taken from the uid extension.
+
+    A uid such as `report.json` picks the codec, so the storage itself only adds the layers
+    it is configured with: `.gz` for compression and `.enc` for password protection, in that
+    order. The layers are part of the path the backend sees, never of the uid, and a storage
+    reads back only what a storage configured the same way has written.
+    """
+
+    def __init__(
         self,
         backend: BackendStorage,
         *,
         compression: int | bool | None = None,
         password: str | None = None,
-        waveform_to: Literal["wav", "flac", "mp3", "ogg"] = "wav",
-        dataframe_to: Literal["csv", "tsv"] = "csv",
-        builtin_to: Literal["json", "yaml"] = "json",
+        salt: str = "",
     ) -> None:
         super().__init__()
         self._backend = backend
-        self._extensions = supported_extensions()
-
-        self._compression = compression
+        # `False` asks for no compression at all, where `0` is the gzip level that only stores
+        self._compression = None if compression is False else compression
         self._password = password
-        self._waveform_to = waveform_to
-        self._dataframe_to = dataframe_to
-        self._builtin_to = builtin_to
+        self._salt = salt
 
-    def _remove_extension(self, name: str) -> str:
-        while True:
-            for ext in self._extensions:
-                suffix = f".{ext}"
-                if name.endswith(suffix):
-                    name = name.removesuffix(suffix)
-                    break
-            else:
-                break
-        return name
+    def _path(self, uid: str) -> str:
+        """Return the path the backend holds the record pushed under `uid` at."""
+        if self._compression is not None:
+            uid += Gzip.extension()
+        if self._password is not None:
+            uid += Enc.extension()
+        return uid
 
-    def _name(self, uid: str) -> str:
-        for name in self._backend.index(prefix=uid):
-            if self._remove_extension(name) == uid:
-                return name
-        msg = f"Record with uid '{uid}' does not exist"
-        raise FileNotFoundError(msg)
+    def _uid(self, path: str) -> str:
+        """Return the uid of the record the backend holds at `path`."""
+        if self._password is not None:
+            path = path.removesuffix(Enc.extension())
+        if self._compression is not None:
+            path = path.removesuffix(Gzip.extension())
+        return path
 
     @overload
-    def pull_state(self, uid: str, expected_type: ExpectedStateType[S]) -> S: ...
+    def pull_state(self, uid: str, expected_type: type[S]) -> S: ...
 
     @overload
-    def pull_state(self, uid: str, expected_type: None = None) -> State: ...
+    def pull_state(self, uid: str, expected_type: None = None) -> State[Any]: ...
 
-    def pull_state(
-        self,
-        uid: str,
-        expected_type: ExpectedStateType[S] | None = None,
-    ) -> S | State:
-        name = self._name(uid)
+    def pull_state(self, uid: str, expected_type: type[S] | None = None) -> S | State[Any]:
+        """Read a record back as the state it was pushed as, pathed by its `uid`.
+
+        Args:
+            uid: The identifier the record was pushed under, extension included.
+            expected_type: The format the state is asserted to be, or `None` to skip the check.
+
+        Returns:
+            The state stripped of the compression and encryption layers, pathed by `uid`.
+
+        Raises:
+            FileNotFoundError: If no record is stored under `uid`.
+
+        """
+        path = self._path(uid)
         try:
-            data = self._backend.pull(name)
+            data = self._backend.pull(path)
         except FileNotFoundError as exc:
             msg = f"Record with uid '{uid}' does not exist"
             raise FileNotFoundError(msg) from exc
-        else:
-            return State(data, name=name).cast(expected_type)
+        state: State[Any] = LoadedState(data, path=path)
+        if self._password is not None:
+            state = Enc.from_state(state).load(password=self._password, salt=self._salt)
+        if self._compression is not None:
+            state = Gzip.from_state(state).load()
+        if expected_type is None:
+            return state
+        return expected_type.from_state(state)
 
     def pull(self, uid: str) -> object:
-        if self._password is not None:
-            state = self.pull_state(uid, Enc).load().load(password=self._password)
-        else:
-            state = self.pull_state(uid)
-        if self._compression is not None:
-            state = state.load()
-        return state.load()
+        return self.pull_state(uid).load()
 
     def push(self, uid: str, record: object, *, force: bool = False) -> None:
-        state = auto_state(
-            record,
-            name=uid,
-            compression=self._compression,
-            password=self._password,
-            waveform_to=self._waveform_to,
-            dataframe_to=self._dataframe_to,
-            builtin_to=self._builtin_to,
-        )
+        with best_codec(PurePath(uid).name).encode(record) as content:
+            state: State[Any] = LoadedState(content.read(), path=uid)
+        if self._compression is not None:
+            state = state.gzip(compression=int(self._compression))
+        if self._password is not None:
+            state = state.encrypt(password=self._password, salt=self._salt)
         try:
-            return self._backend.push(uid=str(state.name), record=state.data, force=force)
+            self._backend.push(uid=state.path, record=state.data, force=force)
         except FileExistsError as exc:
             msg = f"Record with uid '{uid}' already exists"
             raise FileExistsError(msg) from exc
 
     def remove(self, uid: str) -> None:
         try:
-            return self._backend.remove(self._name(uid))
+            self._backend.remove(self._path(uid))
         except FileNotFoundError as exc:
             msg = f"Record with uid '{uid}' does not exist"
             raise FileNotFoundError(msg) from exc
 
     def exists(self, uid: str) -> bool:
-        return self._backend.exists(self._name(uid))
+        return self._backend.exists(self._path(uid))
 
     def index(self, prefix: str | None = None) -> Iterator[str]:
-        for idx in self._backend.index(prefix=prefix):
-            yield self._remove_extension(idx)
+        for path in self._backend.index(prefix=prefix):
+            yield self._uid(path)
