@@ -187,8 +187,8 @@ registrate(
 registrate(ext=Extension.ZIP, spec="iokit.codec.zip:ZipCodec", buffered=False)
 registrate(ext=Extension.TAR, spec="iokit.codec.tar:TarCodec", buffered=False)
 registrate(ext=Extension.GZ, spec="iokit.codec.gz:GzipCodec", compression=1)
-registrate(ext=Extension.YAML, spec="iokit.codec.yaml:YamlCodec")
-registrate(ext=Extension.YML, spec="iokit.codec.yaml:YamlCodec")
+registrate(ext=Extension.YAML, spec="iokit.codec.yaml:YamlCodec", requirements="PyYAML>=6.0.1")
+registrate(ext=Extension.YML, spec="iokit.codec.yaml:YamlCodec", requirements="PyYAML>=6.0.1")
 registrate(ext=Extension.TXT, spec="iokit.codec.text:TextCodec", encoding="utf-8")
 registrate(
     ext=Extension.ENV,
