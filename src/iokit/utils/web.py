@@ -1,4 +1,4 @@
-__all__ = ["download"]
+__all__ = ["web"]
 
 from contextlib import suppress
 from pathlib import Path
@@ -15,7 +15,7 @@ F = TypeVar("F", bound=FormatState[Any])
 
 
 @overload
-def download(
+def web(
     url: str,
     expected_type: type[F],
     *,
@@ -25,7 +25,7 @@ def download(
 
 
 @overload
-def download(
+def web(
     url: str,
     expected_type: None = None,
     *,
@@ -34,7 +34,7 @@ def download(
 ) -> LoadedState[Any]: ...
 
 
-def download(
+def web(
     url: str,
     expected_type: type[F] | None = None,
     *,
