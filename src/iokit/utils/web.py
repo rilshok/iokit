@@ -52,6 +52,7 @@ def web(
 
     Returns:
         The downloaded state, timestamped after `Last-Modified` when the server sends it.
+
     """
     response = requests.get(url, timeout=timeout)
     if not response.ok:

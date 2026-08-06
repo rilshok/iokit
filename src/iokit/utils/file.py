@@ -32,6 +32,7 @@ def file(path: PathLike, expected_type: type[F] | None = None) -> F | FileState[
     Raises:
         FileNotFoundError: If `path` leads to no regular file.
         ValueError: If `path` lacks the extension of `expected_type`.
+
     """
     state: FileState[Any] = FileState(path)
     if expected_type is None:

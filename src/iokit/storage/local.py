@@ -159,6 +159,7 @@ class StateStorage(Storage[Any]):
 
         Raises:
             FileNotFoundError: If no record is stored under `uid`.
+
         """
         path = self._path(uid)
         try:

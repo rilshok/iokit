@@ -198,6 +198,7 @@ class State(Generic[T]):
         Raises:
             ValueError: If the path resolves outside of `root`.
             FileExistsError: If the path already exists and `force` is not set.
+
         """
         root = Path(root).resolve()
         relative = PurePath(self.path)
@@ -224,6 +225,7 @@ class State(Generic[T]):
 
         Yields:
             The path written to, valid only inside the context.
+
         """
         with TemporaryDirectory(dir=root) as temp:
             yield self.save(temp)
@@ -236,6 +238,7 @@ class State(Generic[T]):
 
         Returns:
             The compressed state, pathed after this one with `.gz` appended.
+
         """
         return Gzip(self, compression=compression)
 
@@ -248,6 +251,7 @@ class State(Generic[T]):
 
         Returns:
             The encrypted state, pathed after this one with `.enc` appended.
+
         """
         return Enc(self, password=password, salt=salt)
 
@@ -392,6 +396,7 @@ class FormatState(LoadedState[T]):
         Raises:
             ValueError: If `stem` and `path` disagree, if `path` lacks the extension of this
                 format, or if `config` is given for data already encoded.
+
         """
         path = self._resolve_path(stem=stem, path=path)
         if isinstance(data, Data):
@@ -578,6 +583,7 @@ class LayerState(FormatState[State[Any]]):
 
         Raises:
             TypeError: If the codec of the layer gives back anything but bytes.
+
         """
         payload = best_codec(self.name, **config).decode(self.buffer)
         if not isinstance(payload, bytes):
