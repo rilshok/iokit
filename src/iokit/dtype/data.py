@@ -8,12 +8,17 @@ from base64 import (
 )
 from collections.abc import Buffer
 from os import urandom
+from pathlib import Path
 from typing import (
+    BinaryIO,
     Literal,
     Self,
     SupportsIndex,
     overload,
 )
+
+from iokit.utils.checksum import CHUNK_SIZE as HASH_CHUNK_SIZE
+from iokit.utils.checksum import Hash
 
 
 class Data(bytes):
@@ -90,6 +95,29 @@ class Data(bytes):
         pad_len = (-len(raw)) % 8
         raw += b"=" * pad_len
         return cls(b32decode(raw))
+
+    @classmethod
+    def digest_from_io(
+        cls,
+        algorithm: str | Hash,
+        buffer: BinaryIO,
+        *,
+        chunk_size: int = HASH_CHUNK_SIZE,
+    ) -> Self:
+        """Compute hash of a binary buffer."""
+        return cls(Hash(algorithm).digest(buffer, chunk_size=chunk_size))
+
+    @classmethod
+    def digest_from_path(
+        cls,
+        path: str | Path,
+        algorithm: str | Hash,
+        *,
+        chunk_size: int = HASH_CHUNK_SIZE,
+    ) -> Self:
+        """Compute hash of a file at the given path."""
+        with Path(path).open("rb") as buffer:
+            return cls.digest_from_io(algorithm, buffer, chunk_size=chunk_size)
 
 
 _BASE32_CROCKFORD_ENCODE_ALPHABET = dict(enumerate(b"0123456789ABCDEFGHJKMNPQRSTVWXYZ"))

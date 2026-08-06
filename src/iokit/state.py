@@ -13,6 +13,7 @@ from humanize import naturalsize
 from iokit.codec.base import best_codec
 from iokit.dtype.data import Data
 from iokit.dtype.extension import Extension
+from iokit.utils.checksum import Hash
 from iokit.utils.pattern import Pattern
 from iokit.utils.time import Timestamp
 
@@ -154,6 +155,10 @@ class State(Generic[T]):
     def data(self) -> Data:
         with self.buffer as buffer:
             return Data(buffer.read())
+
+    def digest(self, algorithm: str | Hash) -> Data:
+        with self.buffer as buffer:
+            return Data.digest_from_io(algorithm, buffer)
 
     @property
     def buffer(self) -> BinaryIO:

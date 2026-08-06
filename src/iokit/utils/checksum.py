@@ -3,45 +3,61 @@ __all__ = ["ChecksumMixin"]
 import hashlib
 from collections.abc import Generator, Iterator
 from contextlib import contextmanager
+from enum import Enum
 from io import BytesIO
-from typing import Literal, Protocol
+from typing import BinaryIO, Protocol
 
 import xxhash
 
-CHUNK_SIZE = 4096
-
-HashAlgorithm = Literal["xxh32", "xxh64", "xxh128", "sha256", "md5", "sha1", "blake2b", "blake2s"]
+CHUNK_SIZE = 32768
 
 
-class _HashAlgorithmProtocol(Protocol):
-    def hexdigest(self) -> str:
-        pass
+class _HashAlgorithm(Protocol):
+    def update(self, data: bytes, /) -> None: ...
 
-    def update(self, data: bytes) -> None:
-        pass
+    def digest(self) -> bytes: ...
+
+    def hexdigest(self) -> str: ...
 
 
-def _get_hash_algorithm(algorithm: HashAlgorithm) -> _HashAlgorithmProtocol:  # noqa: PLR0911
-    match algorithm:
-        case "xxh32":
-            return xxhash.xxh32()
-        case "xxh64":
-            return xxhash.xxh64()
-        case "xxh128":
-            return xxhash.xxh128()
-        case "sha256":
-            return hashlib.sha256()
-        case "md5":
-            return hashlib.md5()  # noqa: S324
-        case "sha1":
-            return hashlib.sha1()  # noqa: S324
-        case "blake2b":
-            return hashlib.blake2b()
-        case "blake2s":
-            return hashlib.blake2s()
-        case other:
-            msg = f"Unknown hash algorithm '{other}'"
-            raise ValueError(msg)
+class Hash(Enum):
+    XXH32 = "xxh32"
+    XXH64 = "xxh64"
+    XXH128 = "xxh128"
+    SHA256 = "sha256"
+    MD5 = "md5"
+    SHA1 = "sha1"
+    BLAKE2B = "blake2b"
+    BLAKE2S = "blake2s"
+
+    @property
+    def algorithm(self) -> _HashAlgorithm:  # noqa: PLR0911
+        match self:
+            case Hash.XXH32:
+                return xxhash.xxh32()
+            case Hash.XXH64:
+                return xxhash.xxh64()
+            case Hash.XXH128:
+                return xxhash.xxh128()
+            case Hash.SHA256:
+                return hashlib.sha256()
+            case Hash.MD5:
+                return hashlib.md5()  # noqa: S324
+            case Hash.SHA1:
+                return hashlib.sha1()  # noqa: S324
+            case Hash.BLAKE2B:
+                return hashlib.blake2b()
+            case Hash.BLAKE2S:
+                return hashlib.blake2s()
+
+    def digest(self, buffer: BinaryIO, *, chunk_size: int = CHUNK_SIZE) -> bytes:
+        algorithm = self.algorithm
+        while True:
+            chunk = buffer.read(chunk_size)
+            if not chunk:
+                break
+            algorithm.update(chunk)
+        return algorithm.digest()
 
 
 @contextmanager
@@ -77,18 +93,18 @@ def _iterate_chuncks(
         yield from iter(lambda: buffer.read(chunk_size), b"")
 
 
-def _hexdigest(algorithm: HashAlgorithm, data: object) -> str:
-    hash_object = _get_hash_algorithm(algorithm)
+def _hexdigest(algorithm: Hash, data: object) -> str:
+    hash_object = algorithm.algorithm
     for chunk in _iterate_chuncks(data):
         hash_object.update(chunk)
     return hash_object.hexdigest()
 
 
 class ChecksumMixin:
-    def hexdigest(self, algorithm: HashAlgorithm) -> str:
+    def hexdigest(self, algorithm: Hash) -> str:
         return _hexdigest(algorithm=algorithm, data=self)
 
-    def hexdigest_assert(self, algorithm: HashAlgorithm, hexdigest: str) -> None:
+    def hexdigest_assert(self, algorithm: Hash, hexdigest: str) -> None:
         if (checksum := self.hexdigest(algorithm)) != hexdigest:
             msg = f"Expected {algorithm} {hexdigest =}, got ={checksum!r}"
             raise AssertionError(msg)
