@@ -119,6 +119,7 @@ select = [
 ]
 ignore = [
     "RUF100",
+    "F403",
 ]
 
 [tool.ruff.lint.per-file-ignores]
