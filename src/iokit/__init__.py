@@ -86,15 +86,21 @@ from .state import (
     first,
 )
 from .utils.file import file
-from .utils.web import web
 
 if TYPE_CHECKING:
     from .dtype.waveform import Waveform
+    from .utils.web import web
+
+_LAZY = {
+    # each rests on a dependency of the `ultra` extra, unasked for at import time
+    "Waveform": "iokit.dtype.waveform",
+    "web": "iokit.utils.web",
+}
 
 
 def __getattr__(name: str) -> Any:  # noqa: ANN401
-    """Serve `Waveform`, which rests on numpy, without asking for it at import time."""
-    if name == "Waveform":
-        return import_module("iokit.dtype.waveform").Waveform
+    """Serve what rests on optional dependencies, without asking for them at import time."""
+    if module := _LAZY.get(name):
+        return getattr(import_module(module), name)
     msg = f"module {__name__!r} has no attribute {name!r}"
     raise AttributeError(msg)
