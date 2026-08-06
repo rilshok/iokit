@@ -2,14 +2,6 @@ from datetime import UTC, datetime, timedelta
 from typing import Self
 
 
-def fromtimestamp(timestamp: float) -> datetime:
-    return Timestamp(timestamp).datetime
-
-
-def now() -> datetime:
-    return Timestamp.now().datetime
-
-
 class Timestamp(float):
     @classmethod
     def now(cls) -> Self:

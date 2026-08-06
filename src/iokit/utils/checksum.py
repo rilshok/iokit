@@ -1,10 +1,7 @@
-__all__ = ["ChecksumMixin"]
+__all__ = ["Hash"]
 
 import hashlib
-from collections.abc import Generator, Iterator
-from contextlib import contextmanager
 from enum import Enum
-from io import BytesIO
 from typing import BinaryIO, Protocol
 
 import xxhash
@@ -58,53 +55,3 @@ class Hash(Enum):
                 break
             algorithm.update(chunk)
         return algorithm.digest()
-
-
-@contextmanager
-def _buffer(data: object) -> Generator[BytesIO, None, None]:
-    close = False
-    if hasattr(data, "buffer"):
-        buffer = data.buffer
-        close = True
-    elif isinstance(data, bytes):
-        buffer = BytesIO(data)
-        close = True
-    elif hasattr(data, "data"):
-        data = data.data
-        buffer = BytesIO(data.data)
-        close = True
-    else:
-        buffer = data
-        buffer.seek(0)
-
-    try:
-        yield buffer
-
-    finally:
-        if close:
-            buffer.close()
-
-
-def _iterate_chuncks(
-    data: object,
-    chunk_size: int = CHUNK_SIZE,
-) -> Iterator[bytes]:
-    with _buffer(data) as buffer:
-        yield from iter(lambda: buffer.read(chunk_size), b"")
-
-
-def _hexdigest(algorithm: Hash, data: object) -> str:
-    hash_object = algorithm.algorithm
-    for chunk in _iterate_chuncks(data):
-        hash_object.update(chunk)
-    return hash_object.hexdigest()
-
-
-class ChecksumMixin:
-    def hexdigest(self, algorithm: Hash) -> str:
-        return _hexdigest(algorithm=algorithm, data=self)
-
-    def hexdigest_assert(self, algorithm: Hash, hexdigest: str) -> None:
-        if (checksum := self.hexdigest(algorithm)) != hexdigest:
-            msg = f"Expected {algorithm} {hexdigest =}, got ={checksum!r}"
-            raise AssertionError(msg)
