@@ -3,7 +3,6 @@ from contextlib import contextmanager
 from importlib import import_module
 from io import SEEK_END, SEEK_SET, BufferedReader, BytesIO, RawIOBase
 from os import utime
-from os.path import relpath as _relpath
 from pathlib import Path, PurePath
 from shutil import copyfileobj
 from tempfile import TemporaryDirectory
@@ -314,26 +313,12 @@ class FileState(State[T]):
     Its path leads back to that file, and is held shut: renaming a state renames no file.
     """
 
-    def __init__(
-        self,
-        path: str | Path,
-        *,
-        relpath_ok: bool = True,
-    ) -> None:
+    def __init__(self, path: str | Path) -> None:
         file = Path(path)
         if not file.is_file():
             msg = "Path is not a regular file"
             raise FileNotFoundError(msg)
-        relative = PurePath(_relpath(file, Path.cwd())).as_posix()
-        super().__init__(
-            path=relative if relpath_ok else file.as_posix(),
-            timestamp=file.stat().st_mtime,
-        )
-
-    @property
-    def file(self) -> Path:
-        """The file this state stands for, at the path it was found under."""
-        return Path(self._path)
+        super().__init__(path=file.as_posix(), timestamp=file.stat().st_mtime)
 
     @property
     def path(self) -> str:
@@ -347,11 +332,11 @@ class FileState(State[T]):
 
     @property
     def buffer(self) -> BufferedReader:
-        return self.file.open("rb")
+        return Path(self._path).open("rb")
 
     @property
     def size(self) -> int:
-        return self.file.stat().st_size
+        return Path(self._path).stat().st_size
 
 
 class LoadedState(State[T]):
