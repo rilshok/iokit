@@ -1,8 +1,8 @@
-from iokit.extensions.yaml import Yaml
+from iokit import Yaml
 
 
 def test_yaml_empty() -> None:
-    state = Yaml([], name="empty")
+    state = Yaml([], stem="empty")
     assert state.name == "empty.yaml"
     assert state.size == 3
     assert state.data == b"[]\n"
@@ -10,13 +10,13 @@ def test_yaml_empty() -> None:
 
 
 def test_yaml_single() -> None:
-    state = Yaml({"key": "value"}, name="single")
+    state = Yaml({"key": "value"}, stem="single")
     assert state.name == "single.yaml"
     assert state.load() == {"key": "value"}
 
 
 def test_yaml_multiple() -> None:
-    state = Yaml({"first": 1, "second": 2}, name="multiple")
+    state = Yaml({"first": 1, "second": 2}, "multiple")
     assert state.name == "multiple.yaml"
     assert state.load() == {"first": 1, "second": 2}
     assert state.size == 19
@@ -30,7 +30,7 @@ def test_yaml_different() -> None:
         "str": "hello",
         "int": 42,
     }
-    state = Yaml(data, name="different")
+    state = Yaml(data, "different")
     assert state.name == "different.yaml"
     loaded = state.load()
     assert all(v1 == v2 for v1, v2 in zip(loaded["list"], [1, 2, 3], strict=True))

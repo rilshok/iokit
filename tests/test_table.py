@@ -13,7 +13,7 @@ def _test_teble_data() -> list[dict[str, str | int]]:
 
 def test_csv() -> None:
     frame = pd.DataFrame(_test_teble_data())
-    state = Csv(frame, name="test")
+    state = Csv(frame, stem="test")
     assert str(state.name) == "test.csv"
     assert frame.equals(state.load())
     assert Csv(frame, index=True).size > state.size
@@ -23,7 +23,7 @@ def test_csv() -> None:
 
 def test_tsv() -> None:
     frame = pd.DataFrame(_test_teble_data())
-    state = Tsv(frame, name="test")
+    state = Tsv(frame, stem="test")
     assert str(state.name) == "test.tsv"
     assert frame.equals(state.load())
     assert Tsv(frame, index=True).size > state.size

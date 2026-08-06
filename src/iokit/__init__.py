@@ -1,69 +1,106 @@
-__version__ = "0.3.4"
 __all__ = [
-    "ChecksumMixin",
+    "Archive",
+    "Audio",
+    "Bin",
+    "BufferedState",
     "Csv",
     "Dat",
+    "Data",
+    "Document",
     "Enc",
     "Env",
+    "FileState",
     "Flac",
+    "FormatState",
     "Gzip",
+    "Image",
     "Jpeg",
+    "Jpg",
     "Json",
     "Jsonl",
+    "LayerState",
+    "LoadedState",
     "Mp3",
     "Npy",
+    "Oga",
     "Ogg",
+    "Opus",
+    "Pandas",
     "Png",
-    "ReadOnlyStorage",
-    "SecretState",
     "State",
-    "Storage",
     "Tar",
     "Tsv",
     "Txt",
     "Wav",
     "Waveform",
     "Yaml",
+    "Yml",
     "Zip",
-    "auto_state",
-    "decrypt",
-    "download_file",
-    "encrypt",
-    "filter_states",
-    "find_state",
-    "load_file",
-    "save_file",
-    "save_temp",
-    "supported_extensions",
+    "file",
+    "filtrate",
+    "first",
+    "web",
 ]
 
+from importlib import import_module
+from typing import TYPE_CHECKING, Any
 
-from .checksum import ChecksumMixin
-from .extensions import (
+from .dtype.data import Data
+from .state import (
+    Archive,
+    Audio,
+    Bin,
+    BufferedState,
     Csv,
     Dat,
+    Document,
     Enc,
     Env,
+    FileState,
     Flac,
+    FormatState,
     Gzip,
+    Image,
     Jpeg,
+    Jpg,
     Json,
     Jsonl,
+    LayerState,
+    LoadedState,
     Mp3,
     Npy,
+    Oga,
     Ogg,
+    Opus,
+    Pandas,
     Png,
-    SecretState,
+    State,
     Tar,
     Tsv,
     Txt,
     Wav,
-    Waveform,
     Yaml,
+    Yml,
     Zip,
-    auto_state,
-    decrypt,
-    encrypt,
+    filtrate,
+    first,
 )
-from .state import State, filter_states, find_state, supported_extensions
-from .storage import ReadOnlyStorage, Storage, download_file, load_file, save_file, save_temp
+from .utils.file import file
+
+if TYPE_CHECKING:
+    from .dtype.waveform import Waveform
+    from .utils.web import web
+
+_LAZY = {
+    # each rests on a dependency of the `ultra` extra, unasked for at import time
+    "Waveform": "iokit.dtype.waveform",
+    "web": "iokit.utils.web",
+}
+
+
+def __getattr__(name: str) -> Any:  # noqa: ANN401
+    """Serve what rests on optional dependencies, without asking for them at import time."""
+    if module := _LAZY.get(name):
+        return getattr(import_module(module), name)
+    msg = f"module {__name__!r} has no attribute {name!r}"
+    raise AttributeError(msg)
