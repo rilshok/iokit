@@ -1,19 +1,25 @@
-from collections.abc import Iterable
+from collections.abc import Generator, Iterable, Iterator
+from contextlib import contextmanager
 from importlib import import_module
 from io import SEEK_END, SEEK_SET, BufferedReader, BytesIO, RawIOBase
+from os import utime
 from os.path import relpath as _relpath
 from pathlib import Path, PurePath
-from types import UnionType
+from shutil import copyfileobj
+from tempfile import TemporaryDirectory
 from typing import TYPE_CHECKING, Any, BinaryIO, Generic, Self, TypeVar
 
 from humanize import naturalsize
 
-from iokit.codec.base import Codec, best_codec
+from iokit.codec.base import best_codec
 from iokit.dtype.data import Data
 from iokit.dtype.extension import Extension
+from iokit.utils.pattern import Pattern
 from iokit.utils.time import Timestamp
 
 if TYPE_CHECKING:
+    from types import UnionType
+
     from _typeshed import WriteableBuffer
     from numpy.typing import NDArray  # noqa: F401
     from pandas import DataFrame  # noqa: F401
@@ -24,15 +30,78 @@ if TYPE_CHECKING:
 
 T = TypeVar("T", bound=object)
 
+PathLike = str | Path
+
 
 class State(Generic[T]):
-    def __init__(self, key: str, timestamp: float | None = None) -> None:
-        self.key = key
+    """A payload with somewhere to go: a path, and the time it was last touched.
+
+    The path may be given whole, or completed from a stem by the extension of the format.
+    """
+
+    def __init__(
+        self,
+        stem: str | None = None,
+        path: str | None = None,
+        timestamp: float | None = None,
+    ) -> None:
+        # the field rather than the property, which a subclass may hold shut against renaming
+        self._path = self._resolve_path(stem=stem, path=path)
         self._timestamp = Timestamp.now() if timestamp is None else Timestamp(timestamp)
+
+    @classmethod
+    def extension(cls) -> str:
+        """The extension a state of this kind closes its path with; none for a plain one."""
+        return ""
+
+    @classmethod
+    def _assert_path(cls, path: str) -> None:
+        if path.lower().endswith(cls.extension()):
+            return
+        msg = f"Path must end with {cls.extension()!r} extension"
+        raise ValueError(msg)
+
+    @classmethod
+    def _strip_extension(cls, path: str) -> str:
+        """Take the extension of this kind off `path`, in whatever case it is written."""
+        # a slice rather than `removesuffix`, which `.GZ` would slip past the way `_assert_path`
+        # does not, and rather than a bare negative one, which an empty extension would empty
+        return path[: len(path) - len(cls.extension())]
+
+    @classmethod
+    def _resolve_path(cls, stem: str | None, path: str | None) -> str:
+        """Return where a state goes, given the `stem` of a name, the `path` itself, or both.
+
+        Either may be left out, but a stem that is given, empty or not, has to agree with a
+        path that is given: they came from somewhere, and disagreeing means something upstream
+        went wrong.
+        """
+        stem = None if stem is None else str(stem)
+        path = None if path is None else str(path)
+        extension = cls.extension()
+        if path is None:
+            # no name at all, so a state of nothing but the bare extension
+            stem = stem if stem is not None else ""
+            if extension and stem.lower().endswith(extension):
+                msg = (
+                    f"Stem {stem!r} already carries the {extension!r} extension, "
+                    f"so it is a path: pass it as one"
+                )
+                raise ValueError(msg)
+            return stem + extension
+        cls._assert_path(path)
+        # the stem is the path without its extension, directories kept or dropped
+        if stem is not None and stem not in (PurePath(path).stem, cls._strip_extension(path)):
+            msg = (
+                f"Stem {stem!r} does not match the path {path!r}, "
+                f"whose stem is {PurePath(path).stem!r}"
+            )
+            raise ValueError(msg)
+        return path
 
     def __repr__(self) -> str:
         size = naturalsize(self.size, gnu=True)
-        return f"{self.key} ({size})"
+        return f"{self.path} ({size})"
 
     @property
     def timestamp(self) -> Timestamp:
@@ -43,16 +112,40 @@ class State(Generic[T]):
         self._timestamp = Timestamp.now() if value is None else Timestamp(value)
 
     @property
-    def key(self) -> str:
-        return self._key
+    def path(self) -> str:
+        """Where this state goes; `name` and `stem` are set through it."""
+        return self._path
 
-    @key.setter
-    def key(self, value: str) -> None:
-        self._key = str(value)
+    @path.setter
+    def path(self, value: str) -> None:
+        self._path = str(value)
 
     @property
     def name(self) -> str:
-        return Path(self._key).name
+        """The last part of the path, extension included."""
+        return PurePath(self._path).name
+
+    @name.setter
+    def name(self, value: str) -> None:
+        self.path = PurePath(self._path).with_name(str(value)).as_posix()
+
+    @property
+    def stem(self) -> str:
+        """The name with its extension taken off, as a format is given one."""
+        return PurePath(self._path).stem
+
+    @stem.setter
+    def stem(self, value: str) -> None:
+        self.path = PurePath(self._path).with_stem(str(value)).as_posix()
+
+    @property
+    def suffix(self) -> str:
+        """Whatever the name carries past its stem, which a format knows beforehand."""
+        return PurePath(self._path).suffix
+
+    @suffix.setter
+    def suffix(self, value: str) -> None:
+        self.path = PurePath(self._path).with_suffix(str(value)).as_posix()
 
     @property
     def size(self) -> int:
@@ -67,39 +160,69 @@ class State(Generic[T]):
     def buffer(self) -> BinaryIO:
         return BytesIO(self.data)
 
-    def _load(
-        self,
-        expected_type: type[T] | UnionType | None = None,
-        *,
-        codec: Codec[T] | None = None,
-        **config: object,
-    ) -> T:
-        if codec is None:
-            codec = best_codec(self.name, **config)
-        elif config:
-            msg = "Cannot pass both engine instance and keyword arguments"
-            raise ValueError(msg)
-        data = codec.decode(self.buffer)
-        if expected_type is None:
+    def _load(self, expected: "type[T] | UnionType | None", **config: object) -> T:
+        data: T = best_codec(self.name, **config).decode(self.buffer)
+        if expected is None or isinstance(data, expected):
             return data
-        if isinstance(expected_type, tuple) and len(expected_type) == 0:
-            return data
-        if isinstance(data, expected_type):
-            return data
-        expectation = getattr(expected_type, "__name__", str(expected_type))
+        expectation = getattr(expected, "__name__", str(expected))
         msg = f"Expected loaded data of type '{expectation}', got '{type(data).__name__}'"
         raise TypeError(msg)
 
     def load(self, **config: object) -> T:
-        return self._load(expected_type=None, codec=None, **config)
+        return self._load(None, **config)
 
-    @property
-    def copy(self) -> "State[T]":
-        return LoadedState(
-            data=self.data,
-            key=self.key,
-            timestamp=self.timestamp,
-        )
+    def save(
+        self,
+        root: PathLike = "",
+        *,
+        parents: bool = False,
+        force: bool = False,
+    ) -> "FileState[T]":
+        """Write this state to a file, its path taken as relative to `root`.
+
+        An absolute path lands under `root` the way an archive member would, so
+        `/data/report.json` becomes `data/report.json`; the file takes the state timestamp.
+
+        Args:
+            root: The directory the path is resolved against; the working directory by default.
+            parents: Whether to create `root` along with any of its missing parents.
+            force: Whether to overwrite a file already at the path.
+
+        Returns:
+            The state of the file written to.
+
+        Raises:
+            ValueError: If the path resolves outside of `root`.
+            FileExistsError: If the path already exists and `force` is not set.
+        """
+        root = Path(root).resolve()
+        relative = PurePath(self.path)
+        path = (root / relative.relative_to(relative.anchor)).resolve()
+        if not path.is_relative_to(root):
+            msg = f"Path is outside of root: root='{root!s}', path='{self.path!s}'"
+            raise ValueError(msg)
+        if path.exists() and not force:
+            msg = f"File already exists: path='{path!s}'"
+            raise FileExistsError(msg)
+        root.mkdir(parents=parents, exist_ok=True)
+        path.parent.mkdir(parents=True, exist_ok=True)
+        with self.buffer as source, path.open("wb") as target:
+            copyfileobj(source, target)
+        utime(path, (self.timestamp, self.timestamp))
+        return FileState(path)
+
+    @contextmanager
+    def save_temp(self, root: PathLike | None = None) -> Generator["FileState[T]", None, None]:
+        """Write this state to a file in a temporary directory, removed on leaving the context.
+
+        Args:
+            root: The directory holding the temporary one; the system default if `None`.
+
+        Yields:
+            The path written to, valid only inside the context.
+        """
+        with TemporaryDirectory(dir=root) as temp:
+            yield self.save(temp)
 
     def gzip(self, *, compression: int = 1) -> "Gzip":
         """Compress this state as it stands.
@@ -108,27 +231,21 @@ class State(Generic[T]):
             compression: The gzip level, from 0 for none to 9 for the smallest output.
 
         Returns:
-            The compressed state, keyed after this one with `.gz` appended.
+            The compressed state, pathed after this one with `.gz` appended.
         """
         return Gzip(self, compression=compression)
 
     def encrypt(self, *, password: bytes | str, salt: bytes | str = "") -> "Enc":
-        """Encrypt this state, its key and timestamp packed in along with the payload.
+        """Encrypt the payload of this state as it stands.
 
         Args:
-            password: The secret guarding the payload, to be repeated on loading.
-            salt: Extra input to the key derivation, to be repeated on loading.
+            password: The secret guarding the payload, to be repeated on decrypting.
+            salt: Extra input to the key derivation, to be repeated on decrypting.
 
         Returns:
-            The encrypted state, keyed after this one with `.enc` appended.
+            The encrypted state, pathed after this one with `.enc` appended.
         """
-        return Enc(
-            self,
-            key=self.key + Enc.extension(),
-            timestamp=self.timestamp,
-            password=password,
-            salt=salt,
-        )
+        return Enc(self, password=password, salt=salt)
 
 
 class _StreamView(RawIOBase):
@@ -163,9 +280,15 @@ class _StreamView(RawIOBase):
 
 
 class BufferedState(State[T]):
-    def __init__(self, buffer: BinaryIO, key: str, timestamp: float | None = None) -> None:
+    def __init__(
+        self,
+        buffer: BinaryIO,
+        stem: str | None = None,
+        path: str | None = None,
+        timestamp: float | None = None,
+    ) -> None:
         self._source = buffer
-        super().__init__(key=key, timestamp=timestamp)
+        super().__init__(stem=stem, path=path, timestamp=timestamp)
         if not buffer.readable():
             msg = "Buffer must be readable"
             raise ValueError(msg)
@@ -186,35 +309,60 @@ class BufferedState(State[T]):
 
 
 class FileState(State[T]):
+    """A state standing for a file on disk, read from it as it is asked for.
+
+    Its path leads back to that file, and is held shut: renaming a state renames no file.
+    """
+
     def __init__(
         self,
         path: str | Path,
         *,
-        key_is_relpath: bool = True,
+        relpath_ok: bool = True,
     ) -> None:
-        self.path = Path(path)
-        if not self.path.is_file():
+        file = Path(path)
+        if not file.is_file():
             msg = "Path is not a regular file"
             raise FileNotFoundError(msg)
-        if key_is_relpath:
-            key = PurePath(_relpath(self.path, Path.cwd())).as_posix()
-        else:
-            key = self.path.as_posix()
-        timestamp = self.path.stat().st_mtime
-        super().__init__(key=key, timestamp=timestamp)
+        relative = PurePath(_relpath(file, Path.cwd())).as_posix()
+        super().__init__(
+            path=relative if relpath_ok else file.as_posix(),
+            timestamp=file.stat().st_mtime,
+        )
+
+    @property
+    def file(self) -> Path:
+        """The file this state stands for, at the path it was found under."""
+        return Path(self._path)
+
+    @property
+    def path(self) -> str:
+        """Where the file this state stands for is, and where it stays."""
+        return self._path
+
+    @path.setter
+    def path(self, value: str) -> None:  # noqa: ARG002
+        msg = "Cannot rename a state standing for a file on disk"
+        raise AttributeError(msg)
 
     @property
     def buffer(self) -> BufferedReader:
-        return self.path.open("rb")
+        return self.file.open("rb")
 
     @property
     def size(self) -> int:
-        return self.path.stat().st_size
+        return self.file.stat().st_size
 
 
 class LoadedState(State[T]):
-    def __init__(self, data: bytes, key: str, timestamp: float | None = None) -> None:
-        super().__init__(key=key, timestamp=timestamp)
+    def __init__(
+        self,
+        data: bytes,
+        stem: str | None = None,
+        path: str | None = None,
+        timestamp: float | None = None,
+    ) -> None:
+        super().__init__(stem=stem, path=path, timestamp=timestamp)
         self._data = data
 
     @property
@@ -223,68 +371,90 @@ class LoadedState(State[T]):
 
 
 class FormatState(LoadedState[T]):
+    """A state of a known format, filed under a path its extension closes.
+
+    `Json(document, "greeting")` is the state `greeting.json`; a path may be given instead,
+    or both when they agree, or neither for a state filed under the bare extension.
+    """
+
     __extension__: Extension
-    # An unparameterized class, or a union of them, checked against the loaded payload.
-    __expected__: "type[Any] | UnionType | None" = None
+    # An unparameterized class, or a union of them, checked against the loaded payload. A type
+    # coming from an optional dependency is named as "module:attribute", imported only on load.
+    __expected__: "type[Any] | UnionType | str | None" = None
 
     def __init__(
         self,
         data: T | Data,
-        key: str,
+        stem: str | None = None,
+        path: str | None = None,
         timestamp: float | None = None,
         **config: object,
     ) -> None:
-        self._assert_key(key)
+        """Encode a payload as this format.
+
+        Args:
+            data: The payload to encode, or the `Data` of an encoded one, taken as it stands.
+            stem: The name with the extension left off, completing `path` when left out.
+            path: The whole path, extension included, completed from `stem` when left out.
+            timestamp: The modification time, the current one by default.
+            **config: Settings for the codec doing the encoding.
+
+        Raises:
+            ValueError: If `stem` and `path` disagree, if `path` lacks the extension of this
+                format, or if `config` is given for data already encoded.
+        """
+        path = self._resolve_path(stem=stem, path=path)
         if isinstance(data, Data):
             if config:
                 msg = "Cannot configure a codec for already encoded data"
                 raise ValueError(msg)
-            super().__init__(data=data, key=key, timestamp=timestamp)
+            super().__init__(data=data, path=path, timestamp=timestamp)
         else:
-            with best_codec(key, **config).encode(data) as content:
-                super().__init__(data=content.read(), key=key, timestamp=timestamp)
+            with best_codec(path, **config).encode(self._to_encode(data)) as content:
+                super().__init__(data=content.read(), path=path, timestamp=timestamp)
 
     @classmethod
     def extension(cls) -> str:
         return cls.__extension__.value
 
     @classmethod
-    def _assert_key(cls, key: str) -> None:
-        if key.lower().endswith(cls.extension()):
-            return
-        msg = f"Key must end with {cls.extension()!r} extension"
-        raise ValueError(msg)
+    def _to_encode(cls, data: T) -> object:
+        """What the codec is handed for `data`, which is the payload unless a kind says else."""
+        return data
 
     @classmethod
-    def _expected(cls) -> "type[T] | UnionType | None":
+    def _expected(cls) -> "type[Any] | UnionType | None":
+        """The type the loaded payload is checked against, imported now if it was named."""
+        if isinstance(cls.__expected__, str):
+            module, _, attribute = cls.__expected__.partition(":")
+            expected: type[Any] = getattr(import_module(module), attribute)
+            return expected
         return cls.__expected__
 
     @classmethod
     def from_state(cls, state: State[Any]) -> Self:
-        cls._assert_key(state.key)
-        return cls(data=state.data, key=state.key, timestamp=state.timestamp)
+        cls._assert_path(state.path)
+        return cls(data=state.data, path=state.path, timestamp=state.timestamp)
 
     def load(self, **config: object) -> T:
-        return self._load(expected_type=self._expected(), codec=None, **config)
-
-    @property
-    def copy(self) -> State[T]:
-        return type(self)(
-            data=self.load(),
-            key=self.key,
-            timestamp=self.timestamp,
-        )
+        return self._load(self._expected(), **config)
 
 
-class LazyFormatState(FormatState[T]):
-    """A format whose payload type comes from an optional dependency, imported only on load."""
+def filter_states(
+    states: Iterable[State[T]],
+    pattern: str | Pattern,
+) -> Iterator[State[T]]:
+    pattern = Pattern(pattern)
+    for state in states:
+        if pattern(state.path):
+            yield state
 
-    __expected_spec__: str  # "module:attribute"
 
-    @classmethod
-    def _expected(cls) -> "type[T]":
-        module, _, attribute = cls.__expected_spec__.partition(":")
-        return getattr(import_module(module), attribute)
+def find_state(states: Iterable[State[T]], pattern: str | Pattern) -> State[T]:
+    for state in filter_states(states, pattern):
+        return state
+    msg = f"State not found: {pattern!r}"
+    raise FileNotFoundError(msg)
 
 
 class Dat(FormatState[bytes]):
@@ -333,15 +503,15 @@ class Env(FormatState[dict[str, str | None]]):
     __expected__ = dict
 
 
-class Npy(LazyFormatState["NDArray[Any]"]):
+class Npy(FormatState["NDArray[Any]"]):
     __extension__ = Extension.NPY
-    __expected_spec__ = "numpy:ndarray"
+    __expected__ = "numpy:ndarray"
 
 
-class Pandas(LazyFormatState["DataFrame"]):
+class Pandas(FormatState["DataFrame"]):
     """A dataframe stored as delimited text."""
 
-    __expected_spec__ = "pandas:DataFrame"
+    __expected__ = "pandas:DataFrame"
 
 
 class Csv(Pandas):
@@ -352,10 +522,10 @@ class Tsv(Pandas):
     __extension__ = Extension.TSV
 
 
-class Image(LazyFormatState["PillowImage"]):
+class Image(FormatState["PillowImage"]):
     """A raster image, decoded by Pillow."""
 
-    __expected_spec__ = "PIL.Image:Image"
+    __expected__ = "PIL.Image:Image"
 
 
 class Jpeg(Image):
@@ -384,64 +554,81 @@ class Tar(Archive):
     __extension__ = Extension.TAR
 
 
-class Gzip(FormatState[Any]):
-    """A gzip stream around another format: `data.json.gz` holds what `data.json` would.
+class LayerState(FormatState[State[Any]]):
+    """A state laid over another one: its payload goes through a layer, its path gains a suffix.
 
-    The wrapped format comes from the rest of the key, so the payload is whatever it decodes
-    to, and a key with no other suffix, like `data.gz`, simply holds bytes. A whole state is
-    compressed as it stands and takes its key along, gaining the suffix: `data.json` becomes
-    `data.json.gz`, which still loads as the document it was.
+    `data.json` compressed is `data.json.gz`, and loading that gives `data.json` back. Only
+    the payload travels through the layer, so a codec of plain bytes is all it takes.
     """
-
-    __extension__ = Extension.GZ
 
     def __init__(
         self,
-        data: Any,  # noqa: ANN401
-        key: str | None = None,
+        data: State[Any] | Data,
+        stem: str | None = None,
+        path: str | None = None,
         timestamp: float | None = None,
         **config: object,
     ) -> None:
         if isinstance(data, State):
-            key = data.key + self.extension() if key is None else key
-            timestamp = data.timestamp if timestamp is None else timestamp
-            # The state carries encoded bytes already, so only the gzip layer is left to add,
-            # which is what the suffix on its own resolves to.
-            with best_codec(self.extension(), **config).encode(data.data) as content:
-                super().__init__(Data(content.read()), key=key, timestamp=timestamp)
-            return
-        if key is None:
-            msg = "Key is required for anything but a state"
-            raise ValueError(msg)
-        super().__init__(data, key=key, timestamp=timestamp, **config)
+            if stem is None and path is None:
+                path = data.path + self.extension()
+            if timestamp is None:
+                timestamp = data.timestamp
+        super().__init__(data, stem=stem, path=path, timestamp=timestamp, **config)
+
+    @classmethod
+    def _to_encode(cls, data: State[Any]) -> object:
+        return data.data
+
+    def load(self, **config: object) -> State[Any]:
+        """Take the layer off, recovering the state it was laid over.
+
+        Args:
+            **config: Settings for the codec taking the layer off.
+
+        Returns:
+            The state under the layer, pathed the way this one is less the suffix.
+
+        Raises:
+            TypeError: If the codec of the layer gives back anything but bytes.
+        """
+        payload = best_codec(self.name, **config).decode(self.buffer)
+        if not isinstance(payload, bytes):
+            msg = f"Expected a layer of bytes, got '{type(payload).__name__}'"
+            raise TypeError(msg)
+        return LoadedState(
+            payload,
+            path=self._strip_extension(self.path),
+            timestamp=self.timestamp,
+        )
 
 
-class Enc(FormatState[State[Any]]):
-    """An encrypted state, key and timestamp included.
+class Gzip(LayerState):
+    """A compressed state: `data.json` becomes `data.json.gz`, an ordinary gzip file."""
 
-    The `password` and `salt` are given when encoding, and again when loading:
-    `Enc(state, "secret.enc", password="...").load(password="...")`.
+    __extension__ = Extension.GZ
+
+
+class Enc(LayerState):
+    """An encrypted state: `data.json` becomes `data.json.enc`.
+
+    The `password` and `salt` are given when encrypting, and again when loading:
+    `state.encrypt(password="...").load(password="...")`.
     """
 
     __extension__ = Extension.ENC
-    __expected__ = State
-
-    @property
-    def copy(self) -> State[State[Any]]:
-        # re-encrypting would ask for the password again, and yield different bytes anyway.
-        return self.from_state(self)
 
 
 A = TypeVar("A", bound="Audio")
 
 
-class Audio(LazyFormatState["Waveform"]):
-    __expected_spec__ = "iokit.dtype.waveform:Waveform"
+class Audio(FormatState["Waveform"]):
+    __expected__ = "iokit.dtype.waveform:Waveform"
 
     def _to_audio(self, kls: type[A]) -> A:
-        self._assert_key(self.key)
-        new_key = self.key.removesuffix(self.extension()) + kls.extension()
-        return kls(data=self.load(), key=new_key, timestamp=self.timestamp)
+        self._assert_path(self.path)
+        path = self._strip_extension(self.path) + kls.extension()
+        return kls(data=self.load(), path=path, timestamp=self.timestamp)
 
     @property
     def flac(self) -> "Flac":
