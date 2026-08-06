@@ -37,8 +37,8 @@ __all__ = [
     "Yml",
     "Zip",
     "file",
-    "filter_states",
-    "find_state",
+    "filtrate",
+    "first",
     "web",
 ]
 
@@ -82,8 +82,8 @@ from .state import (
     Yaml,
     Yml,
     Zip,
-    filter_states,
-    find_state,
+    filtrate,
+    first,
 )
 from .utils.file import file
 from .utils.web import web

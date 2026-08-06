@@ -430,18 +430,15 @@ class FormatState(LoadedState[T]):
         return self._load(self._expected(), **config)
 
 
-def filter_states(
-    states: Iterable[State[T]],
-    pattern: str | Pattern,
-) -> Iterator[State[T]]:
+def filtrate(states: Iterable[State[T]], pattern: str | Pattern) -> Iterator[State[T]]:
     pattern = Pattern(pattern)
     for state in states:
         if pattern(state.path):
             yield state
 
 
-def find_state(states: Iterable[State[T]], pattern: str | Pattern) -> State[T]:
-    for state in filter_states(states, pattern):
+def first(states: Iterable[State[T]], pattern: str | Pattern) -> State[T]:
+    for state in filtrate(states, pattern):
         return state
     msg = f"State not found: {pattern!r}"
     raise FileNotFoundError(msg)

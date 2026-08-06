@@ -1,4 +1,4 @@
-from iokit import Txt, Zip, find_state
+from iokit import Txt, Zip, first
 
 
 def test_zip_state() -> None:
@@ -10,5 +10,5 @@ def test_zip_state() -> None:
     assert archive.extension() == ".zip"
     states = list(archive.load())
     assert len(states) == 2
-    assert find_state(states, "text1.txt").load() == "First file"
-    assert find_state(states, "text2.txt").load() == "Second file"
+    assert first(states, "text1.txt").load() == "First file"
+    assert first(states, "text2.txt").load() == "Second file"

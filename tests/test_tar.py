@@ -1,4 +1,4 @@
-from iokit import Gzip, Tar, Txt, find_state
+from iokit import Gzip, Tar, Txt, first
 
 
 def test_tar_state() -> None:
@@ -9,8 +9,8 @@ def test_tar_state() -> None:
     assert archive.stem == "archive"
     assert archive.extension() == ".tar"
     states = archive.load()
-    assert find_state(states, "text1.txt").load() == "First file"
-    assert find_state(states, "text2.txt").load() == "Second file"
+    assert first(states, "text1.txt").load() == "First file"
+    assert first(states, "text2.txt").load() == "Second file"
 
 
 def test_tar_compress() -> None:
@@ -23,5 +23,5 @@ def test_tar_compress() -> None:
     assert archive1_gz.size == archive2_gz.size
     assert archive1_gz.data == archive2_gz.data
     loaded = archive1_gz.load().load()
-    assert find_state(loaded, "text1.txt").load() == "First file"
-    assert find_state(loaded, "text2.txt").load() == "Second file"
+    assert first(loaded, "text1.txt").load() == "First file"
+    assert first(loaded, "text2.txt").load() == "Second file"
