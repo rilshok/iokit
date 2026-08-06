@@ -6,16 +6,16 @@ from base64 import (
     urlsafe_b64decode,
     urlsafe_b64encode,
 )
-from collections.abc import Buffer
 from os import urandom
 from pathlib import Path
 from typing import (
     BinaryIO,
     Literal,
-    Self,
     SupportsIndex,
     overload,
 )
+
+from typing_extensions import Buffer, Self
 
 from iokit.utils.checksum import CHUNK_SIZE as HASH_CHUNK_SIZE
 from iokit.utils.checksum import Hash

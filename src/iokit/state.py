@@ -6,9 +6,10 @@ from os import utime
 from pathlib import Path, PurePath
 from shutil import copyfileobj
 from tempfile import TemporaryDirectory
-from typing import TYPE_CHECKING, Any, BinaryIO, Generic, Self, TypeVar
+from typing import TYPE_CHECKING, Any, BinaryIO, Generic, TypeVar
 
 from humanize import naturalsize
+from typing_extensions import Self
 
 from iokit.codec.base import best_codec
 from iokit.dtype.data import Data
