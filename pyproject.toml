@@ -16,30 +16,35 @@ dependencies = [
 
 
 [project.optional-dependencies]
-all = ["iokit[image,array,audio,table,config,crypto,web]"]
-dev = ["iokit[all,torch,lint,test]"]
-image = ["Pillow>=10.4.0"]
-array = ["numpy>=1.21.1"]
-audio = ["soundfile>=0.12.1", "numpy>=1.21.1"]
-table = ["pandas>=1.5.3"]
-config = ["PyYAML>=6.0.1", "python-dotenv>=1.0.1", "jsonlines>=4.0.0"]
-crypto = ["cryptography>=41.0.7"]
-web = ["requests>=2.32.3", "python-dateutil>=2.8.2"]
-torch = ["iokit[audio]", "torchaudio>=2.0.0"]
-notebook = ["ipython>=8.0.0"]
+dev = [
+    "iokit[lint,test,ultra]",
+]
 lint = [
     "mypy>=1.7.1",
     "ruff>=0.6.3",
-    "types-requests>=2.31.0",
-    "types-PyYAML>=6.0.12",
     "types-python-dateutil>=2.8.19",
+    "types-PyYAML>=6.0.12",
+    "types-requests>=2.31.0",
 ]
 test = [
     "pytest>=8.2.2",
     "pytest-cov==6.0.0",
     "pytest-xdist>=3.6.1",
 ]
-
+ultra = [
+    "cryptography>=41.0.7",
+    "ipython>=8.0.0",
+    "jsonlines>=4.0.0",
+    "numpy>=1.21.1",
+    "pandas>=1.5.3",
+    "Pillow>=10.4.0",
+    "python-dateutil>=2.8.2",
+    "python-dotenv>=1.0.1",
+    "PyYAML>=6.0.1",
+    "requests>=2.32.3",
+    "soundfile>=0.12.1",
+    "torchaudio>=2.0.0",
+]
 
 
 [build-system]
