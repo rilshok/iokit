@@ -109,6 +109,8 @@ _LAZY = {
     # each rests on a dependency of the `ultra` extra, unasked for at import time
     "Waveform": "iokit.dtype.waveform",
     "web": "iokit.utils.web",
+    "S3Storage": "iokit.storage.s3",
+    "StreamS3Storage": "iokit.storage.s3",
 }
 
 

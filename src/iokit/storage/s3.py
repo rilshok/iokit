@@ -1,6 +1,7 @@
 """Utilities for working with S3 buckets."""
 
 __all__ = [
+    "S3Storage",
     "StreamS3Storage",
 ]
 import threading
@@ -10,7 +11,7 @@ from typing import Any, BinaryIO
 import boto3
 from botocore import UNSIGNED
 
-from .storage import Storage
+from .storage import BinaryStorage, Storage
 
 
 class BotoClientFactory:
@@ -167,3 +168,25 @@ class StreamS3Storage(Storage[BinaryIO]):
             if page["KeyCount"] == 0:
                 return
             yield from (obj["Key"][offset:] for obj in page["Contents"])
+
+
+class S3Storage(BinaryStorage):
+    def __init__(  # noqa: PLR0913
+        self,
+        bucket: str,
+        folder: str | None = None,
+        *,
+        access_key: str | None = None,
+        secret_access_key: str | None = None,
+        endpoint_url: str | None = None,
+        region_name: str | None = None,
+    ) -> None:
+        backend = StreamS3Storage(
+            bucket,
+            folder,
+            access_key=access_key,
+            secret_access_key=secret_access_key,
+            endpoint_url=endpoint_url,
+            region_name=region_name,
+        )
+        super().__init__(backend)
