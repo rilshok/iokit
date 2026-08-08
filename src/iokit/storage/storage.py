@@ -33,6 +33,11 @@ class Storage(ABC, Generic[T]):
         raise NotImplementedError(msg)
 
     @abstractmethod
+    def size(self, uid: str) -> int:
+        msg = "Method 'size' must be implemented in a subclass"
+        raise NotImplementedError(msg)
+
+    @abstractmethod
     def index(self, prefix: str | None = None) -> Iterator[str]:
         msg = "Method 'index' must be implemented in a subclass"
         raise NotImplementedError(msg)
@@ -65,6 +70,9 @@ class ReadOnlyStorage(Storage[T]):
 
     def exists(self, uid: str) -> bool:
         return self._storage.exists(uid)
+
+    def size(self, uid: str) -> int:
+        return self._storage.size(uid)
 
     def index(self, prefix: str | None = None) -> Iterator[str]:
         return self._storage.index(prefix)

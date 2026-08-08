@@ -6,7 +6,7 @@ import pytest
 from iokit.state import Json, Txt
 from iokit.storage.local import LocalStorage, MemoryStorage, StateStorage
 
-DOCUMENT: dict[str, Any] = {"list": [1, 2, 3], "str": "привет", "int": 42}
+DOCUMENT: dict[str, Any] = {"list": [1, 2, 3], "str": "hello", "int": 42}
 
 
 def state_storage(**config: object) -> tuple[MemoryStorage, StateStorage]:
@@ -104,6 +104,16 @@ def test_exists_and_remove() -> None:
     assert not storage.exists("data.json")
 
 
+def test_size_is_the_stored_size(tmp_path: Path) -> None:
+    for backend in (MemoryStorage(), LocalStorage(tmp_path)):
+        backend.push("data.json", b'{"key": 1}')
+        assert backend.size("data.json") == len(b'{"key": 1}')
+
+    backend, storage = state_storage(compression=9, password="pA$sw0Rd")
+    storage.push("data.json", DOCUMENT)
+    assert storage.size("data.json") == len(backend.pull("data.json.gz.enc"))
+
+
 @pytest.mark.parametrize("config", [{}, {"compression": 1}, {"password": "pA$sw0Rd"}])
 def test_missing_record_raises(config: dict[str, Any]) -> None:
     _, storage = state_storage(**config)
@@ -113,6 +123,8 @@ def test_missing_record_raises(config: dict[str, Any]) -> None:
         storage.pull_state("missing.json")
     with pytest.raises(FileNotFoundError, match="does not exist"):
         storage.remove("missing.json")
+    with pytest.raises(FileNotFoundError, match="does not exist"):
+        storage.size("missing.json")
 
 
 def test_index_is_filtered_by_prefix() -> None:

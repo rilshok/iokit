@@ -54,6 +54,13 @@ class LocalStorage(BackendStorage):
     def exists(self, uid: str) -> bool:
         return self._path(uid).is_file()
 
+    def size(self, uid: str) -> int:
+        path = self._path(uid)
+        if not path.is_file():
+            msg = f"Record with uid '{uid}' does not exist"
+            raise FileNotFoundError(msg)
+        return path.stat().st_size
+
     def index(self, prefix: str | None = None) -> Iterator[str]:
         for path in self._root.rglob("*"):
             if not path.is_file():
@@ -93,6 +100,13 @@ class MemoryStorage(BackendStorage):
 
     def exists(self, uid: str) -> bool:
         return uid in self._records
+
+    def size(self, uid: str) -> int:
+        try:
+            return len(self._records[uid])
+        except KeyError as exc:
+            msg = f"Record with uid '{uid}' does not exist"
+            raise FileNotFoundError(msg) from exc
 
     def index(self, prefix: str | None = None) -> Iterator[str]:
         # a snapshot, so that pushing or removing while walking the index is not an error
@@ -201,6 +215,13 @@ class StateStorage(Storage[Any]):
 
     def exists(self, uid: str) -> bool:
         return self._backend.exists(self._path(uid))
+
+    def size(self, uid: str) -> int:
+        try:
+            return self._backend.size(self._path(uid))
+        except FileNotFoundError as exc:
+            msg = f"Record with uid '{uid}' does not exist"
+            raise FileNotFoundError(msg) from exc
 
     def index(self, prefix: str | None = None) -> Iterator[str]:
         for path in self._backend.index(prefix=prefix):
