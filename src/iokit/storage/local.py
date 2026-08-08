@@ -11,12 +11,12 @@ from typing import Any, TypeVar, overload
 from iokit.codec.base import best_codec
 from iokit.state import Enc, FormatState, Gzip, LoadedState, State
 
-from .storage import BackendStorage, Storage
+from .storage import Storage
 
 S = TypeVar("S", bound=FormatState[Any])
 
 
-class LocalStorage(BackendStorage):
+class LocalStorage(Storage[bytes]):
     def __init__(self, root: Path | str) -> None:
         super().__init__()
         self._root = Path(root).resolve()
@@ -74,7 +74,7 @@ class LocalStorage(BackendStorage):
                 yield uid
 
 
-class MemoryStorage(BackendStorage):
+class MemoryStorage(Storage[bytes]):
     def __init__(self) -> None:
         super().__init__()
         self._records: dict[str, bytes] = {}
@@ -126,7 +126,7 @@ class StateStorage(Storage[Any]):
 
     def __init__(
         self,
-        backend: BackendStorage,
+        backend: Storage[bytes],
         *,
         compression: int | bool | None = None,
         password: str | None = None,
