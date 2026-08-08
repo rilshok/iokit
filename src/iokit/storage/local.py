@@ -5,8 +5,10 @@ __all__ = [
 ]
 
 from collections.abc import Iterator
+from io import BytesIO
 from pathlib import Path, PurePath
-from typing import Any, TypeVar, overload
+from shutil import copyfileobj
+from typing import Any, BinaryIO, TypeVar, overload
 
 from iokit.codec.base import best_codec
 from iokit.state import Enc, FormatState, Gzip, LoadedState, State
@@ -16,33 +18,41 @@ from .storage import Storage
 S = TypeVar("S", bound=FormatState[Any])
 
 
-class LocalStorage(Storage[bytes]):
+class LocalStreamStorage(Storage[BinaryIO]):
     def __init__(self, root: Path | str) -> None:
         super().__init__()
         self._root = Path(root).resolve()
 
     def _path(self, uid: str) -> Path:
-        """Return the path holding the record, checked to stay under the storage root."""
+        """Path holding the record, checked to stay under the storage root."""
         path = (self._root / uid).resolve()
         if not path.is_relative_to(self._root):
             msg = f"Record with uid '{uid}' would land outside of the storage root"
             raise ValueError(msg)
         return path
 
-    def pull(self, uid: str) -> bytes:
+    def pull(self, uid: str) -> BinaryIO:
         path = self._path(uid)
         if not path.is_file():
             msg = f"Record with uid '{uid}' does not exist"
             raise FileNotFoundError(msg)
-        return path.read_bytes()
+        return path.open("rb")
 
-    def push(self, uid: str, record: bytes, *, force: bool = False) -> None:
+    def size(self, uid: str) -> int:
+        path = self._path(uid)
+        if not path.is_file():
+            msg = f"Record with uid '{uid}' does not exist"
+            raise FileNotFoundError(msg)
+        return path.stat().st_size
+
+    def push(self, uid: str, record: BinaryIO, *, force: bool = False) -> None:
         path = self._path(uid)
         if path.exists() and not force:
             msg = f"Record with uid '{uid}' already exists"
             raise FileExistsError(msg)
         path.parent.mkdir(parents=True, exist_ok=True)
-        path.write_bytes(record)
+        with record, path.open("wb") as file:
+            copyfileobj(record, file)
 
     def remove(self, uid: str) -> None:
         path = self._path(uid)
@@ -53,13 +63,6 @@ class LocalStorage(Storage[bytes]):
 
     def exists(self, uid: str) -> bool:
         return self._path(uid).is_file()
-
-    def size(self, uid: str) -> int:
-        path = self._path(uid)
-        if not path.is_file():
-            msg = f"Record with uid '{uid}' does not exist"
-            raise FileNotFoundError(msg)
-        return path.stat().st_size
 
     def index(self, prefix: str | None = None) -> Iterator[str]:
         for path in self._root.rglob("*"):
@@ -72,6 +75,37 @@ class LocalStorage(Storage[bytes]):
             uid = relative.as_posix()
             if prefix is None or uid.startswith(prefix):
                 yield uid
+
+
+class BinaryStorage(Storage[bytes]):
+    def __init__(self, backend: Storage[BinaryIO]) -> None:
+        super().__init__()
+        self._backend = backend
+
+    def pull(self, uid: str) -> bytes:
+        with self._backend.pull(uid) as buffer:
+            return buffer.read()
+
+    def push(self, uid: str, record: bytes, *, force: bool = False) -> None:
+        with BytesIO(record) as buffer:
+            return self._backend.push(uid, buffer, force=force)
+
+    def remove(self, uid: str) -> None:
+        self._backend.remove(uid)
+
+    def exists(self, uid: str) -> bool:
+        return self._backend.exists(uid)
+
+    def size(self, uid: str) -> int:
+        return self._backend.size(uid)
+
+    def index(self, prefix: str | None = None) -> Iterator[str]:
+        return self._backend.index(prefix)
+
+
+class LocalStorage(BinaryStorage):
+    def __init__(self, root: Path | str) -> None:
+        super().__init__(LocalStreamStorage(root))
 
 
 class MemoryStorage(Storage[bytes]):
