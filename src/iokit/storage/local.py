@@ -2,10 +2,10 @@ __all__ = [
     "LocalStorage",
     "MemoryStorage",
     "StateStorage",
+    "StreamLocalStorage",
 ]
 
 from collections.abc import Iterator
-from io import BytesIO
 from pathlib import Path, PurePath
 from shutil import copyfileobj
 from typing import Any, BinaryIO, TypeVar, overload
@@ -13,12 +13,12 @@ from typing import Any, BinaryIO, TypeVar, overload
 from iokit.codec.base import best_codec
 from iokit.state import Enc, FormatState, Gzip, LoadedState, State
 
-from .storage import Storage
+from .storage import BinaryStorage, Storage
 
 S = TypeVar("S", bound=FormatState[Any])
 
 
-class LocalStreamStorage(Storage[BinaryIO]):
+class StreamLocalStorage(Storage[BinaryIO]):
     def __init__(self, root: Path | str) -> None:
         super().__init__()
         self._root = Path(root).resolve()
@@ -77,35 +77,9 @@ class LocalStreamStorage(Storage[BinaryIO]):
                 yield uid
 
 
-class BinaryStorage(Storage[bytes]):
-    def __init__(self, backend: Storage[BinaryIO]) -> None:
-        super().__init__()
-        self._backend = backend
-
-    def pull(self, uid: str) -> bytes:
-        with self._backend.pull(uid) as buffer:
-            return buffer.read()
-
-    def push(self, uid: str, record: bytes, *, force: bool = False) -> None:
-        with BytesIO(record) as buffer:
-            return self._backend.push(uid, buffer, force=force)
-
-    def remove(self, uid: str) -> None:
-        self._backend.remove(uid)
-
-    def exists(self, uid: str) -> bool:
-        return self._backend.exists(uid)
-
-    def size(self, uid: str) -> int:
-        return self._backend.size(uid)
-
-    def index(self, prefix: str | None = None) -> Iterator[str]:
-        return self._backend.index(prefix)
-
-
 class LocalStorage(BinaryStorage):
     def __init__(self, root: Path | str) -> None:
-        super().__init__(LocalStreamStorage(root))
+        super().__init__(StreamLocalStorage(root))
 
 
 class MemoryStorage(Storage[bytes]):

@@ -2,6 +2,7 @@ __all__ = [
     "Archive",
     "Audio",
     "Bin",
+    "BinaryStorage",
     "BufferedState",
     "Csv",
     "Dat",
@@ -20,6 +21,8 @@ __all__ = [
     "Jsonl",
     "LayerState",
     "LoadedState",
+    "LocalStorage",
+    "MemoryStorage",
     "Mp3",
     "Npy",
     "Oga",
@@ -28,6 +31,9 @@ __all__ = [
     "Pandas",
     "Png",
     "State",
+    "StateStorage",
+    "Storage",
+    "StreamLocalStorage",
     "Tar",
     "Tsv",
     "Txt",
@@ -84,6 +90,14 @@ from .state import (
     Zip,
     filtrate,
     first,
+)
+from .storage import (
+    BinaryStorage,
+    LocalStorage,
+    MemoryStorage,
+    StateStorage,
+    Storage,
+    StreamLocalStorage,
 )
 from .utils.file import file
 
