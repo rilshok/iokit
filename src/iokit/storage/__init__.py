@@ -1,6 +1,11 @@
 __all__ = [
-    "ReadOnlyStorage",
+    "BinaryStorage",
+    "LocalStorage",
+    "MemoryStorage",
+    "StateStorage",
     "Storage",
+    "StreamLocalStorage",
 ]
 
-from .storage import ReadOnlyStorage, Storage
+from .local import LocalStorage, MemoryStorage, StateStorage, StreamLocalStorage
+from .storage import BinaryStorage, Storage

@@ -2,47 +2,57 @@ __all__ = [
     "LocalStorage",
     "MemoryStorage",
     "StateStorage",
+    "StreamLocalStorage",
 ]
 
 from collections.abc import Iterator
 from pathlib import Path, PurePath
-from typing import Any, TypeVar, overload
+from shutil import copyfileobj
+from typing import Any, BinaryIO, TypeVar, overload
 
 from iokit.codec.base import best_codec
 from iokit.state import Enc, FormatState, Gzip, LoadedState, State
 
-from .storage import BackendStorage, Storage
+from .storage import BinaryStorage, Storage
 
 S = TypeVar("S", bound=FormatState[Any])
 
 
-class LocalStorage(BackendStorage):
+class StreamLocalStorage(Storage[BinaryIO]):
     def __init__(self, root: Path | str) -> None:
         super().__init__()
         self._root = Path(root).resolve()
 
     def _path(self, uid: str) -> Path:
-        """Return the path holding the record, checked to stay under the storage root."""
+        """Path holding the record, checked to stay under the storage root."""
         path = (self._root / uid).resolve()
         if not path.is_relative_to(self._root):
             msg = f"Record with uid '{uid}' would land outside of the storage root"
             raise ValueError(msg)
         return path
 
-    def pull(self, uid: str) -> bytes:
+    def pull(self, uid: str) -> BinaryIO:
         path = self._path(uid)
         if not path.is_file():
             msg = f"Record with uid '{uid}' does not exist"
             raise FileNotFoundError(msg)
-        return path.read_bytes()
+        return path.open("rb")
 
-    def push(self, uid: str, record: bytes, *, force: bool = False) -> None:
+    def size(self, uid: str) -> int:
+        path = self._path(uid)
+        if not path.is_file():
+            msg = f"Record with uid '{uid}' does not exist"
+            raise FileNotFoundError(msg)
+        return path.stat().st_size
+
+    def push(self, uid: str, record: BinaryIO, *, force: bool = False) -> None:
         path = self._path(uid)
         if path.exists() and not force:
             msg = f"Record with uid '{uid}' already exists"
             raise FileExistsError(msg)
         path.parent.mkdir(parents=True, exist_ok=True)
-        path.write_bytes(record)
+        with record, path.open("wb") as file:
+            copyfileobj(record, file)
 
     def remove(self, uid: str) -> None:
         path = self._path(uid)
@@ -67,7 +77,12 @@ class LocalStorage(BackendStorage):
                 yield uid
 
 
-class MemoryStorage(BackendStorage):
+class LocalStorage(BinaryStorage):
+    def __init__(self, root: Path | str) -> None:
+        super().__init__(StreamLocalStorage(root))
+
+
+class MemoryStorage(Storage[bytes]):
     def __init__(self) -> None:
         super().__init__()
         self._records: dict[str, bytes] = {}
@@ -94,6 +109,13 @@ class MemoryStorage(BackendStorage):
     def exists(self, uid: str) -> bool:
         return uid in self._records
 
+    def size(self, uid: str) -> int:
+        try:
+            return len(self._records[uid])
+        except KeyError as exc:
+            msg = f"Record with uid '{uid}' does not exist"
+            raise FileNotFoundError(msg) from exc
+
     def index(self, prefix: str | None = None) -> Iterator[str]:
         # a snapshot, so that pushing or removing while walking the index is not an error
         for uid in list(self._records):
@@ -112,7 +134,7 @@ class StateStorage(Storage[Any]):
 
     def __init__(
         self,
-        backend: BackendStorage,
+        backend: Storage[bytes],
         *,
         compression: int | bool | None = None,
         password: str | None = None,
@@ -201,6 +223,13 @@ class StateStorage(Storage[Any]):
 
     def exists(self, uid: str) -> bool:
         return self._backend.exists(self._path(uid))
+
+    def size(self, uid: str) -> int:
+        try:
+            return self._backend.size(self._path(uid))
+        except FileNotFoundError as exc:
+            msg = f"Record with uid '{uid}' does not exist"
+            raise FileNotFoundError(msg) from exc
 
     def index(self, prefix: str | None = None) -> Iterator[str]:
         for path in self._backend.index(prefix=prefix):
