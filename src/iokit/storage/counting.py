@@ -3,8 +3,7 @@ __all__ = [
 ]
 
 from collections import Counter
-from collections.abc import Iterator, Mapping
-from types import MappingProxyType
+from collections.abc import Iterator
 from typing import TypeVar
 
 from .storage import Storage
@@ -16,7 +15,8 @@ class CountingStorage(Storage[T]):
     """Any storage, wrapped to keep a tally of the operations asked of it.
 
     Every call is counted under the name of the operation, whether it succeeds or raises,
-    and the tally is readable through `calls`. What `index` counts is the call itself, not
+    and the tally is readable through `calls`, which hands back a snapshot of the counts as
+    they stand at that moment. What `index` counts is the call itself, not
     the records it goes on to yield, since the walk happens as the caller consumes it.
 
     The wrapper is meant for tests and for measuring the traffic a storage sees, so it holds
@@ -29,12 +29,13 @@ class CountingStorage(Storage[T]):
         self._calls: Counter[str] = Counter()
 
     @property
-    def calls(self) -> Mapping[str, int]:
-        """A live read-only view of how many times each operation has been called so far.
+    def calls(self) -> dict[str, int]:
+        """A snapshot of how many times each operation has been called so far.
 
-        Operations never called are absent, rather than present as a zero.
+        The snapshot is the caller's own to keep or change, later calls not reaching back
+        into it. Operations never called are absent, rather than present as a zero.
         """
-        return MappingProxyType(self._calls)
+        return dict(self._calls)
 
     @property
     def backend(self) -> Storage[T]:
