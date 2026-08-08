@@ -2,7 +2,10 @@ __all__ = [
     "Archive",
     "Audio",
     "Bin",
+    "BinaryStorage",
     "BufferedState",
+    "CachedStorage",
+    "CountingStorage",
     "Csv",
     "Dat",
     "Data",
@@ -20,6 +23,8 @@ __all__ = [
     "Jsonl",
     "LayerState",
     "LoadedState",
+    "LocalStorage",
+    "MemoryStorage",
     "Mp3",
     "Npy",
     "Oga",
@@ -28,6 +33,9 @@ __all__ = [
     "Pandas",
     "Png",
     "State",
+    "StateStorage",
+    "Storage",
+    "StreamLocalStorage",
     "Tar",
     "Tsv",
     "Txt",
@@ -85,6 +93,16 @@ from .state import (
     filtrate,
     first,
 )
+from .storage import (
+    BinaryStorage,
+    CachedStorage,
+    CountingStorage,
+    LocalStorage,
+    MemoryStorage,
+    StateStorage,
+    Storage,
+    StreamLocalStorage,
+)
 from .utils.file import file
 
 if TYPE_CHECKING:
@@ -95,6 +113,8 @@ _LAZY = {
     # each rests on a dependency of the `ultra` extra, unasked for at import time
     "Waveform": "iokit.dtype.waveform",
     "web": "iokit.utils.web",
+    "S3Storage": "iokit.storage.s3",
+    "StreamS3Storage": "iokit.storage.s3",
 }
 
 

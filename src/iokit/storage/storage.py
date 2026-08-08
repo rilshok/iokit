@@ -1,12 +1,12 @@
 __all__ = [
-    "ReadOnlyStorage",
+    "BinaryStorage",
     "Storage",
 ]
 
-import warnings
 from abc import ABC, abstractmethod
 from collections.abc import Iterator
-from typing import Generic, TypeVar
+from io import BytesIO
+from typing import BinaryIO, Generic, TypeVar
 
 T = TypeVar("T")
 
@@ -33,38 +33,37 @@ class Storage(ABC, Generic[T]):
         raise NotImplementedError(msg)
 
     @abstractmethod
+    def size(self, uid: str) -> int:
+        msg = "Method 'size' must be implemented in a subclass"
+        raise NotImplementedError(msg)
+
+    @abstractmethod
     def index(self, prefix: str | None = None) -> Iterator[str]:
         msg = "Method 'index' must be implemented in a subclass"
         raise NotImplementedError(msg)
 
 
-class BackendStorage(Storage[bytes]):
-    pass
+class BinaryStorage(Storage[bytes]):
+    def __init__(self, backend: Storage[BinaryIO]) -> None:
+        super().__init__()
+        self._backend = backend
 
+    def pull(self, uid: str) -> bytes:
+        with self._backend.pull(uid) as buffer:
+            return buffer.read()
 
-_RECORD_REPR_LENGTH = 30
-
-
-class ReadOnlyStorage(Storage[T]):
-    def __init__(self, storage: Storage[T]) -> None:
-        self._storage = storage
-
-    def pull(self, uid: str) -> T:
-        return self._storage.pull(uid)
-
-    def push(self, uid: str, record: T, *, force: bool = False) -> None:
-        force_str = f"{force} " if force else ""
-        record_repr = repr(record)
-        record_repr = record_repr if len(record_repr) < _RECORD_REPR_LENGTH else f"{type(record)}"
-        msg = f"Attempt to {force_str}push to read-only storage: {uid=}, {record_repr}"
-        warnings.warn(msg, stacklevel=2)
+    def push(self, uid: str, record: bytes, *, force: bool = False) -> None:
+        with BytesIO(record) as buffer:
+            return self._backend.push(uid, buffer, force=force)
 
     def remove(self, uid: str) -> None:
-        msg = f"Attempt to remove from read-only storage: {uid}"
-        warnings.warn(msg, stacklevel=2)
+        self._backend.remove(uid)
 
     def exists(self, uid: str) -> bool:
-        return self._storage.exists(uid)
+        return self._backend.exists(uid)
+
+    def size(self, uid: str) -> int:
+        return self._backend.size(uid)
 
     def index(self, prefix: str | None = None) -> Iterator[str]:
-        return self._storage.index(prefix)
+        return self._backend.index(prefix)
