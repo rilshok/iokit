@@ -1,5 +1,7 @@
 __all__ = [
     "BinaryStorage",
+    "CachedStorage",
+    "CountingStorage",
     "LocalStorage",
     "MemoryStorage",
     "StateStorage",
@@ -7,5 +9,7 @@ __all__ = [
     "StreamLocalStorage",
 ]
 
+from .cached import CachedStorage
+from .counting import CountingStorage
 from .local import LocalStorage, MemoryStorage, StateStorage, StreamLocalStorage
 from .storage import BinaryStorage, Storage

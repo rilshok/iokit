@@ -4,6 +4,8 @@ __all__ = [
     "Bin",
     "BinaryStorage",
     "BufferedState",
+    "CachedStorage",
+    "CountingStorage",
     "Csv",
     "Dat",
     "Data",
@@ -93,6 +95,8 @@ from .state import (
 )
 from .storage import (
     BinaryStorage,
+    CachedStorage,
+    CountingStorage,
     LocalStorage,
     MemoryStorage,
     StateStorage,
