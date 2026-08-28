@@ -101,7 +101,7 @@ def test_a_push_refuses_to_overwrite_unless_it_is_forced() -> None:
 
 
 def test_a_record_is_gone_once_it_is_removed() -> None:
-    storage = StateStorage(MemoryStorage(), compression=1, password=PASSWORD)
+    storage = StateStorage(MemoryStorage(), compression=1)
     assert not storage.exists("data.json")
     storage.push("data.json", DOCUMENT)
     assert storage.exists("data.json")
@@ -112,9 +112,9 @@ def test_a_record_is_gone_once_it_is_removed() -> None:
 def test_the_size_is_the_size_of_what_the_backend_holds() -> None:
     """The layers are part of the record, so what is measured is the stored bytes."""
     backend = MemoryStorage()
-    storage = StateStorage(backend, compression=9, password=PASSWORD)
+    storage = StateStorage(backend, compression=9)
     storage.push("data.json", DOCUMENT)
-    assert storage.size("data.json") == len(backend.pull("data.json.gz.enc"))
+    assert storage.size("data.json") == len(backend.pull("data.json.gz"))
 
 
 @pytest.mark.parametrize(

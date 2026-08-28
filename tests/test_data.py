@@ -1,11 +1,14 @@
-"""The digest of a payload, checked against the library that names the algorithm.
+"""`Data`, the bytes a state is made of, and what can be read out of them.
 
-`Data` is the bytes a state is made of, and a digest of it is bytes of the same kind, so a
-checksum can be stored, compared or written out like any other payload.
+It is a `bytes` with a little more reach: it slices and concatenates into more of itself, it
+spells itself out in the encodings a byte string is usually carried in, and it digests - into
+`Data` again, so a checksum can be stored, compared or written out like any other payload.
 """
 
 import hashlib
 from collections.abc import Callable
+from io import BytesIO
+from pathlib import Path
 
 import pytest
 import xxhash
@@ -60,3 +63,61 @@ def test_a_payload_of_any_length_is_digested(payload: bytes) -> None:
 def test_an_algorithm_of_no_such_name_is_refused() -> None:
     with pytest.raises(ValueError, match="nosuchhash"):
         Data(PAYLOAD).digest("nosuchhash")
+
+
+@pytest.mark.parametrize(
+    ("payload", "base64", "base64url", "crockford"),
+    [
+        (b"", "", "", ""),
+        (b"iokit", "aW9raXQ=", "aW9raXQ", "D5QPPTBM"),
+        # the bytes base64 spells with the two characters a url would take for its own
+        (b"\xfb\xef\xbe", "++++", "----", "ZFQVW"),
+    ],
+    ids=["empty", "text", "url unsafe"],
+)
+def test_data_spells_itself_out_and_is_read_back_from_the_spelling(
+    payload: bytes,
+    base64: str,
+    base64url: str,
+    crockford: str,
+) -> None:
+    """Each spelling is a round trip: what `Data` writes reads back as the bytes it came from."""
+    data = Data(payload)
+    assert (data.base64, data.base64url, data.base32crockford) == (base64, base64url, crockford)
+    assert Data.from_base64(base64) == payload
+    assert Data.from_base64url(base64url) == payload
+    assert Data.from_base32crockford(crockford) == payload
+
+
+def test_data_is_made_of_the_pieces_it_is_built_from() -> None:
+    """Whatever is done to `Data` gives `Data` back, so the reach of it is never lost."""
+    data = Data.from_ascii("iokit")
+    assert data + b"!" == b"iokit!"
+    assert data[:2] == b"io"
+    assert data[0] == ord("i")
+    assert data * 2 == b"iokitiokit"
+    assert 2 * data == b"iokitiokit"
+    for piece in (data + b"!", data[:2], data * 2, 2 * data):
+        assert isinstance(piece, Data)
+
+
+def test_data_carries_a_number_of_a_width_it_is_told() -> None:
+    assert Data.from_int(1_000, length=2) == b"\x03\xe8"
+    assert Data.from_int(1_000, length=2).to_int() == 1_000
+    assert Data.from_int(1_000, length=2, byteorder="little").to_int(byteorder="little") == 1_000
+
+
+def test_random_data_is_of_the_length_that_was_asked_for() -> None:
+    assert len(Data.random(16)) == 16
+    assert Data.random(16) != Data.random(16)
+
+
+def test_a_digest_is_the_same_however_the_payload_is_reached(tmp_path: Path) -> None:
+    """Bytes, an open buffer or a file on disk digest alike, the file read in chunks."""
+    path = tmp_path / "payload.bin"
+    path.write_bytes(PAYLOAD)
+    expected = Data(PAYLOAD).digest("sha256")
+    with BytesIO(PAYLOAD) as buffer:
+        assert Data.digest_from_io("sha256", buffer) == expected
+    assert Data.digest_from_path(path, "sha256") == expected
+    assert Data.digest_from_path(path, "sha256", chunk_size=1) == expected

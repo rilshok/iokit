@@ -96,19 +96,15 @@ def test_a_waveform_is_written_as_the_format_it_is_asked_for(
     kind: type[Audio],
     extension: str,
 ) -> None:
-    state = getattr(steady(frames=2048), f"to_{name}")("sound")
-    assert isinstance(state, kind)
-    assert state.name == "sound" + extension
+    """A waveform goes to a format by name, and an audio state to another format by attribute.
 
+    Either way the stem stays where it is, and only the extension says what the bytes now are.
+    """
+    written = getattr(steady(frames=2048), f"to_{name}")("sound")
+    assert isinstance(written, kind)
+    assert written.name == "sound" + extension
 
-@pytest.mark.parametrize(("name", "kind", "extension"), CONVERSIONS)
-def test_an_audio_state_is_rewritten_as_another_format_under_its_own_name(
-    name: str,
-    kind: type[Audio],
-    extension: str,
-) -> None:
-    """The stem stays where it is, and only the extension says what the bytes now are."""
-    state = getattr(Wav(steady(frames=2048), path="nested/sound.wav"), name)
-    assert isinstance(state, kind)
-    assert state.path == "nested/sound" + extension
-    assert state.load().frames == 2048
+    rewritten = getattr(Wav(steady(frames=2048), path="nested/sound.wav"), name)
+    assert isinstance(rewritten, kind)
+    assert rewritten.path == "nested/sound" + extension
+    assert rewritten.load().frames == 2048

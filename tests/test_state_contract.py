@@ -14,12 +14,14 @@ from typing import Any
 import numpy as np
 import pandas as pd
 import pytest
+from humanize import naturalsize
 from PIL import Image as PillowImage
 
 from iokit import (
     Bin,
     Csv,
     Dat,
+    Data,
     Env,
     Flac,
     FormatState,
@@ -150,68 +152,55 @@ def state_fixture(kind: Kind) -> FormatState[Any]:
     return kind.state(kind.payload, "greeting")
 
 
-def test_the_stem_is_closed_by_the_extension_of_the_format(
+def test_a_state_is_named_by_its_stem_and_the_extension_of_its_format(
     kind: Kind,
     state: FormatState[Any],
 ) -> None:
+    """The format closes the name, and the state measures the bytes it holds."""
     extension = kind.state.extension()
-    assert state.path == "greeting" + extension
-    assert state.name == "greeting" + extension
+    assert state.path == state.name == "greeting" + extension
     assert state.stem == "greeting"
     assert state.suffix == extension
-
-
-def test_the_size_is_the_length_of_the_data(state: FormatState[Any]) -> None:
     assert state.size == len(state.data)
+    assert state.digest("sha256") == Data(state.data).digest("sha256")
+    assert repr(state) == f"{state.path} ({naturalsize(state.size, gnu=True)})"
 
 
-def test_a_payload_comes_back_from_the_state_it_was_encoded_into(
+def test_a_payload_comes_back_however_the_bytes_of_the_state_arrived(
     kind: Kind,
     state: FormatState[Any],
 ) -> None:
+    """Nothing but the extension of the name says how to read a payload back.
+
+    So bytes that never went through the format read back the same as the state that wrote
+    them, whether they are handed over as a state of no format or adopted as one.
+    """
     kind.same(state.load(), kind.payload)
 
-
-def test_a_payload_comes_back_from_bytes_named_by_the_extension_alone(
-    kind: Kind,
-    state: FormatState[Any],
-) -> None:
-    """Nothing but the extension of the name says how to read a record back."""
-    plain: State[Any] = LoadedState(bytes(state.data), path=state.name)
+    plain: State[Any] = LoadedState(bytes(state.data), path=state.name, timestamp=1_700_000_000)
     kind.same(plain.load(), kind.payload)
 
-
-def test_a_state_is_rebuilt_from_another_holding_its_bytes(
-    kind: Kind,
-    state: FormatState[Any],
-) -> None:
-    plain: State[Any] = LoadedState(bytes(state.data), path=state.name, timestamp=1_700_000_000)
+    # adopting a state takes it over whole: where it goes, when it was touched, what it holds
     rebuilt = kind.state.from_state(plain)
-    # the state is taken over whole: where it goes, when it was touched, and what it holds
     assert rebuilt.path == plain.path
     assert rebuilt.timestamp == plain.timestamp
     kind.same(rebuilt.load(), kind.payload)
 
 
-def test_a_payload_survives_the_trip_through_a_file(
+def test_a_payload_survives_being_carried(
     kind: Kind,
     state: FormatState[Any],
     tmp_path: Path,
 ) -> None:
-    saved = state.save(tmp_path)
-    assert Path(saved.path).read_bytes() == state.data
-    kind.same(file(saved.path).load(), kind.payload)
-
-
-def test_a_payload_survives_a_layer_laid_over_the_state(
-    kind: Kind,
-    state: FormatState[Any],
-) -> None:
-    """A state keeps its path and its payload under a layer.
+    """A state travels as a file on disk or as the payload of a layer, and neither changes it.
 
     One layer says it for all of them: what a layer carries is bytes, and which bytes they are
     is nothing it knows. The layers themselves are checked in `tests/test_layer.py`.
     """
+    saved = state.save(tmp_path)
+    assert Path(saved.path).read_bytes() == state.data
+    kind.same(file(saved.path).load(), kind.payload)
+
     packed = Gzip(state, compression=9)
     assert packed.path == state.path + ".gz"
     kind.same(packed.load().load(), kind.payload)

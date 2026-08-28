@@ -8,7 +8,7 @@ from typing import Any
 
 import pytest
 
-from iokit import Json, Jsonl, Yaml, Yml
+from iokit import Json, Jsonl, LoadedState, Yaml, Yml
 
 DOCUMENT: dict[str, Any] = {
     "list": [1, 2, 3],
@@ -59,3 +59,13 @@ def test_lines_of_their_own_shape_each_keep_it() -> None:
     """The records of a jsonl need no shape in common, each line standing on its own."""
     lines = [{"a": number, "bb": number**2, "ccc": number**3} for number in range(10)]
     assert Jsonl(lines, stem="document").load() == lines
+
+
+def test_a_document_holding_something_it_has_no_shape_for_is_refused() -> None:
+    """A json file may hold a bare number; a `Json` state is a document, and says so."""
+    number: Json = Json.from_state(LoadedState(b"42", path="number.json"))
+    assert number.data == b"42"
+    with pytest.raises(TypeError, match="Expected loaded data of type"):
+        number.load()
+    # read without the promise of a format, the same bytes come back as the number they are
+    assert LoadedState(b"42", path="number.json").load() == 42
