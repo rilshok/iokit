@@ -1,9 +1,6 @@
-"""A local cache in front of a bucket, the one arrangement the cache is built for.
+"""A local cache in front of a bucket, whose records arrive as a stream readable once.
 
-The cache itself is covered in `tests/test_cached_storage.py`, over storages that hand out
-records the caller can read twice. A bucket does not: its record arrives as a stream of the
-response, readable once and never again, so what is worth checking here is that such a
-record survives the trip into the cache and back out of it.
+The cache itself is covered in `tests/test_cached_storage.py`.
 """
 
 from io import BytesIO

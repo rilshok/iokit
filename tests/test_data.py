@@ -1,8 +1,5 @@
-"""`Data`, the bytes a state is made of, and what can be read out of them.
-
-It is a `bytes` with a little more reach: it slices and concatenates into more of itself, it
-spells itself out in the encodings a byte string is usually carried in, and it digests - into
-`Data` again, so a checksum can be stored, compared or written out like any other payload.
+"""`Data`, the bytes a state is made of: a `bytes` that slices, spells and digests into more
+of itself.
 """
 
 import hashlib

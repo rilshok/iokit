@@ -1,9 +1,7 @@
 """States that live outside memory: a file on disk, and an open buffer.
 
-That a payload of any format survives the trip through a file is checked in
-`tests/test_state_contract.py`. What is here is the file itself - where `save` is allowed to
-write and where it refuses to - and a state that reads its bytes from a buffer as they are
-asked for rather than holding them.
+Where `save` is allowed to write and where it refuses to; what a payload survives is in
+`tests/test_state_contract.py`.
 """
 
 import os

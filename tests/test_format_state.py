@@ -1,9 +1,6 @@
 """How a state is named: the stem it is given, the extension its format adds, and the path.
 
-A state is filed under a path, and the extension of that path is what says how to read the
-payload back. A stem is the same path with the extension left off, so the two may be given
-together - and what is here is what one makes of the other, what is refused as saying two
-different things at once, and how a state is renamed once it has one.
+A stem is a path with the extension left off, so the two may be given together and have to agree.
 """
 
 from pathlib import Path

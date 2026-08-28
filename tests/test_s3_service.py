@@ -1,8 +1,6 @@
-"""What a folder means to an S3 storage, checked against a bucket served on localhost.
+"""What a folder does to a uid on the way in and on the way out, over a bucket on localhost.
 
-The rest of what an S3 storage owes a caller is in `tests/test_storage_contract.py`, which
-runs the contract over a served bucket like this one, with and without a folder. Here the
-folder itself is the subject: what it does to a uid on the way in and on the way out.
+The contract every storage keeps is in `tests/test_storage_contract.py`.
 """
 
 from io import BytesIO

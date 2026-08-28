@@ -96,10 +96,7 @@ def test_a_waveform_is_written_as_the_format_it_is_asked_for(
     kind: type[Audio],
     extension: str,
 ) -> None:
-    """A waveform goes to a format by name, and an audio state to another format by attribute.
-
-    Either way the stem stays where it is, and only the extension says what the bytes now are.
-    """
+    """A waveform goes to a format by name, an audio state to another format by attribute."""
     written = getattr(steady(frames=2048), f"to_{name}")("sound")
     assert isinstance(written, kind)
     assert written.name == "sound" + extension

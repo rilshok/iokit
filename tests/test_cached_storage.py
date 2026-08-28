@@ -1,8 +1,6 @@
-"""A cache in front of a storage: which side answers a call, and what each side ends up holding.
+"""A cache in front of a storage: which side answers a call, and at what cost in traffic.
 
-The two storages are counted, so a test can say not only what a call returned but how much
-traffic it cost — the point of a cache being the calls it saves. What a cache over a bucket
-does with a record that can be read only once is in `tests/test_cached_s3_storage.py`.
+A cache over records readable only once is in `tests/test_cached_s3_storage.py`.
 """
 
 from pathlib import Path
@@ -219,11 +217,7 @@ def test_size_is_answered_by_the_cache_alone(
     hot: Counted,
     cold: Counted,
 ) -> None:
-    """The size of a cached record is measured on the cache, the two copies being alike.
-
-    The cache holds the record as the cold storage gave it, so measuring either is the same;
-    what a cache holding something else reports is pinned down further below.
-    """
+    """The size of a cached record is measured on the cache, the two copies being alike."""
     storage.push("data.json", b"{}")
     quiet(hot, cold)
     assert storage.size("data.json") == len(b"{}")
@@ -350,11 +344,7 @@ def test_a_record_only_in_the_cache_does_not_block_a_push(
     storage: CachedStorage[bytes],
     hot: Counted,
 ) -> None:
-    """Whether a record exists is the cold storage's to answer, the cache holding no authority.
-
-    A copy left in the cache of a record the cold storage does not hold must not turn an
-    ordinary push into a refusal: there would be no way to store the record at all.
-    """
+    """Whether a record exists is the cold storage's to answer, the cache has no say."""
     hot.push("data.json", b"[]")
     quiet(hot)
     storage.push("data.json", b"{}", force=True)

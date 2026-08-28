@@ -87,9 +87,7 @@ BAD_UIDS = [
 
 
 def test_a_record_is_filed_under_the_uid_it_was_pushed_with(storage: Storage[bytes]) -> None:
-    """A uid is the whole address of a record: what is pushed under one is listed and read
-    back under it, and uids of every shape live side by side without meeting.
-    """
+    """A uid is the whole address of a record, and uids of every shape live side by side."""
     for uid in UIDS:
         storage.push(uid, uid.encode())
     assert sorted(storage.index()) == sorted(UIDS)
@@ -172,11 +170,7 @@ def test_the_index_survives_records_changing_under_it(storage: Storage[bytes]) -
 
 
 def test_a_uid_no_record_could_be_handed_back_under_is_refused(storage: Storage[bytes]) -> None:
-    """Every call refuses such a uid, and none of them leaves anything behind.
-
-    A storage hands records back by uid, so it may only take a uid it could hand one back
-    under: no empty name, no trailing slash, and no way out of the storage with '..'.
-    """
+    """Every call refuses such a uid, and none of them leaves anything behind."""
     for uid in BAD_UIDS:
         with pytest.raises(ValueError, match=NO_RECORD):
             storage.push(uid, b"hello")

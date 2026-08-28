@@ -1,9 +1,4 @@
-"""What an archive holds: whole states, handed back under the paths they were packed with.
-
-An archive is a state like any other, so the states it holds keep what a state has: where it
-goes, and when it was last touched. Packing a folder and unpacking it elsewhere has to give
-back what went in, down to the directories the members were sitting in.
-"""
+"""What an archive holds: whole states, handed back under the paths they were packed with."""
 
 import pytest
 
@@ -44,11 +39,7 @@ def test_a_compressed_archive_unpacks_the_same_way(kind: type[Archive]) -> None:
 
 @pytest.mark.parametrize("kind", [Tar, Zip])
 def test_a_member_is_packed_under_the_whole_path_it_carries(kind: type[Archive]) -> None:
-    """The directories a member sits in are part of where it goes, so an archive carries them.
-
-    Dropping them does not merely flatten a tree: two files of the same name from two
-    directories become one name, and what unpacks under it is no longer what was packed.
-    """
+    """Two files of one name from two directories are two records, not one."""
     unpacked = {state.path: state.load() for state in kind(TREE, stem="archive").load()}
     assert unpacked == {
         "reports/2024/summary.txt": "of 2024",

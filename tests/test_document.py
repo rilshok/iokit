@@ -1,8 +1,4 @@
-"""What the document formats write, over and above what every format owes in the contract.
-
-The naming, the sizing and the roundtrip of these states are checked for every format alike in
-`tests/test_state_contract.py`; what is here is the text they put on the wire.
-"""
+"""The text the document formats put on the wire, over and above `tests/test_state_contract.py`."""
 
 from typing import Any
 

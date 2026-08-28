@@ -1,8 +1,4 @@
-"""A storage that keeps a tally of the calls it passes on.
-
-It stores nothing of its own: every record goes to the backend it wraps. What it adds is a
-count of each operation, which is how the tests of a cache tell which side answered a call.
-"""
+"""A storage that keeps a tally of the calls it passes on to the backend it wraps."""
 
 from pathlib import Path
 

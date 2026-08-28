@@ -1,9 +1,6 @@
-"""The contract every state of a known format keeps, checked on each implementation.
+"""The contract every state of a known format keeps, whatever the format is.
 
-What each format does with a payload of its own is checked next to it, in `tests/test_document.py`
-and its neighbours. What is here is what holds whatever the format is: the extension closes the
-name, the size is the length of the data, and the payload comes back from the bytes however they
-travelled - through a file, through a layer, or through nothing but their own extension.
+What each format does with a payload of its own is in `tests/test_document.py` and its neighbours.
 """
 
 from collections.abc import Callable
@@ -170,11 +167,7 @@ def test_a_payload_comes_back_however_the_bytes_of_the_state_arrived(
     kind: Kind,
     state: FormatState[Any],
 ) -> None:
-    """Nothing but the extension of the name says how to read a payload back.
-
-    So bytes that never went through the format read back the same as the state that wrote
-    them, whether they are handed over as a state of no format or adopted as one.
-    """
+    """Nothing but the extension of the name says how to read a payload back."""
     kind.same(state.load(), kind.payload)
 
     plain: State[Any] = LoadedState(bytes(state.data), path=state.name, timestamp=1_700_000_000)
@@ -192,10 +185,9 @@ def test_a_payload_survives_being_carried(
     state: FormatState[Any],
     tmp_path: Path,
 ) -> None:
-    """A state travels as a file on disk or as the payload of a layer, and neither changes it.
+    """A state travels as a file on disk or under a layer, and neither changes it.
 
-    One layer says it for all of them: what a layer carries is bytes, and which bytes they are
-    is nothing it knows. The layers themselves are checked in `tests/test_layer.py`.
+    One layer says it for all of them; the layers themselves are in `tests/test_layer.py`.
     """
     saved = state.save(tmp_path)
     assert Path(saved.path).read_bytes() == state.data

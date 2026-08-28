@@ -1,7 +1,6 @@
-"""Tests for how the S3 client copes with services that stray from the protocol.
+"""How the S3 client copes with services that stray from the protocol, every reply a stand-in.
 
-Every reply here is served by a stand-in client, so nothing in this module touches the
-network. See `tests/test_s3.py` for the smoke tests against a real bucket.
+See `tests/test_s3.py` for the smoke tests against a real bucket.
 """
 
 from collections.abc import Iterator
@@ -53,11 +52,7 @@ class FakePaginator:
 
 
 class FakeS3:
-    """A stand-in for an S3 service, answering whatever a test told it to.
-
-    A reply is either a value to return or an exception to raise. The calls it took and
-    the arguments of the last of each are kept, so that a test can look at them.
-    """
+    """A stand-in service, answering each call with a value to return or an error to raise."""
 
     def __init__(self, **replies: Reply) -> None:
         self._replies = replies

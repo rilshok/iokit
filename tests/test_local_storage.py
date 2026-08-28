@@ -1,8 +1,6 @@
-"""Records kept as files under a root directory.
+"""Records kept as files under a root directory, which a uid may not lead out of.
 
-What every byte storage owes a caller is checked in `tests/test_storage_contract.py`, over a
-local storage among the others. What is here is what only a directory can be asked: that a
-uid names a file under the root and nothing beyond it.
+The contract every storage keeps is in `tests/test_storage_contract.py`.
 """
 
 from pathlib import Path

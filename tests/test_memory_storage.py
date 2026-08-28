@@ -1,9 +1,6 @@
-"""Records kept in a dictionary, and the streams served out of one.
+"""Records kept in a dictionary: whose it is, and what it is allowed to hold.
 
-What every byte storage owes a caller is checked in `tests/test_storage_contract.py`, over a
-memory storage among the others. What is here is the dictionary itself: whose it is, what it
-is allowed to hold, and what the storage makes of a key it could never hand a record back
-under.
+The contract every storage keeps is in `tests/test_storage_contract.py`.
 """
 
 from io import BytesIO

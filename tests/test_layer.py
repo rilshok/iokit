@@ -1,8 +1,6 @@
-"""What a layer laid over a state does, checked on each layer there is.
+"""What a layer does to the state it covers, checked on each layer there is.
 
-That a payload of any format survives a layer is checked in `tests/test_state_contract.py`.
-What is here is the layer itself: what it does to the path and the timestamp of the state it
-covers, and what each layer does that the other does not.
+That a payload of any format survives one is in `tests/test_state_contract.py`.
 """
 
 import gzip
@@ -161,12 +159,7 @@ def test_neither_a_wrong_password_nor_a_wrong_salt_opens_a_state(
 
 
 def test_a_state_is_sealed_differently_every_time_it_is_sealed(sealed: Enc) -> None:
-    """Sealing the same payload twice must not give the same bytes.
-
-    A cipher that always writes the same bytes for the same payload tells anyone holding two
-    of them whether the payloads were equal, and it can only do so by covering both with the
-    same keystream - which is what the test below takes apart.
-    """
+    """Sealing the same payload twice must not give the same bytes."""
     document = Json(DOCUMENT, path="document.json")
     assert sealed.data != document.encrypt(password=PASSWORD, salt=SALT).data
 
@@ -174,11 +167,7 @@ def test_a_state_is_sealed_differently_every_time_it_is_sealed(sealed: Enc) -> N
 def test_two_states_sealed_with_one_password_do_not_share_a_keystream() -> None:
     """Two records of one storage must not give each other away.
 
-    AES-GCM covers a payload with a keystream, and the keystream is settled by the key and
-    the nonce. Where both are settled by nothing but the password and the salt, every record
-    of a storage is covered by the same one, and two ciphertexts then differ by exactly what
-    their payloads differ by: knowing one payload - a template, a default config, a file
-    already seen - hands over the other, no password needed.
+    Covered by one keystream, two ciphertexts differ by exactly what their payloads differ by.
     """
     backend = MemoryStorage()
     storage = StateStorage(backend, password=PASSWORD, salt=SALT)

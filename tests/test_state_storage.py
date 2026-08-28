@@ -1,9 +1,6 @@
 """Objects kept in a storage as states, the format taken from the extension of the uid.
 
-What a byte storage owes a caller is checked in `tests/test_storage_contract.py`. What is
-here is what a `StateStorage` lays on top of one: a payload is encoded by its uid, and the
-layers the storage is configured with are added to the path the backend sees, never to the
-uid the caller reads and writes under.
+The layers a storage adds go on the path the backend sees, never on the uid the caller uses.
 """
 
 from pathlib import Path

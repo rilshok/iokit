@@ -1,11 +1,7 @@
-"""The one smoke test reaching a real service, over the anonymous NOAA GEFS open-data bucket.
+"""The one smoke test reaching a real service: an unsigned client over a public bucket.
 
-Everything else about S3 is covered without the network: `tests/test_s3_service.py` against
-a served stand-in bucket, and `tests/test_s3_compatibility.py` against services that stray
-from the protocol. What is left here is what only a real service can answer for: that an
-unsigned client reaches a public bucket at all, and that the object it serves arrives whole.
-
-See https://registry.opendata.aws/noaa-gefs/ for the dataset description.
+Everything else about S3 is covered without the network, in `tests/test_s3_service.py` and
+`tests/test_s3_compatibility.py`. See https://registry.opendata.aws/noaa-gefs/ for the dataset.
 """
 
 import pytest
