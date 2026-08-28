@@ -1,16 +1,21 @@
 __all__ = ["CryptographyCodec", "decrypt", "encrypt"]
 
-from hashlib import sha256
+from functools import lru_cache
+from hashlib import pbkdf2_hmac
 from io import BytesIO
+from os import urandom
 from typing import BinaryIO
 
 from cryptography.exceptions import InvalidTag
-from cryptography.hazmat.primitives.ciphers.algorithms import AES
-from cryptography.hazmat.primitives.ciphers.base import Cipher
-from cryptography.hazmat.primitives.ciphers.modes import GCM
-from cryptography.hazmat.primitives.padding import PKCS7
+from cryptography.hazmat.primitives.ciphers.aead import AESGCM
 
 from iokit.codec.base import Codec
+
+#: the nonce size AES-GCM is specified for
+_NONCE_SIZE = 12
+
+#: what OWASP asks of PBKDF2-HMAC-SHA256, and what the loop it replaces already cost
+_ITERATIONS = 600_000
 
 
 def _to_bytes(data: bytes | str) -> bytes:
@@ -19,44 +24,29 @@ def _to_bytes(data: bytes | str) -> bytes:
     return data.encode("utf-8")
 
 
-def _get_hash(data: bytes) -> bytes:
-    hasher = sha256()
-    hasher.update(data)
-    return hasher.digest()
-
-
+@lru_cache(maxsize=8)
 def _generate_key(password: bytes, salt: bytes) -> bytes:
-    password += salt
-    for _ in range(390_000):
-        password = _get_hash(password)
-    return password
-
-
-def _cipher(key: bytes, salt: bytes) -> Cipher[GCM]:
-    return Cipher(algorithm=AES(key), mode=GCM(_get_hash(salt)))
+    """Stretch a password into a key, at a cost that makes guessing one expensive."""
+    # the whole cost of sealing a record, and a storage seals every record under one password
+    return pbkdf2_hmac("sha256", password, salt, _ITERATIONS, dklen=32)
 
 
 def encrypt(data: bytes, password: bytes, salt: bytes) -> bytes:
-    key = _generate_key(password=password, salt=salt)
-    padder = PKCS7(128).padder()
-    encryptor = _cipher(key=key, salt=salt).encryptor()
-    padded = padder.update(data) + padder.finalize()
-    ct = encryptor.update(padded) + encryptor.finalize()
-    tag = encryptor.tag
-    return ct + tag
+    """Seal `data` under a nonce of its own, written in front of what it sealed."""
+    # a keystream is settled by the key and the nonce, and one used twice gives both away
+    nonce = urandom(_NONCE_SIZE)
+    return nonce + AESGCM(_generate_key(password, salt)).encrypt(nonce, data, None)
 
 
 def decrypt(data: bytes, password: bytes, salt: bytes) -> bytes:
-    key = _generate_key(password=password, salt=salt)
-    unpadder = PKCS7(128).unpadder()
-    decryptor = _cipher(key=key, salt=salt).decryptor()
-    ct, tag = data[:-16], data[-16:]
+    """Open what `encrypt` sealed, refusing anything the tag does not vouch for."""
+    nonce, sealed = data[:_NONCE_SIZE], data[_NONCE_SIZE:]
     try:
-        padded = decryptor.update(ct) + decryptor.finalize_with_tag(tag)
-    except InvalidTag as exc:
+        return AESGCM(_generate_key(password, salt)).decrypt(nonce, sealed, None)
+    except (InvalidTag, ValueError) as exc:
+        # a record too short to hold a nonce and a tag is as unopenable as a meddled one
         msg = "Decryption failed"
         raise ValueError(msg) from exc
-    return unpadder.update(padded) + unpadder.finalize()
 
 
 _MASK = "..."
