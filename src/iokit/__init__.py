@@ -36,6 +36,7 @@ __all__ = [
     "StateStorage",
     "Storage",
     "StreamLocalStorage",
+    "StreamMemoryStorage",
     "Tar",
     "Tsv",
     "Txt",
@@ -102,6 +103,7 @@ from .storage import (
     StateStorage,
     Storage,
     StreamLocalStorage,
+    StreamMemoryStorage,
 )
 from .utils.file import file
 

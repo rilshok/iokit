@@ -3,9 +3,11 @@ __all__ = [
     "MemoryStorage",
     "StateStorage",
     "StreamLocalStorage",
+    "StreamMemoryStorage",
 ]
 
 from collections.abc import Iterator
+from io import BytesIO
 from pathlib import Path, PurePath
 from shutil import copyfileobj
 from typing import Any, BinaryIO, TypeVar, overload
@@ -83,9 +85,22 @@ class LocalStorage(BinaryStorage):
 
 
 class MemoryStorage(Storage[bytes]):
-    def __init__(self) -> None:
+    """Records kept as bytes in a dictionary, in memory only.
+
+    The dictionary can be handed in at construction and stays reachable as `records`, so a
+    mapping filled elsewhere can be served as a storage and the records a storage holds can be
+    read or edited directly.
+    """
+
+    def __init__(self, records: dict[str, bytes] | None = None) -> None:
         super().__init__()
-        self._records: dict[str, bytes] = {}
+        # the mapping is adopted, not copied, so writes on either side are seen by the other
+        self._records: dict[str, bytes] = records if records is not None else {}
+
+    @property
+    def records(self) -> dict[str, bytes]:
+        """The mapping of uid to record the storage reads and writes."""
+        return self._records
 
     def pull(self, uid: str) -> bytes:
         try:
@@ -121,6 +136,41 @@ class MemoryStorage(Storage[bytes]):
         for uid in list(self._records):
             if prefix is None or uid.startswith(prefix):
                 yield uid
+
+
+class StreamMemoryStorage(Storage[BinaryIO]):
+    """A stream view over records a `MemoryStorage` keeps in memory.
+
+    Records live as bytes in the wrapped storage either way, so a pull hands out a reader over
+    a snapshot of them and a push drains the stream into bytes before storing it.
+    """
+
+    def __init__(self, backend: MemoryStorage | None = None) -> None:
+        super().__init__()
+        self._backend = backend if backend is not None else MemoryStorage()
+
+    def pull(self, uid: str) -> BinaryIO:
+        return BytesIO(self._backend.pull(uid))
+
+    def push(self, uid: str, record: BinaryIO, *, force: bool = False) -> None:
+        if self._backend.exists(uid) and not force:
+            msg = f"Record with uid '{uid}' already exists"
+            raise FileExistsError(msg)
+        with record:
+            data = record.read()
+        self._backend.push(uid, data, force=True)
+
+    def remove(self, uid: str) -> None:
+        self._backend.remove(uid)
+
+    def exists(self, uid: str) -> bool:
+        return self._backend.exists(uid)
+
+    def size(self, uid: str) -> int:
+        return self._backend.size(uid)
+
+    def index(self, prefix: str | None = None) -> Iterator[str]:
+        return self._backend.index(prefix=prefix)
 
 
 class StateStorage(Storage[Any]):
