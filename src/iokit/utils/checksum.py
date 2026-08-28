@@ -1,6 +1,7 @@
 __all__ = ["Hash"]
 
 import hashlib
+from collections.abc import Callable
 from enum import Enum
 from typing import BinaryIO, Protocol
 
@@ -21,31 +22,24 @@ class Hash(Enum):
     XXH32 = "xxh32"
     XXH64 = "xxh64"
     XXH128 = "xxh128"
-    SHA256 = "sha256"
+    XXH3_64 = "xxh3_64"
+    XXH3_128 = "xxh3_128"
     MD5 = "md5"
     SHA1 = "sha1"
+    SHA224 = "sha224"
+    SHA256 = "sha256"
+    SHA384 = "sha384"
+    SHA512 = "sha512"
+    SHA3_224 = "sha3_224"
+    SHA3_256 = "sha3_256"
+    SHA3_384 = "sha3_384"
+    SHA3_512 = "sha3_512"
     BLAKE2B = "blake2b"
     BLAKE2S = "blake2s"
 
     @property
-    def algorithm(self) -> _HashAlgorithm:  # noqa: PLR0911
-        match self:
-            case Hash.XXH32:
-                return xxhash.xxh32()
-            case Hash.XXH64:
-                return xxhash.xxh64()
-            case Hash.XXH128:
-                return xxhash.xxh128()
-            case Hash.SHA256:
-                return hashlib.sha256()
-            case Hash.MD5:
-                return hashlib.md5()  # noqa: S324
-            case Hash.SHA1:
-                return hashlib.sha1()  # noqa: S324
-            case Hash.BLAKE2B:
-                return hashlib.blake2b()
-            case Hash.BLAKE2S:
-                return hashlib.blake2s()
+    def algorithm(self) -> _HashAlgorithm:
+        return _FACTORIES[self]()
 
     def digest(self, buffer: BinaryIO, *, chunk_size: int = CHUNK_SIZE) -> bytes:
         algorithm = self.algorithm
@@ -55,3 +49,24 @@ class Hash(Enum):
                 break
             algorithm.update(chunk)
         return algorithm.digest()
+
+
+_FACTORIES: dict[Hash, Callable[[], _HashAlgorithm]] = {
+    Hash.XXH32: xxhash.xxh32,
+    Hash.XXH64: xxhash.xxh64,
+    Hash.XXH128: xxhash.xxh128,
+    Hash.XXH3_64: xxhash.xxh3_64,
+    Hash.XXH3_128: xxhash.xxh3_128,
+    Hash.MD5: hashlib.md5,
+    Hash.SHA1: hashlib.sha1,
+    Hash.SHA224: hashlib.sha224,
+    Hash.SHA256: hashlib.sha256,
+    Hash.SHA384: hashlib.sha384,
+    Hash.SHA512: hashlib.sha512,
+    Hash.SHA3_224: hashlib.sha3_224,
+    Hash.SHA3_256: hashlib.sha3_256,
+    Hash.SHA3_384: hashlib.sha3_384,
+    Hash.SHA3_512: hashlib.sha3_512,
+    Hash.BLAKE2B: hashlib.blake2b,
+    Hash.BLAKE2S: hashlib.blake2s,
+}
