@@ -1,3 +1,9 @@
+"""The digest of a payload, checked against the library that names the algorithm.
+
+`Data` is the bytes a state is made of, and a digest of it is bytes of the same kind, so a
+checksum can be stored, compared or written out like any other payload.
+"""
+
 import hashlib
 from collections.abc import Callable
 
@@ -30,26 +36,27 @@ REFERENCES: dict[Hash, Callable[[bytes], bytes]] = {
 }
 
 
-def test_references_cover_all_algorithms() -> None:
+def test_every_algorithm_has_a_reference_to_be_checked_against() -> None:
+    """Nothing is left untested by the table above quietly missing an entry."""
     assert set(REFERENCES) == set(Hash)
 
 
 @pytest.mark.parametrize("algorithm", list(Hash))
-def test_digest_matches_reference(algorithm: Hash) -> None:
+def test_a_digest_is_the_one_the_algorithm_is_known_for(algorithm: Hash) -> None:
     digest = Data(PAYLOAD).digest(algorithm)
     assert isinstance(digest, Data)
     assert bytes(digest) == REFERENCES[algorithm](PAYLOAD)
 
 
-def test_digest_accepts_algorithm_name() -> None:
+def test_an_algorithm_may_be_named_instead_of_chosen() -> None:
     assert Data(PAYLOAD).digest("sha256") == Data(PAYLOAD).digest(Hash.SHA256)
 
 
 @pytest.mark.parametrize("payload", [b"", PAYLOAD * 10000])
-def test_digest_of_edge_sized_payloads(payload: bytes) -> None:
+def test_a_payload_of_any_length_is_digested(payload: bytes) -> None:
     assert bytes(Data(payload).digest("sha256")) == hashlib.sha256(payload).digest()
 
 
-def test_digest_unknown_algorithm() -> None:
+def test_an_algorithm_of_no_such_name_is_refused() -> None:
     with pytest.raises(ValueError, match="nosuchhash"):
         Data(PAYLOAD).digest("nosuchhash")

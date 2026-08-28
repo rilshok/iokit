@@ -1,9 +1,14 @@
+"""A storage that keeps a tally of the calls it passes on.
+
+It stores nothing of its own: every record goes to the backend it wraps. What it adds is a
+count of each operation, which is how the tests of a cache tell which side answered a call.
+"""
+
 from pathlib import Path
 
 import pytest
 
-from iokit.storage import CountingStorage, MemoryStorage
-from iokit.storage.local import StreamLocalStorage
+from iokit import CountingStorage, MemoryStorage, StreamLocalStorage
 
 
 def counted() -> CountingStorage[bytes]:

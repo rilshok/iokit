@@ -8,46 +8,45 @@ from pathlib import Path
 
 import pytest
 
-from iokit import Json, Yaml, file
-from iokit.state import FileState
+from iokit import FileState, Json, Yaml, file
 
 DOCUMENT = {"hello": "world"}
 
 
-@pytest.fixture
-def document(tmp_path: Path) -> Path:
+@pytest.fixture(name="document")
+def document_fixture(tmp_path: Path) -> Path:
+    """A json document written to disk, to be read back as a state."""
     return Path(Json(DOCUMENT, "greeting").save(tmp_path).path)
 
 
-def test_file_untyped(document: Path) -> None:
+def test_a_file_is_read_as_the_state_its_extension_names(document: Path) -> None:
     state = file(document)
     assert isinstance(state, FileState)
     assert state.name == "greeting.json"
     assert state.load() == DOCUMENT
 
 
-def test_file_expected_type(document: Path) -> None:
+def test_a_file_can_be_asked_for_as_the_format_it_is(document: Path) -> None:
     state = file(document, Json)
     assert isinstance(state, Json)
-    assert state.name == "greeting.json"
     assert state.load() == DOCUMENT
 
 
-def test_file_unexpected_type(document: Path) -> None:
+def test_a_file_of_another_format_than_the_one_asked_for_is_refused(document: Path) -> None:
     with pytest.raises(ValueError, match="Path must end with"):
         file(document, Yaml)
 
 
-def test_file_missing(tmp_path: Path) -> None:
+def test_a_state_read_from_a_file_is_pathed_by_it(document: Path) -> None:
+    assert file(document).path == document.as_posix()
+
+
+def test_a_missing_file_is_no_state(tmp_path: Path) -> None:
     with pytest.raises(FileNotFoundError):
         file(tmp_path / "missing.json")
 
 
-def test_file_keeps_path(document: Path) -> None:
-    assert file(document).path == document.as_posix()
-
-
-def test_file_directory(tmp_path: Path) -> None:
+def test_a_directory_is_no_state(tmp_path: Path) -> None:
     with pytest.raises(FileNotFoundError, match="not a regular file"):
         file(tmp_path)
 

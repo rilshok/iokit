@@ -12,8 +12,7 @@ from typing import TYPE_CHECKING, BinaryIO
 
 import pytest
 
-from iokit.storage import CachedStorage, CountingStorage
-from iokit.storage.local import StreamLocalStorage
+from iokit import CachedStorage, CountingStorage, StreamLocalStorage
 from iokit.storage.s3 import StreamS3Storage
 
 if TYPE_CHECKING:

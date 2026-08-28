@@ -1,3 +1,10 @@
+"""How a state is named: the stem it is given, the extension its format adds, and the path.
+
+A state is filed under a path, and the extension of that path is what says how to read the
+payload back. The two can be given together, and what is here is what the one makes of the
+other, and what is refused as saying two different things at once.
+"""
+
 from pathlib import Path
 
 import pytest

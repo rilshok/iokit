@@ -11,7 +11,7 @@ from typing import Any
 
 import pytest
 
-from iokit import Data, Enc, Gzip, Json, LayerState, LoadedState, Txt
+from iokit import Data, Enc, Gzip, Json, LayerState, LoadedState, State, Txt
 
 PASSWORD = "pA$sw0Rd"  # noqa: S105
 SALT = "s@lt"
@@ -29,7 +29,7 @@ class Layer:
     def name(self) -> str:
         return self.kind.__name__.lower()
 
-    def over(self, state: Any) -> LayerState:  # noqa: ANN401
+    def over(self, state: State[Any]) -> LayerState:
         return self.kind(state, **self.config)
 
 

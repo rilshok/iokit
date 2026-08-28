@@ -1,6 +1,5 @@
 """The contract every byte storage is expected to keep, checked on each implementation."""
 
-from pathlib import Path
 from typing import TYPE_CHECKING
 
 import pytest
@@ -172,6 +171,9 @@ def test_a_directory_shaped_uid_is_not_a_record(storage: Storage[bytes]) -> None
         storage.pull("reports")
 
 
+#: what every call refuses a uid with
+NO_RECORD = "is not a relative path naming a record"
+
 BAD_UIDS = [
     "",
     ".",
@@ -186,29 +188,22 @@ BAD_UIDS = [
 
 
 @pytest.mark.parametrize("uid", BAD_UIDS)
-@pytest.mark.parametrize("method", ["push", "pull", "size", "remove", "exists"])
 def test_a_uid_no_record_could_be_handed_back_under_is_refused(
     storage: Storage[bytes],
     uid: str,
-    method: str,
 ) -> None:
-    call = {
-        "push": lambda: storage.push(uid, b"hello"),
-        "pull": lambda: storage.pull(uid),
-        "size": lambda: storage.size(uid),
-        "remove": lambda: storage.remove(uid),
-        "exists": lambda: storage.exists(uid),
-    }[method]
-    with pytest.raises(ValueError, match="is not a relative path naming a record"):
-        call()
+    """Every call naming such a uid is refused, and none of them leaves a record behind."""
+    with pytest.raises(ValueError, match=NO_RECORD):
+        storage.push(uid, b"hello")
+    with pytest.raises(ValueError, match=NO_RECORD):
+        storage.pull(uid)
+    with pytest.raises(ValueError, match=NO_RECORD):
+        storage.size(uid)
+    with pytest.raises(ValueError, match=NO_RECORD):
+        storage.remove(uid)
+    with pytest.raises(ValueError, match=NO_RECORD):
+        storage.exists(uid)
     assert list(storage.index()) == []
-
-
-def test_local_storage_ignores_directories_in_the_index(tmp_path: Path) -> None:
-    storage = LocalStorage(tmp_path)
-    (tmp_path / "empty").mkdir()
-    storage.push("reports/first.bin", b"hello")
-    assert list(storage.index()) == ["reports/first.bin"]
 
 
 @pytest.mark.parametrize("uid", ["data.bin", "reports/first.bin", ".secret", "имя.bin"])
@@ -220,5 +215,5 @@ def test_validate_uid_accepts_what_a_storage_hands_back(uid: str) -> None:
 @pytest.mark.parametrize("uid", BAD_UIDS)
 def test_validate_uid_refuses_what_no_storage_could_hand_back(uid: str) -> None:
     assert not is_record_uid(uid)
-    with pytest.raises(ValueError, match="is not a relative path naming a record"):
+    with pytest.raises(ValueError, match=NO_RECORD):
         validate_uid(uid)

@@ -6,6 +6,7 @@ name, the size is the length of the data, and the payload comes back from the by
 travelled - through a file, through a layer, or through nothing but their own extension.
 """
 
+from collections.abc import Callable
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
@@ -38,13 +39,16 @@ from iokit import (
     Tsv,
     Txt,
     Wav,
+    Waveform,
     Yaml,
     Yml,
     file,
 )
-from iokit.dtype.waveform import Waveform
 
+#: a payload is whatever the format it is filed under carries, so nothing narrower fits
 Payload = Any
+#: what it means, for a given format, that a payload came back unharmed
+Same = Callable[[Payload, Payload], None]
 
 
 def alike(loaded: Payload, payload: Payload) -> None:
@@ -102,7 +106,7 @@ class Kind:
 
     state: type[FormatState[Any]]
     payload: Payload
-    same: Any = alike
+    same: Same = alike
 
     @property
     def name(self) -> str:

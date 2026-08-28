@@ -1,3 +1,5 @@
+"""A state read straight from a uri, the name taken from the last part of the path."""
+
 import pytest
 
 from iokit.utils.web import web

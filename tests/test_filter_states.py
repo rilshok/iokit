@@ -1,3 +1,5 @@
+"""Picking states out of a sequence by a glob over their names."""
+
 from typing import Any
 
 import pytest
