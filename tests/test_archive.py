@@ -11,13 +11,14 @@ from iokit import Archive, Gzip, Tar, Txt, Zip
 
 MEMBERS = [Txt("First file", stem="text1"), Txt("Second file", stem="text2")]
 
+#: an odd second, which a zip cannot spell: it keeps the time of a member to the even second
+TOUCHED = 1_000_000_001
+
 #: two files of the same name, from two directories - the everyday shape of a packed folder
 TREE = [
     Txt("of 2024", path="reports/2024/summary.txt"),
     Txt("of 2025", path="reports/2025/summary.txt"),
 ]
-
-TOUCHED = 1_000_000_000
 
 
 @pytest.mark.parametrize("kind", [Tar, Zip])
@@ -60,4 +61,4 @@ def test_a_member_keeps_the_time_it_was_last_touched(kind: type[Archive]) -> Non
     """A state carries its timestamp, and being packed is not touching it."""
     member = Txt("First file", stem="text1", timestamp=TOUCHED)
     unpacked = next(iter(kind([member], stem="archive").load()))
-    assert unpacked.timestamp == TOUCHED
+    assert unpacked.timestamp == pytest.approx(TOUCHED, abs=1)

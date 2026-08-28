@@ -5,7 +5,7 @@ from contextlib import suppress
 from datetime import datetime
 from io import BytesIO
 from typing import Any, BinaryIO
-from zipfile import ZipFile
+from zipfile import ZipFile, ZipInfo
 
 from iokit.codec.base import Codec
 from iokit.state import BufferedState, LoadedState, State
@@ -23,7 +23,9 @@ class ZipCodec(Codec[Iterable[State[Any]]]):
         buffer = BytesIO()
         with ZipFile(buffer, mode="w") as archive:
             for state in data:
-                archive.writestr(str(state.name), data=state.data)
+                # the whole path, and the local time a zip keeps its members by
+                touched = state.timestamp.datetime.astimezone().timetuple()
+                archive.writestr(ZipInfo(state.path, touched[:6]), data=state.data)
         buffer.seek(0)
         return buffer
 
