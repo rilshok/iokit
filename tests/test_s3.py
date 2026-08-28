@@ -18,7 +18,7 @@ SIZE = 3411
 pytestmark = pytest.mark.network
 
 
-def test_a_public_bucket_is_read_without_credentials() -> None:
+def test_public_bucket_is_read() -> None:
     storage = StreamS3Storage(BUCKET)
     assert storage.exists(UID)
     assert storage.size(UID) == SIZE
@@ -28,6 +28,6 @@ def test_a_public_bucket_is_read_without_credentials() -> None:
     assert data.startswith(b"1:0:d=2017010100:HGT:10 mb:anl:")
 
 
-def test_a_public_bucket_is_listed_without_credentials() -> None:
+def test_public_bucket_is_listed() -> None:
     storage = StreamS3Storage(BUCKET, FOLDER)
     assert list(storage.index(NAME)) == [NAME]

@@ -36,28 +36,28 @@ REFERENCES: dict[Hash, Callable[[bytes], bytes]] = {
 }
 
 
-def test_every_algorithm_has_a_reference_to_be_checked_against() -> None:
+def test_every_algorithm_has_a_reference() -> None:
     """Nothing is left untested by the table above quietly missing an entry."""
     assert set(REFERENCES) == set(Hash)
 
 
 @pytest.mark.parametrize("algorithm", list(Hash))
-def test_a_digest_is_the_one_the_algorithm_is_known_for(algorithm: Hash) -> None:
+def test_digest_matches_the_reference(algorithm: Hash) -> None:
     digest = Data(PAYLOAD).digest(algorithm)
     assert isinstance(digest, Data)
     assert bytes(digest) == REFERENCES[algorithm](PAYLOAD)
 
 
-def test_an_algorithm_may_be_named_instead_of_chosen() -> None:
+def test_algorithm_may_be_named() -> None:
     assert Data(PAYLOAD).digest("sha256") == Data(PAYLOAD).digest(Hash.SHA256)
 
 
 @pytest.mark.parametrize("payload", [b"", PAYLOAD * 10000])
-def test_a_payload_of_any_length_is_digested(payload: bytes) -> None:
+def test_digest_of_any_length(payload: bytes) -> None:
     assert bytes(Data(payload).digest("sha256")) == hashlib.sha256(payload).digest()
 
 
-def test_an_algorithm_of_no_such_name_is_refused() -> None:
+def test_unknown_algorithm_refused() -> None:
     with pytest.raises(ValueError, match="nosuchhash"):
         Data(PAYLOAD).digest("nosuchhash")
 
@@ -72,7 +72,7 @@ def test_an_algorithm_of_no_such_name_is_refused() -> None:
     ],
     ids=["empty", "text", "url unsafe"],
 )
-def test_data_spells_itself_out_and_is_read_back_from_the_spelling(
+def test_encodings_round_trip(
     payload: bytes,
     base64: str,
     base64url: str,
@@ -86,7 +86,7 @@ def test_data_spells_itself_out_and_is_read_back_from_the_spelling(
     assert Data.from_base32crockford(crockford) == payload
 
 
-def test_data_is_made_of_the_pieces_it_is_built_from() -> None:
+def test_slices_and_sums_stay_data() -> None:
     """Whatever is done to `Data` gives `Data` back, so the reach of it is never lost."""
     data = Data.from_ascii("iokit")
     assert data + b"!" == b"iokit!"
@@ -98,18 +98,18 @@ def test_data_is_made_of_the_pieces_it_is_built_from() -> None:
         assert isinstance(piece, Data)
 
 
-def test_data_carries_a_number_of_a_width_it_is_told() -> None:
+def test_int_round_trip() -> None:
     assert Data.from_int(1_000, length=2) == b"\x03\xe8"
     assert Data.from_int(1_000, length=2).to_int() == 1_000
     assert Data.from_int(1_000, length=2, byteorder="little").to_int(byteorder="little") == 1_000
 
 
-def test_random_data_is_of_the_length_that_was_asked_for() -> None:
+def test_random_length() -> None:
     assert len(Data.random(16)) == 16
     assert Data.random(16) != Data.random(16)
 
 
-def test_a_digest_is_the_same_however_the_payload_is_reached(tmp_path: Path) -> None:
+def test_digest_from_bytes_buffer_and_file(tmp_path: Path) -> None:
     """Bytes, an open buffer or a file on disk digest alike, the file read in chunks."""
     path = tmp_path / "payload.bin"
     path.write_bytes(PAYLOAD)

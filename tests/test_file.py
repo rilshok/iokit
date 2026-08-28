@@ -23,39 +23,39 @@ def document_fixture(tmp_path: Path) -> Path:
     return Path(Json(DOCUMENT, "greeting").save(tmp_path).path)
 
 
-def test_a_file_is_read_as_the_state_its_extension_names(document: Path) -> None:
+def test_file_is_read_by_its_extension(document: Path) -> None:
     state = file(document)
     assert isinstance(state, FileState)
     assert state.name == "greeting.json"
     assert state.load() == DOCUMENT
 
 
-def test_a_file_can_be_asked_for_as_the_format_it_is(document: Path) -> None:
+def test_file_as_an_expected_format(document: Path) -> None:
     state = file(document, Json)
     assert isinstance(state, Json)
     assert state.load() == DOCUMENT
 
 
-def test_a_file_of_another_format_than_the_one_asked_for_is_refused(document: Path) -> None:
+def test_file_of_another_format_refused(document: Path) -> None:
     with pytest.raises(ValueError, match="Path must end with"):
         file(document, Yaml)
 
 
-def test_a_state_read_from_a_file_is_pathed_by_it(document: Path) -> None:
+def test_file_state_keeps_its_path(document: Path) -> None:
     assert file(document).path == document.as_posix()
 
 
-def test_a_missing_file_is_no_state(tmp_path: Path) -> None:
+def test_missing_file(tmp_path: Path) -> None:
     with pytest.raises(FileNotFoundError):
         file(tmp_path / "missing.json")
 
 
-def test_a_directory_is_no_state(tmp_path: Path) -> None:
+def test_directory_is_no_file(tmp_path: Path) -> None:
     with pytest.raises(FileNotFoundError, match="not a regular file"):
         file(tmp_path)
 
 
-def test_a_temporary_file_holds_the_state_until_the_context_is_left() -> None:
+def test_save_temp() -> None:
     """`save_temp` writes the state under its own name, and takes the file away afterwards."""
     state = Json(DOCUMENT, path="data/greeting.json")
     with state.save_temp() as temporary:
@@ -66,7 +66,7 @@ def test_a_temporary_file_holds_the_state_until_the_context_is_left() -> None:
     assert not path.exists()
 
 
-def test_a_state_and_its_file_keep_the_same_timestamp(tmp_path: Path) -> None:
+def test_timestamp_survives_a_file(tmp_path: Path) -> None:
     """When a state was last touched travels with it: onto the file, and back off it."""
     touched = Timestamp.from_datetime(datetime(2017, 1, 1, tzinfo=timezone.utc))
     state = Json(DOCUMENT, "greeting", timestamp=touched)
@@ -79,7 +79,7 @@ def test_a_state_and_its_file_keep_the_same_timestamp(tmp_path: Path) -> None:
     assert Json(DOCUMENT, "greeting").timestamp > touched.shift(timedelta(days=1))
 
 
-def test_a_state_is_saved_under_the_root_it_is_given(tmp_path: Path) -> None:
+def test_save_under_a_root(tmp_path: Path) -> None:
     """A path is relative to the root, and an absolute one lands under it all the same."""
     Json(DOCUMENT, path="reports/greeting.json").save(tmp_path)
     Json(DOCUMENT, path="/reports/absolute.json").save(tmp_path)
@@ -87,14 +87,14 @@ def test_a_state_is_saved_under_the_root_it_is_given(tmp_path: Path) -> None:
     assert (tmp_path / "reports/absolute.json").is_file()
 
 
-def test_a_state_is_not_saved_outside_of_its_root(tmp_path: Path) -> None:
+def test_save_outside_a_root_refused(tmp_path: Path) -> None:
     """A path leading out of the root is refused, so a state can never write over the way out."""
     with pytest.raises(ValueError, match="Path is outside of root"):
         Json(DOCUMENT, path="../escaped.json").save(tmp_path)
     assert not (tmp_path.parent / "escaped.json").exists()
 
 
-def test_a_saved_state_is_overwritten_only_when_it_is_forced(tmp_path: Path) -> None:
+def test_save_overwrites_only_when_forced(tmp_path: Path) -> None:
     state = Json(DOCUMENT, "greeting")
     state.save(tmp_path)
     with pytest.raises(FileExistsError, match="File already exists"):
@@ -102,7 +102,7 @@ def test_a_saved_state_is_overwritten_only_when_it_is_forced(tmp_path: Path) -> 
     assert Json({"other": 1}, "greeting").save(tmp_path, force=True).load() == {"other": 1}
 
 
-def test_a_root_is_made_along_with_its_parents_when_it_is_asked_for(tmp_path: Path) -> None:
+def test_save_makes_the_root(tmp_path: Path) -> None:
     """Saving into a root that is not there yet is an error unless the parents are asked for."""
     root = tmp_path / "missing/root"
     with pytest.raises(FileNotFoundError):
@@ -110,7 +110,7 @@ def test_a_root_is_made_along_with_its_parents_when_it_is_asked_for(tmp_path: Pa
     assert Json(DOCUMENT, "greeting").save(root, parents=True).load() == DOCUMENT
 
 
-def test_a_buffered_state_reads_its_bytes_from_the_buffer_it_is_given() -> None:
+def test_buffered_state_reads_its_buffer() -> None:
     """The state holds no copy: it measures and reads the buffer, which stays where it is."""
     state: BufferedState[str] = BufferedState(BytesIO(b"payload"), path="data.txt")
     assert state.size == len(b"payload")
@@ -118,7 +118,7 @@ def test_a_buffered_state_reads_its_bytes_from_the_buffer_it_is_given() -> None:
     assert state.load() == "payload"
 
 
-def test_a_buffered_state_hands_out_a_reader_of_its_own_every_time() -> None:
+def test_buffered_readers_are_independent() -> None:
     """Each reader has a cursor of its own, so reading one leaves the others where they were."""
     state: BufferedState[bytes] = BufferedState(BytesIO(b"payload"), path="data.dat")
     with state.buffer as first, state.buffer as second:
@@ -131,7 +131,7 @@ def test_a_buffered_state_hands_out_a_reader_of_its_own_every_time() -> None:
     assert state.data == b"payload"
 
 
-def test_a_buffer_that_cannot_be_read_over_is_no_state(tmp_path: Path) -> None:
+def test_buffer_must_be_readable_and_seekable(tmp_path: Path) -> None:
     """A state reads its buffer more than once and from anywhere, so it needs both of those."""
     with (
         (tmp_path / "out.txt").open("wb") as write_only,

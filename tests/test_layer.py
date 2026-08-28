@@ -63,7 +63,7 @@ def covered_fixture(layer: Layer) -> LayerState:
     return layer.over(SOURCE)
 
 
-def test_a_layer_appends_its_extension_and_keeps_the_timestamp(
+def test_layer_extends_the_path(
     layer: Layer,
     covered: LayerState,
 ) -> None:
@@ -71,7 +71,7 @@ def test_a_layer_appends_its_extension_and_keeps_the_timestamp(
     assert covered.timestamp == SOURCE.timestamp
 
 
-def test_the_state_under_a_layer_comes_back_whole(layer: Layer, covered: LayerState) -> None:
+def test_state_under_a_layer_comes_back(layer: Layer, covered: LayerState) -> None:
     inner = covered.load(**layer.config)
     assert inner.path == SOURCE.path
     assert inner.timestamp == SOURCE.timestamp
@@ -79,7 +79,7 @@ def test_the_state_under_a_layer_comes_back_whole(layer: Layer, covered: LayerSt
     assert inner.load() == SOURCE.load()
 
 
-def test_a_layer_is_taken_off_bytes_that_come_from_elsewhere(
+def test_layer_off_foreign_bytes(
     layer: Layer,
     covered: LayerState,
 ) -> None:
@@ -88,30 +88,30 @@ def test_a_layer_is_taken_off_bytes_that_come_from_elsewhere(
     assert layer.kind.from_state(elsewhere).load(**layer.config).data == SOURCE.data
 
 
-def test_a_layer_hides_the_payload_it_covers(covered: LayerState) -> None:
+def test_layer_hides_the_payload(covered: LayerState) -> None:
     assert b"payload" not in bytes(covered.data)
 
 
 # compressing
 
 
-def test_a_stronger_compression_leaves_a_smaller_state() -> None:
+def test_stronger_compression_is_smaller() -> None:
     state = Json({"key": "value" * 1000}, path="data.json")
     sizes = [Gzip(state, compression=level).size for level in (1, 3, 9)]
     assert sizes == sorted(sizes, reverse=True)
     assert all(Gzip(state, compression=level).load().data == state.data for level in (1, 3, 9))
 
 
-def test_a_compressed_state_is_a_plain_gzip_file() -> None:
+def test_gzip_is_a_plain_gzip_file() -> None:
     assert gzip.decompress(Gzip(SOURCE).data) == SOURCE.data
 
 
-def test_compressing_the_same_payload_twice_gives_the_same_bytes() -> None:
+def test_gzip_is_reproducible() -> None:
     """No timestamp of its own leaks into the compressed bytes, which a gzip header has room for."""
     assert Gzip(SOURCE).data == Gzip(SOURCE).data
 
 
-def test_a_gzip_file_written_elsewhere_is_read_as_a_layer() -> None:
+def test_foreign_gzip_is_read_as_a_layer() -> None:
     state = Gzip(Data(gzip.compress(b"payload")), path="data.txt.gz")
     inner = state.load()
     assert inner.path == "data.txt"
@@ -138,7 +138,7 @@ def sealed_fixture() -> Enc:
     return Json(DOCUMENT, path="document.json").encrypt(password=PASSWORD, salt=SALT)
 
 
-def test_an_encrypted_state_is_opened_by_the_password_it_was_sealed_with(sealed: Enc) -> None:
+def test_sealed_state_opens_with_its_password(sealed: Enc) -> None:
     assert sealed.path == "document.json.enc"
     inner: LoadedState[Any] = sealed.load(password=PASSWORD, salt=SALT)
     assert inner.name == "document.json"
@@ -149,7 +149,7 @@ def test_an_encrypted_state_is_opened_by_the_password_it_was_sealed_with(sealed:
     ("password", "salt"),
     [(PASSWORD, ""), ("password", SALT), ("password", "")],
 )
-def test_neither_a_wrong_password_nor_a_wrong_salt_opens_a_state(
+def test_wrong_password_or_salt(
     sealed: Enc,
     password: str,
     salt: str,
@@ -158,13 +158,13 @@ def test_neither_a_wrong_password_nor_a_wrong_salt_opens_a_state(
         sealed.load(password=password, salt=salt)
 
 
-def test_a_state_is_sealed_differently_every_time_it_is_sealed(sealed: Enc) -> None:
+def test_sealing_is_never_repeated(sealed: Enc) -> None:
     """Sealing the same payload twice must not give the same bytes."""
     document = Json(DOCUMENT, path="document.json")
     assert sealed.data != document.encrypt(password=PASSWORD, salt=SALT).data
 
 
-def test_two_states_sealed_with_one_password_do_not_share_a_keystream() -> None:
+def test_records_share_no_keystream() -> None:
     """Two records of one storage must not give each other away.
 
     Covered by one keystream, two ciphertexts differ by exactly what their payloads differ by.
@@ -185,7 +185,7 @@ def test_two_states_sealed_with_one_password_do_not_share_a_keystream() -> None:
     [b"", b"tampered", b"\x00" * 64],
     ids=["cut", "swapped", "wiped"],
 )
-def test_a_sealed_state_that_was_meddled_with_is_refused(sealed: Enc, damage: bytes) -> None:
+def test_meddled_state_refused(sealed: Enc, damage: bytes) -> None:
     """The seal vouches for the bytes, so what came back changed does not open at all."""
     meddled: LoadedState[Any] = LoadedState(damage + bytes(sealed.data)[8:], path=sealed.path)
     with pytest.raises(ValueError, match="Decryption failed"):

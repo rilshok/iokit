@@ -10,13 +10,13 @@ import pytest
 from iokit import MemoryStorage, StreamMemoryStorage
 
 
-def test_a_storage_of_its_own_starts_empty() -> None:
+def test_each_storage_starts_empty() -> None:
     """Each storage keeps its own records, nothing being shared behind the class."""
     MemoryStorage().push("data.bin", b"hello")
     assert list(MemoryStorage().index()) == []
 
 
-def test_the_given_dictionary_is_the_storage() -> None:
+def test_given_dictionary_is_adopted() -> None:
     """A mapping handed in is adopted, not copied, so the two sides see each other's writes."""
     records = {"data.bin": b"hello"}
     storage = MemoryStorage(records)
@@ -30,7 +30,7 @@ def test_the_given_dictionary_is_the_storage() -> None:
     assert sorted(records) == ["other.bin", "third.bin"]
 
 
-def test_the_records_of_a_storage_are_the_live_mapping() -> None:
+def test_records_are_the_live_mapping() -> None:
     storage = MemoryStorage()
     storage.push("data.bin", b"hello")
     assert storage.records == {"data.bin": b"hello"}
@@ -40,7 +40,7 @@ def test_the_records_of_a_storage_are_the_live_mapping() -> None:
     assert not storage.exists("data.bin")
 
 
-def test_two_storages_over_one_dictionary_hold_the_same_records() -> None:
+def test_two_storages_one_dictionary() -> None:
     records: dict[str, bytes] = {}
     first, second = MemoryStorage(records), MemoryStorage(records)
     first.push("data.bin", b"hello")
@@ -50,7 +50,7 @@ def test_two_storages_over_one_dictionary_hold_the_same_records() -> None:
 
 
 @pytest.mark.parametrize("key", ["", ".", "..", "./data.bin", "data.bin/", "a//b.bin"])
-def test_a_key_that_names_no_record_is_left_where_it_lies(key: str) -> None:
+def test_key_that_names_no_record(key: str) -> None:
     """A mapping may hold whatever it likes; what is no uid is simply not a record."""
     records = {key: b"hello", "data.bin": b"world"}
     storage = MemoryStorage(records)
@@ -60,7 +60,7 @@ def test_a_key_that_names_no_record_is_left_where_it_lies(key: str) -> None:
     assert records[key] == b"hello"
 
 
-def test_the_index_yields_only_what_the_storage_can_hand_back() -> None:
+def test_index_yields_only_records() -> None:
     records = {"": b"a", "./data.bin": b"b", "reports/first.bin": b"c"}
     storage = MemoryStorage(records)
     for uid in storage.index():
@@ -68,7 +68,7 @@ def test_the_index_yields_only_what_the_storage_can_hand_back() -> None:
         assert storage.pull(uid) == records[uid]
 
 
-def test_a_stream_storage_hands_out_a_reader_of_its_own_on_every_pull() -> None:
+def test_stream_readers_are_independent() -> None:
     """The record stays where it is, so reading one stream leaves the other whole."""
     storage = StreamMemoryStorage()
     storage.push("data.bin", BytesIO(b"hello"))
@@ -78,7 +78,7 @@ def test_a_stream_storage_hands_out_a_reader_of_its_own_on_every_pull() -> None:
         assert second.read() == b"hello"
 
 
-def test_a_stream_storage_keeps_its_records_in_the_backend_it_is_given() -> None:
+def test_stream_shares_its_backend() -> None:
     """Streams and bytes are two views of one dictionary of records."""
     backend = MemoryStorage()
     storage = StreamMemoryStorage(backend)

@@ -15,7 +15,7 @@ FRAME = pd.DataFrame(
 
 
 @pytest.mark.parametrize(("kind", "separator"), [(Csv, b","), (Tsv, b"\t")])
-def test_the_columns_are_parted_by_the_separator_of_the_format(
+def test_separator_of_each_format(
     kind: type[Pandas],
     separator: bytes,
 ) -> None:
@@ -26,7 +26,7 @@ def test_the_columns_are_parted_by_the_separator_of_the_format(
 
 
 @pytest.mark.parametrize("kind", [Csv, Tsv])
-def test_the_index_is_left_out_unless_it_is_asked_for(kind: type[Pandas]) -> None:
+def test_index_is_opt_in(kind: type[Pandas]) -> None:
     """A frame is written without its index, which is a column of its own when asked for."""
     plain = kind(FRAME, stem="table")
     indexed = kind(FRAME, stem="table", index=True)

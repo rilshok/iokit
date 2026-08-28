@@ -56,7 +56,7 @@ def unavailable(*_args: object, **_kwargs: object) -> None:
 # pushing
 
 
-def test_push_reaches_both_storages(
+def test_push_reaches_both(
     storage: CachedStorage[bytes],
     hot: Counted,
     cold: Counted,
@@ -67,7 +67,7 @@ def test_push_reaches_both_storages(
     assert stored(cold, "data.json") == b"{}"
 
 
-def test_push_writes_to_the_cold_storage_once(
+def test_push_writes_cold_once(
     storage: CachedStorage[bytes],
     cold: Counted,
 ) -> None:
@@ -76,7 +76,7 @@ def test_push_writes_to_the_cold_storage_once(
     assert cold.calls == {"exists": 1, "push": 1}
 
 
-def test_a_forced_push_skips_the_existence_lookup(
+def test_forced_push_skips_the_lookup(
     storage: CachedStorage[bytes],
     cold: Counted,
 ) -> None:
@@ -100,7 +100,7 @@ def test_push_refuses_to_overwrite_without_force(
     assert stored(hot, "data.json") is None
 
 
-def test_a_forced_push_overwrites_both_storages(
+def test_forced_push_overwrites_both(
     storage: CachedStorage[bytes],
     hot: Counted,
     cold: Counted,
@@ -115,7 +115,7 @@ def test_a_forced_push_overwrites_both_storages(
 # pulling
 
 
-def test_pull_warms_the_cache_from_the_cold_storage(
+def test_pull_warms_the_cache(
     storage: CachedStorage[bytes],
     hot: Counted,
     cold: Counted,
@@ -129,7 +129,7 @@ def test_pull_warms_the_cache_from_the_cold_storage(
     assert cold.calls == {"pull": 1}
 
 
-def test_a_warmed_record_is_pulled_from_the_cache_alone(
+def test_warmed_record_skips_the_cold(
     storage: CachedStorage[bytes],
     hot: Counted,
     cold: Counted,
@@ -143,7 +143,7 @@ def test_a_warmed_record_is_pulled_from_the_cache_alone(
     assert hot.calls == {"exists": 1, "pull": 1}
 
 
-def test_a_pushed_record_is_pulled_from_the_cache_alone(
+def test_pushed_record_skips_the_cold(
     storage: CachedStorage[bytes],
     hot: Counted,
     cold: Counted,
@@ -155,7 +155,7 @@ def test_a_pushed_record_is_pulled_from_the_cache_alone(
     assert cold.calls == {}
 
 
-def test_pull_of_a_missing_record_caches_nothing(
+def test_missing_pull_caches_nothing(
     storage: CachedStorage[bytes],
     hot: Counted,
     cold: Counted,
@@ -168,7 +168,7 @@ def test_pull_of_a_missing_record_caches_nothing(
     assert hot.calls == {"exists": 1}
 
 
-def test_a_record_dropped_from_the_cache_is_warmed_back(
+def test_dropped_record_is_warmed_back(
     storage: CachedStorage[bytes],
     hot: Counted,
     cold: Counted,
@@ -185,7 +185,7 @@ def test_a_record_dropped_from_the_cache_is_warmed_back(
 # asking after a record
 
 
-def test_exists_is_answered_by_the_cache_alone(
+def test_exists_answered_by_the_cache(
     storage: CachedStorage[bytes],
     hot: Counted,
     cold: Counted,
@@ -198,7 +198,7 @@ def test_exists_is_answered_by_the_cache_alone(
     assert hot.calls == {"exists": 1}
 
 
-def test_exists_falls_back_to_the_cold_storage(
+def test_exists_falls_back(
     storage: CachedStorage[bytes],
     hot: Counted,
     cold: Counted,
@@ -212,7 +212,7 @@ def test_exists_falls_back_to_the_cold_storage(
     assert hot.calls == {"exists": 2}
 
 
-def test_size_is_answered_by_the_cache_alone(
+def test_size_answered_by_the_cache(
     storage: CachedStorage[bytes],
     hot: Counted,
     cold: Counted,
@@ -225,7 +225,7 @@ def test_size_is_answered_by_the_cache_alone(
     assert hot.calls == {"exists": 1, "size": 1}
 
 
-def test_size_falls_back_to_the_cold_storage_in_a_single_lookup(
+def test_size_falls_back_in_one_lookup(
     storage: CachedStorage[bytes],
     hot: Counted,
     cold: Counted,
@@ -242,7 +242,7 @@ def test_size_falls_back_to_the_cold_storage_in_a_single_lookup(
 # walking the records
 
 
-def test_index_walks_the_cold_storage_alone(
+def test_index_walks_the_cold_alone(
     storage: CachedStorage[bytes],
     hot: Counted,
     cold: Counted,
@@ -261,7 +261,7 @@ def test_index_walks_the_cold_storage_alone(
 # removing
 
 
-def test_remove_clears_both_storages(
+def test_remove_clears_both(
     storage: CachedStorage[bytes],
     hot: Counted,
     cold: Counted,
@@ -276,7 +276,7 @@ def test_remove_clears_both_storages(
     assert hot.calls == {"exists": 1, "remove": 1}
 
 
-def test_remove_of_an_uncached_record_leaves_the_cache_alone(
+def test_remove_uncached_skips_the_cache(
     storage: CachedStorage[bytes],
     hot: Counted,
     cold: Counted,
@@ -293,7 +293,7 @@ def test_remove_of_an_uncached_record_leaves_the_cache_alone(
 # a write the cold storage does not take
 
 
-def test_push_leaves_nothing_cached_when_the_cold_storage_refuses(
+def test_refused_push_caches_nothing(
     storage: CachedStorage[bytes],
     hot: Counted,
     cold: Counted,
@@ -309,7 +309,7 @@ def test_push_leaves_nothing_cached_when_the_cold_storage_refuses(
     assert hot.calls["remove"] == 1
 
 
-def test_a_refused_forced_push_leaves_the_stored_record_readable(
+def test_refused_forced_push_keeps_the_record(
     storage: CachedStorage[bytes],
     cold: Counted,
     monkeypatch: pytest.MonkeyPatch,
@@ -326,7 +326,7 @@ def test_a_refused_forced_push_leaves_the_stored_record_readable(
 # a cache holding what the cold storage does not
 
 
-def test_a_stale_cached_record_is_served_as_is(
+def test_stale_cache_is_served_as_is(
     storage: CachedStorage[bytes],
     hot: Counted,
     cold: Counted,
@@ -340,7 +340,7 @@ def test_a_stale_cached_record_is_served_as_is(
     assert cold.calls == {}
 
 
-def test_a_record_only_in_the_cache_does_not_block_a_push(
+def test_cache_does_not_block_a_push(
     storage: CachedStorage[bytes],
     hot: Counted,
 ) -> None:

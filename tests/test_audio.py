@@ -19,7 +19,7 @@ def steady(frames: int = FREQ, channels: int = 2) -> Waveform:
     return Waveform(wave=np.full((frames, channels), 0.5, dtype=np.float32), freq=FREQ)
 
 
-def test_a_waveform_is_measured_in_frames_channels_and_seconds() -> None:
+def test_waveform_is_measured() -> None:
     waveform = steady()
     assert waveform.frames == FREQ
     assert waveform.channels == 2
@@ -27,7 +27,7 @@ def test_a_waveform_is_measured_in_frames_channels_and_seconds() -> None:
     assert waveform.wave.dtype == np.float32
 
 
-def test_a_wave_of_one_dimension_is_taken_as_a_single_channel() -> None:
+def test_one_dimensional_wave_is_mono() -> None:
     waveform = Waveform(wave=np.ones(FREQ), freq=FREQ)
     assert waveform.channels == 1
     assert waveform.wave.shape == (FREQ, 1)
@@ -40,7 +40,7 @@ def test_a_wave_of_one_dimension_is_taken_as_a_single_channel() -> None:
         ((2, FREQ), "channels"),
     ],
 )
-def test_a_wave_of_a_shape_no_waveform_has_is_refused(
+def test_bad_wave_shape_refused(
     shape: tuple[int, ...],
     message: str,
 ) -> None:
@@ -48,7 +48,7 @@ def test_a_wave_of_a_shape_no_waveform_has_is_refused(
         Waveform(wave=np.ones(shape, dtype=np.float32), freq=FREQ)
 
 
-def test_the_channels_are_averaged_into_one() -> None:
+def test_to_mono_averages_channels() -> None:
     waveform = Waveform(wave=np.stack([np.zeros(FREQ), np.ones(FREQ)], axis=1), freq=FREQ)
     mono = waveform.to_mono()
     assert mono.channels == 1
@@ -69,7 +69,7 @@ def test_the_channels_are_averaged_into_one() -> None:
         (0.5, 1.5, slice(FREQ // 2, None)),
     ],
 )
-def test_a_cut_keeps_the_frames_it_names(
+def test_cut_keeps_named_frames(
     begin: float | None,
     end: float | None,
     kept: slice,
@@ -91,7 +91,7 @@ CONVERSIONS = [
 
 
 @pytest.mark.parametrize(("name", "kind", "extension"), CONVERSIONS)
-def test_a_waveform_is_written_as_the_format_it_is_asked_for(
+def test_conversion_between_formats(
     name: str,
     kind: type[Audio],
     extension: str,

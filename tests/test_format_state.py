@@ -31,7 +31,7 @@ DOCUMENT = {"hello": "world"}
         (None, None, ".json"),
     ],
 )
-def test_a_state_is_filed_under_the_path_its_stem_and_format_make(
+def test_path_from_stem_and_format(
     stem: str | None,
     path: str | None,
     expected: str,
@@ -55,7 +55,7 @@ def test_a_state_is_filed_under_the_path_its_stem_and_format_make(
         (None, "greeting.yaml", r"must end with '\.json'"),
     ],
 )
-def test_a_name_that_says_two_things_at_once_is_refused(
+def test_contradictory_name_refused(
     stem: str | None,
     path: str | None,
     message: str,
@@ -64,7 +64,7 @@ def test_a_name_that_says_two_things_at_once_is_refused(
         Json(DOCUMENT, stem, path)
 
 
-def test_a_layer_takes_a_name_of_its_own_over_the_state_it_covers() -> None:
+def test_layer_under_its_own_stem() -> None:
     """A layer carries bytes, so under a stem of its own it forgets the name it covered."""
     assert Gzip(Txt("payload", "data"), "data.txt").path == "data.txt.gz"
 
@@ -78,14 +78,14 @@ def test_a_layer_takes_a_name_of_its_own_over_the_state_it_covers() -> None:
     assert sealed.load(password=PASSWORD).path == "secret"
 
 
-def test_a_layer_comes_off_an_extension_written_in_any_case() -> None:
+def test_layer_off_an_uppercase_name() -> None:
     """A name that arrived shouting is still a name a layer can be taken off."""
     packed = Gzip(Txt("payload", "data"))
     state = Gzip.from_state(LoadedState(packed.data, path="DATA.TXT.GZ"))
     assert state.load().path == "DATA.TXT"
 
 
-def test_a_state_is_renamed_where_it_lies() -> None:
+def test_renaming_a_state() -> None:
     """Name, stem and suffix are three ways at the path, and none of them moves the state."""
     state = Json(DOCUMENT, "nested/dir/greeting")
     assert state.suffix == Json.extension() == ".json"
@@ -103,7 +103,7 @@ def test_a_state_is_renamed_where_it_lies() -> None:
     assert state.load() == '{"hello": "world"}'
 
 
-def test_a_state_standing_for_a_file_refuses_to_be_renamed(tmp_path: Path) -> None:
+def test_a_file_state_refuses_renaming(tmp_path: Path) -> None:
     """The name of a saved state is the name of the file, which renaming would not move."""
     state = Json(DOCUMENT, "greeting").save(tmp_path)
     assert Path(state.path).resolve() == tmp_path / "greeting.json"
@@ -118,19 +118,19 @@ def test_a_state_standing_for_a_file_refuses_to_be_renamed(tmp_path: Path) -> No
     assert state.load() == DOCUMENT
 
 
-def test_encoded_bytes_cannot_be_handed_a_codec_to_encode_them_again() -> None:
+def test_codec_config_on_encoded_bytes() -> None:
     """A state built from `Data` holds bytes that are already written; there is nothing to set."""
     with pytest.raises(ValueError, match="Cannot configure a codec"):
         Csv(Data(b"name,age\n"), path="table.csv", index=True)
 
 
 @pytest.mark.parametrize("path", ["data.unknown", "noextension", "data.bin", ".secret"])
-def test_a_name_no_format_claims_reads_back_as_the_bytes_it_is(path: str) -> None:
+def test_unclaimed_name_reads_as_bytes(path: str) -> None:
     """Raw bytes are what is left when nothing in the name says how to read them."""
     assert LoadedState(b"payload", path=path).load() == b"payload"
 
 
-def test_a_name_is_matched_by_its_extension_whatever_case_it_is_written_in() -> None:
+def test_extension_match_is_case_blind() -> None:
     """The longest known extension of the name wins, and it is read case-blind."""
     assert LoadedState(Json(DOCUMENT).data, path="GREETING.JSON").load() == DOCUMENT
     assert LoadedState(Json(DOCUMENT).data, path="greeting.backup.json").load() == DOCUMENT

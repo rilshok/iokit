@@ -40,7 +40,7 @@ def served_fixture(s3_service: "S3Service") -> "Callable[..., StreamS3Storage]":
     return serve
 
 
-def test_a_folder_is_prepended_to_a_uid(served: "Callable[..., StreamS3Storage]") -> None:
+def test_folder_is_prepended(served: "Callable[..., StreamS3Storage]") -> None:
     """Inside a folder, a uid is read relative to it, and names nothing outside it."""
     storage = served(FOLDER)
     assert storage.exists(NAME)
@@ -50,14 +50,14 @@ def test_a_folder_is_prepended_to_a_uid(served: "Callable[..., StreamS3Storage]"
     assert not storage.exists(UID)
 
 
-def test_a_folder_is_stripped_from_the_index(served: "Callable[..., StreamS3Storage]") -> None:
+def test_folder_is_stripped_from_the_index(served: "Callable[..., StreamS3Storage]") -> None:
     """A record is listed under the uid it is reachable by, the folder left out of it."""
     assert list(served().index()) == [UID]
     assert list(served(FOLDER).index()) == [NAME]
 
 
 @pytest.mark.parametrize("folder", ["", "/", FOLDER, f"/{FOLDER}/", f"//{FOLDER}//"])
-def test_the_slashes_around_a_folder_do_not_matter(
+def test_slashes_around_a_folder(
     served: "Callable[..., StreamS3Storage]",
     folder: str,
 ) -> None:

@@ -15,7 +15,7 @@ SALT = "s@lt"
 DOCUMENT: dict[str, Any] = {"list": [1, 2, 3], "str": "hello", "int": 42}
 
 
-def test_a_payload_is_stored_under_the_uid_it_was_pushed_with() -> None:
+def test_payload_round_trip() -> None:
     backend = MemoryStorage()
     storage = StateStorage(backend)
     storage.push("data.json", DOCUMENT)
@@ -23,7 +23,7 @@ def test_a_payload_is_stored_under_the_uid_it_was_pushed_with() -> None:
     assert storage.pull("data.json") == DOCUMENT
 
 
-def test_the_format_follows_the_extension_of_the_uid() -> None:
+def test_format_follows_the_uid() -> None:
     """Nothing but the uid says how a payload is encoded, `.txt` making text of a string."""
     backend = MemoryStorage()
     storage = StateStorage(backend)
@@ -41,7 +41,7 @@ def test_the_format_follows_the_extension_of_the_uid() -> None:
     ],
     ids=["compressed", "encrypted", "compressed and encrypted"],
 )
-def test_the_layers_of_the_storage_are_added_to_the_path_alone(
+def test_layers_go_on_the_path_alone(
     config: dict[str, Any],
     path: str,
 ) -> None:
@@ -54,7 +54,7 @@ def test_the_layers_of_the_storage_are_added_to_the_path_alone(
     assert storage.pull("data.json") == DOCUMENT
 
 
-def test_compression_shrinks_the_stored_record() -> None:
+def test_compression_shrinks_the_record() -> None:
     document = {"key": "value" * 1000}
     plain, packed = MemoryStorage(), MemoryStorage()
     StateStorage(plain).push("data.json", document)
@@ -62,14 +62,14 @@ def test_compression_shrinks_the_stored_record() -> None:
     assert len(packed.pull("data.json.gz")) < len(plain.pull("data.json"))
 
 
-def test_a_record_is_not_opened_by_another_password() -> None:
+def test_wrong_password() -> None:
     backend = MemoryStorage()
     StateStorage(backend, password=PASSWORD).push("data.json", DOCUMENT)
     with pytest.raises(ValueError, match="Decryption failed"):
         StateStorage(backend, password="wrong").pull("data.json")
 
 
-def test_a_record_comes_back_as_a_state_pathed_by_its_uid() -> None:
+def test_pull_state_is_pathed_by_its_uid() -> None:
     """The layers come off on the way out, so the state is the one that was pushed."""
     storage = StateStorage(MemoryStorage(), compression=1, password=PASSWORD)
     storage.push("data.json", DOCUMENT)
@@ -78,7 +78,7 @@ def test_a_record_comes_back_as_a_state_pathed_by_its_uid() -> None:
     assert state.load() == DOCUMENT
 
 
-def test_a_state_can_be_asked_for_as_the_format_it_is() -> None:
+def test_pull_state_as_an_expected_format() -> None:
     storage = StateStorage(MemoryStorage(), compression=1)
     storage.push("data.json", DOCUMENT)
     state = storage.pull_state("data.json", Json)
@@ -88,7 +88,7 @@ def test_a_state_can_be_asked_for_as_the_format_it_is() -> None:
         storage.pull_state("data.json", Txt)
 
 
-def test_a_push_refuses_to_overwrite_unless_it_is_forced() -> None:
+def test_push_overwrites_only_when_forced() -> None:
     storage = StateStorage(MemoryStorage(), compression=1)
     storage.push("data.json", DOCUMENT)
     with pytest.raises(FileExistsError, match="already exists"):
@@ -97,7 +97,7 @@ def test_a_push_refuses_to_overwrite_unless_it_is_forced() -> None:
     assert storage.pull("data.json") == {"other": 1}
 
 
-def test_a_record_is_gone_once_it_is_removed() -> None:
+def test_exists_and_remove() -> None:
     storage = StateStorage(MemoryStorage(), compression=1)
     assert not storage.exists("data.json")
     storage.push("data.json", DOCUMENT)
@@ -106,7 +106,7 @@ def test_a_record_is_gone_once_it_is_removed() -> None:
     assert not storage.exists("data.json")
 
 
-def test_the_size_is_the_size_of_what_the_backend_holds() -> None:
+def test_size_is_the_stored_size() -> None:
     """The layers are part of the record, so what is measured is the stored bytes."""
     backend = MemoryStorage()
     storage = StateStorage(backend, compression=9)
@@ -123,7 +123,7 @@ def test_the_size_is_the_size_of_what_the_backend_holds() -> None:
     ],
     ids=["plain", "compressed", "encrypted"],
 )
-def test_a_missing_record_raises_file_not_found(storage: StateStorage) -> None:
+def test_missing_record(storage: StateStorage) -> None:
     with pytest.raises(FileNotFoundError, match="does not exist"):
         storage.pull("missing.json")
     with pytest.raises(FileNotFoundError, match="does not exist"):
@@ -146,7 +146,7 @@ def test_index_is_filtered_by_prefix() -> None:
     ]
 
 
-def test_states_are_kept_the_same_way_in_any_byte_storage(tmp_path: Path) -> None:
+def test_over_a_local_storage(tmp_path: Path) -> None:
     """A local storage underneath holds the layered path as a file, and reads it back."""
     storage = StateStorage(LocalStorage(tmp_path), compression=9, password=PASSWORD)
     storage.push("nested/dir/data.json", DOCUMENT)

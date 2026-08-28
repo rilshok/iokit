@@ -102,7 +102,7 @@ def test_records_pass_through_untouched() -> None:
     assert storage.backend is backend
 
 
-def test_a_stream_storage_stays_a_stream_storage(tmp_path: Path) -> None:
+def test_stream_stays_a_stream(tmp_path: Path) -> None:
     """Wrapping a stream storage keeps records streaming, handed on as the stream they are."""
     storage = CountingStorage(StreamLocalStorage(tmp_path))
     with (tmp_path / "source.json").open("wb") as source:

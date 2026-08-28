@@ -10,7 +10,7 @@ import pytest
 from iokit import LocalStorage
 
 
-def test_a_record_is_the_file_it_is_pushed_as(tmp_path: Path) -> None:
+def test_record_is_a_file(tmp_path: Path) -> None:
     storage = LocalStorage(tmp_path)
     storage.push("reports/first.bin", b"hello")
     assert (tmp_path / "reports/first.bin").read_bytes() == b"hello"
@@ -24,14 +24,14 @@ def test_only_files_are_records(tmp_path: Path) -> None:
     assert list(storage.index()) == ["reports/first.bin"]
 
 
-def test_a_uid_leading_out_of_the_root_is_refused(tmp_path: Path) -> None:
+def test_uid_out_of_the_root_refused(tmp_path: Path) -> None:
     storage = LocalStorage(tmp_path / "root")
     with pytest.raises(ValueError, match="is not a relative path naming a record"):
         storage.push("../escaped.bin", b"hello")
     assert not (tmp_path / "escaped.bin").exists()
 
 
-def test_a_symlink_leading_out_of_the_root_is_not_followed(tmp_path: Path) -> None:
+def test_symlink_out_of_the_root_refused(tmp_path: Path) -> None:
     """A path that stays under the root as written, but not on disk, is refused all the same."""
     root, outside = tmp_path / "root", tmp_path / "outside"
     root.mkdir()

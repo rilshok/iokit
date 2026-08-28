@@ -86,7 +86,7 @@ BAD_UIDS = [
 ]
 
 
-def test_a_record_is_filed_under_the_uid_it_was_pushed_with(storage: Storage[bytes]) -> None:
+def test_uid_addresses_a_record(storage: Storage[bytes]) -> None:
     """A uid is the whole address of a record, and uids of every shape live side by side."""
     for uid in UIDS:
         storage.push(uid, uid.encode())
@@ -97,7 +97,7 @@ def test_a_record_is_filed_under_the_uid_it_was_pushed_with(storage: Storage[byt
         assert storage.size(uid) == len(uid.encode())
 
 
-def test_a_record_survives_a_roundtrip_byte_for_byte(storage: Storage[bytes]) -> None:
+def test_bytes_round_trip(storage: Storage[bytes]) -> None:
     """A storage keeps bytes, not text: nothing is added, trimmed or translated on the way."""
     for index, record in enumerate(RECORDS):
         uid = f"record-{index}.bin"
@@ -106,7 +106,7 @@ def test_a_record_survives_a_roundtrip_byte_for_byte(storage: Storage[bytes]) ->
         assert storage.size(uid) == len(record)
 
 
-def test_a_record_is_replaced_only_when_the_push_is_forced(storage: Storage[bytes]) -> None:
+def test_push_overwrites_only_when_forced(storage: Storage[bytes]) -> None:
     """A push is safe by default: it refuses before writing, so nothing is lost unasked."""
     storage.push("data.bin", b"a long record that is about to be replaced")
     with pytest.raises(FileExistsError, match="already exists"):
@@ -117,7 +117,7 @@ def test_a_record_is_replaced_only_when_the_push_is_forced(storage: Storage[byte
     assert storage.size("data.bin") == 5
 
 
-def test_a_record_can_be_pushed_again_after_a_remove(storage: Storage[bytes]) -> None:
+def test_push_again_after_remove(storage: Storage[bytes]) -> None:
     """Removing leaves nothing behind, not even the directory a nested uid seemed to need."""
     storage.push("reports/first.bin", b"hello")
     storage.remove("reports/first.bin")
@@ -127,7 +127,7 @@ def test_a_record_can_be_pushed_again_after_a_remove(storage: Storage[bytes]) ->
     assert storage.pull("reports/first.bin") == b"world"
 
 
-def test_a_uid_that_names_no_record_is_a_missing_record(storage: Storage[bytes]) -> None:
+def test_missing_record(storage: Storage[bytes]) -> None:
     """Nothing is invented for a uid that holds no record, a directory-shaped one included."""
     storage.push("reports/first.bin", b"hello")
     for uid in ("missing.bin", "reports"):
@@ -140,7 +140,7 @@ def test_a_uid_that_names_no_record_is_a_missing_record(storage: Storage[bytes])
             storage.remove(uid)
 
 
-def test_the_index_lists_every_record_once_and_narrows_to_a_prefix(
+def test_index_and_prefix(
     storage: Storage[bytes],
 ) -> None:
     """A prefix is a prefix of the uid, not a directory, so it may cut a name in half."""
@@ -155,7 +155,7 @@ def test_the_index_lists_every_record_once_and_narrows_to_a_prefix(
     assert list(storage.index(prefix="nothing")) == []
 
 
-def test_the_index_survives_records_changing_under_it(storage: Storage[bytes]) -> None:
+def test_index_survives_changes(storage: Storage[bytes]) -> None:
     """A walk may be acted on as it goes: what it yields has been settled by then."""
     storage.push("first.bin", b"a")
     storage.push("second.bin", b"b")
@@ -169,7 +169,7 @@ def test_the_index_survives_records_changing_under_it(storage: Storage[bytes]) -
     assert sorted(storage.index()) == ["first.bin.copy", "second.bin.copy"]
 
 
-def test_a_uid_no_record_could_be_handed_back_under_is_refused(storage: Storage[bytes]) -> None:
+def test_bad_uid_refused(storage: Storage[bytes]) -> None:
     """Every call refuses such a uid, and none of them leaves anything behind."""
     for uid in BAD_UIDS:
         with pytest.raises(ValueError, match=NO_RECORD):
@@ -186,14 +186,14 @@ def test_a_uid_no_record_could_be_handed_back_under_is_refused(storage: Storage[
 
 
 @pytest.mark.parametrize("uid", UIDS)
-def test_validate_uid_accepts_what_a_storage_hands_back(uid: str) -> None:
+def test_validate_uid_accepts(uid: str) -> None:
     """The rule itself, which every storage above leans on."""
     assert is_record_uid(uid)
     assert validate_uid(uid) == tuple(uid.split("/"))
 
 
 @pytest.mark.parametrize("uid", BAD_UIDS)
-def test_validate_uid_refuses_what_no_storage_could_hand_back(uid: str) -> None:
+def test_validate_uid_refuses(uid: str) -> None:
     assert not is_record_uid(uid)
     with pytest.raises(ValueError, match=NO_RECORD):
         validate_uid(uid)

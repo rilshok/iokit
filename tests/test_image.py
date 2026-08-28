@@ -18,7 +18,7 @@ def picture() -> PillowImage.Image:
     ("kind", "smallest", "largest"),
     [(Jpeg, 800, 900), (Jpg, 800, 900), (Png, 200, 300)],
 )
-def test_a_picture_is_written_in_the_encoding_of_the_format(
+def test_encoding_of_each_format(
     kind: type[Image],
     smallest: int,
     largest: int,
@@ -29,12 +29,12 @@ def test_a_picture_is_written_in_the_encoding_of_the_format(
     assert state.load().size == (SIDE, SIDE)
 
 
-def test_the_jpeg_extensions_name_the_same_encoding() -> None:
+def test_jpg_and_jpeg_are_one_encoding() -> None:
     """`.jpg` and `.jpeg` differ in the name alone, the bytes under them being the same."""
     assert Jpg(picture(), stem="picture").data == Jpeg(picture(), stem="picture").data
 
 
-def test_a_picture_is_read_back_the_same_however_its_extension_is_spelled() -> None:
+def test_jpeg_read_under_either_spelling() -> None:
     state = Jpeg(picture(), path="picture.jpeg")
     same = LoadedState(bytes(state.data), path="picture.jpg")
     np.testing.assert_allclose(np.asarray(same.load()), np.asarray(state.load()), atol=0.1)

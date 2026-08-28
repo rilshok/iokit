@@ -32,18 +32,18 @@ STATES: list[State[Any]] = [BANANA, TOMATO, ORANGE, CHERRY, POTATO]
         ("t?mato*", [TOMATO]),
     ],
 )
-def test_the_pattern_says_which_states_are_kept(
+def test_pattern_keeps_matching_states(
     pattern: str,
     matched: list[State[Any]],
 ) -> None:
     assert list(filtrate(STATES, pattern)) == matched
 
 
-def test_the_first_match_is_the_one_handed_back() -> None:
+def test_first_match() -> None:
     assert first(STATES, "*") is BANANA
     assert first(STATES, "[po]*") is ORANGE
 
 
-def test_asking_for_a_first_match_there_is_none_of_is_refused() -> None:
+def test_no_match_refused() -> None:
     with pytest.raises(FileNotFoundError, match="State not found"):
         first(STATES, "x*")

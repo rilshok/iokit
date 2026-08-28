@@ -17,20 +17,20 @@ TREE = [
 
 
 @pytest.mark.parametrize("kind", [Tar, Zip])
-def test_an_archive_is_named_the_way_a_state_of_its_format_is(kind: type[Archive]) -> None:
+def test_archive_name(kind: type[Archive]) -> None:
     archive = kind(MEMBERS, stem="archive")
     assert archive.name == "archive" + kind.extension()
     assert archive.stem == "archive"
 
 
 @pytest.mark.parametrize("kind", [Tar, Zip])
-def test_an_archive_unpacks_to_the_states_it_was_packed_from(kind: type[Archive]) -> None:
+def test_unpacks_what_was_packed(kind: type[Archive]) -> None:
     unpacked = {state.path: state.load() for state in kind(MEMBERS, stem="archive").load()}
     assert unpacked == {"text1.txt": "First file", "text2.txt": "Second file"}
 
 
 @pytest.mark.parametrize("kind", [Tar, Zip])
-def test_a_compressed_archive_unpacks_the_same_way(kind: type[Archive]) -> None:
+def test_compressed_archive_unpacks(kind: type[Archive]) -> None:
     """A layer over an archive comes off without the members noticing."""
     archive = Gzip(kind(MEMBERS, stem="archive"))
     unpacked = {state.path: state.load() for state in archive.load().load()}
@@ -38,7 +38,7 @@ def test_a_compressed_archive_unpacks_the_same_way(kind: type[Archive]) -> None:
 
 
 @pytest.mark.parametrize("kind", [Tar, Zip])
-def test_a_member_is_packed_under_the_whole_path_it_carries(kind: type[Archive]) -> None:
+def test_member_keeps_its_path(kind: type[Archive]) -> None:
     """Two files of one name from two directories are two records, not one."""
     unpacked = {state.path: state.load() for state in kind(TREE, stem="archive").load()}
     assert unpacked == {
@@ -48,7 +48,7 @@ def test_a_member_is_packed_under_the_whole_path_it_carries(kind: type[Archive])
 
 
 @pytest.mark.parametrize("kind", [Tar, Zip])
-def test_a_member_keeps_the_time_it_was_last_touched(kind: type[Archive]) -> None:
+def test_member_keeps_its_timestamp(kind: type[Archive]) -> None:
     """A state carries its timestamp, and being packed is not touching it."""
     member = Txt("First file", stem="text1", timestamp=TOUCHED)
     unpacked = next(iter(kind([member], stem="archive").load()))

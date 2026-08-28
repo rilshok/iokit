@@ -32,7 +32,7 @@ DOCUMENT: dict[str, Any] = {
         (Jsonl, [{"key": "value"}] * 2, b'{"key":"value"}\n{"key":"value"}\n'),
     ],
 )
-def test_a_value_is_written_as_the_format_spells_it(
+def test_value_is_written_as_spelled(
     kind: type[Json | Yaml | Jsonl],
     value: object,
     data: bytes,
@@ -43,7 +43,7 @@ def test_a_value_is_written_as_the_format_spells_it(
 
 
 @pytest.mark.parametrize("kind", [Json, Yaml, Yml])
-def test_what_a_document_has_no_shape_for_comes_back_as_what_it_has(
+def test_tuple_comes_back_a_list(
     kind: type[Json | Yaml],
 ) -> None:
     """A tuple is written as a sequence, and a sequence is what is read back."""
@@ -51,13 +51,13 @@ def test_what_a_document_has_no_shape_for_comes_back_as_what_it_has(
     assert loaded == {**DOCUMENT, "tuple": [4, 5, 6]}
 
 
-def test_lines_of_their_own_shape_each_keep_it() -> None:
+def test_lines_keep_their_own_shape() -> None:
     """The records of a jsonl need no shape in common, each line standing on its own."""
     lines = [{"a": number, "bb": number**2, "ccc": number**3} for number in range(10)]
     assert Jsonl(lines, stem="document").load() == lines
 
 
-def test_a_document_holding_something_it_has_no_shape_for_is_refused() -> None:
+def test_bare_number_is_no_document() -> None:
     """A json file may hold a bare number; a `Json` state is a document, and says so."""
     number: Json = Json.from_state(LoadedState(b"42", path="number.json"))
     assert number.data == b"42"

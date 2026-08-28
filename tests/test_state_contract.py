@@ -149,7 +149,7 @@ def state_fixture(kind: Kind) -> FormatState[Any]:
     return kind.state(kind.payload, "greeting")
 
 
-def test_a_state_is_named_by_its_stem_and_the_extension_of_its_format(
+def test_naming_and_measuring(
     kind: Kind,
     state: FormatState[Any],
 ) -> None:
@@ -163,7 +163,7 @@ def test_a_state_is_named_by_its_stem_and_the_extension_of_its_format(
     assert repr(state) == f"{state.path} ({naturalsize(state.size, gnu=True)})"
 
 
-def test_a_payload_comes_back_however_the_bytes_of_the_state_arrived(
+def test_payload_comes_back(
     kind: Kind,
     state: FormatState[Any],
 ) -> None:
@@ -180,7 +180,7 @@ def test_a_payload_comes_back_however_the_bytes_of_the_state_arrived(
     kind.same(rebuilt.load(), kind.payload)
 
 
-def test_a_payload_survives_being_carried(
+def test_payload_survives_being_carried(
     kind: Kind,
     state: FormatState[Any],
     tmp_path: Path,

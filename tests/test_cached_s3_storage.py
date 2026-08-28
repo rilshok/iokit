@@ -46,7 +46,7 @@ def storage_fixture(hot: Counted, cold: Counted) -> CachedStorage[BinaryIO]:
     return CachedStorage(hot, cold)
 
 
-def test_a_record_read_from_the_bucket_is_cached_whole(
+def test_pull_caches_the_stream(
     storage: CachedStorage[BinaryIO],
     hot: Counted,
 ) -> None:
@@ -56,7 +56,7 @@ def test_a_record_read_from_the_bucket_is_cached_whole(
     assert hot.backend.size(UID) == len(RECORD)
 
 
-def test_a_cached_record_is_read_without_the_bucket(
+def test_cached_pull_skips_the_bucket(
     storage: CachedStorage[BinaryIO],
     hot: Counted,
     cold: Counted,
@@ -72,7 +72,7 @@ def test_a_cached_record_is_read_without_the_bucket(
     assert hot.calls == {"exists": 1, "pull": 1}
 
 
-def test_a_pushed_record_reaches_the_bucket_and_the_cache(
+def test_push_reaches_both(
     storage: CachedStorage[BinaryIO],
     hot: Counted,
     cold: Counted,
