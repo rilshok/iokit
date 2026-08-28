@@ -13,12 +13,25 @@ REFERENCES: dict[Hash, Callable[[bytes], bytes]] = {
     Hash.XXH32: lambda data: xxhash.xxh32(data).digest(),
     Hash.XXH64: lambda data: xxhash.xxh64(data).digest(),
     Hash.XXH128: lambda data: xxhash.xxh128(data).digest(),
-    Hash.SHA256: lambda data: hashlib.sha256(data).digest(),
+    Hash.XXH3_64: lambda data: xxhash.xxh3_64(data).digest(),
+    Hash.XXH3_128: lambda data: xxhash.xxh3_128(data).digest(),
     Hash.MD5: lambda data: hashlib.md5(data).digest(),  # noqa: S324
     Hash.SHA1: lambda data: hashlib.sha1(data).digest(),  # noqa: S324
+    Hash.SHA224: lambda data: hashlib.sha224(data).digest(),
+    Hash.SHA256: lambda data: hashlib.sha256(data).digest(),
+    Hash.SHA384: lambda data: hashlib.sha384(data).digest(),
+    Hash.SHA512: lambda data: hashlib.sha512(data).digest(),
+    Hash.SHA3_224: lambda data: hashlib.sha3_224(data).digest(),
+    Hash.SHA3_256: lambda data: hashlib.sha3_256(data).digest(),
+    Hash.SHA3_384: lambda data: hashlib.sha3_384(data).digest(),
+    Hash.SHA3_512: lambda data: hashlib.sha3_512(data).digest(),
     Hash.BLAKE2B: lambda data: hashlib.blake2b(data).digest(),
     Hash.BLAKE2S: lambda data: hashlib.blake2s(data).digest(),
 }
+
+
+def test_references_cover_all_algorithms() -> None:
+    assert set(REFERENCES) == set(Hash)
 
 
 @pytest.mark.parametrize("algorithm", list(Hash))
