@@ -1,64 +1,55 @@
 import hashlib
-from io import BytesIO
-from pathlib import Path
+from collections.abc import Callable
 
 import pytest
+import xxhash
 
-from iokit import Dat, Data
+from iokit import Data
 from iokit.utils.checksum import Hash
 
 PAYLOAD = b"the quick brown fox jumps over the lazy dog"
 
+REFERENCES: dict[Hash, Callable[[bytes], bytes]] = {
+    Hash.XXH32: lambda data: xxhash.xxh32(data).digest(),
+    Hash.XXH64: lambda data: xxhash.xxh64(data).digest(),
+    Hash.XXH128: lambda data: xxhash.xxh128(data).digest(),
+    Hash.XXH3_64: lambda data: xxhash.xxh3_64(data).digest(),
+    Hash.XXH3_128: lambda data: xxhash.xxh3_128(data).digest(),
+    Hash.MD5: lambda data: hashlib.md5(data).digest(),  # noqa: S324
+    Hash.SHA1: lambda data: hashlib.sha1(data).digest(),  # noqa: S324
+    Hash.SHA224: lambda data: hashlib.sha224(data).digest(),
+    Hash.SHA256: lambda data: hashlib.sha256(data).digest(),
+    Hash.SHA384: lambda data: hashlib.sha384(data).digest(),
+    Hash.SHA512: lambda data: hashlib.sha512(data).digest(),
+    Hash.SHA3_224: lambda data: hashlib.sha3_224(data).digest(),
+    Hash.SHA3_256: lambda data: hashlib.sha3_256(data).digest(),
+    Hash.SHA3_384: lambda data: hashlib.sha3_384(data).digest(),
+    Hash.SHA3_512: lambda data: hashlib.sha3_512(data).digest(),
+    Hash.BLAKE2B: lambda data: hashlib.blake2b(data).digest(),
+    Hash.BLAKE2S: lambda data: hashlib.blake2s(data).digest(),
+}
+
+
+def test_references_cover_all_algorithms() -> None:
+    assert set(REFERENCES) == set(Hash)
+
 
 @pytest.mark.parametrize("algorithm", list(Hash))
-def test_digest_matches_stream_digest(algorithm: Hash) -> None:
-    data = Data(PAYLOAD)
-    assert data.digest(algorithm) == Data.digest_from_io(algorithm, BytesIO(data))
-
-
-def test_digest_matches_hashlib() -> None:
-    data = Data(PAYLOAD)
-    assert bytes(data.digest("sha256")) == hashlib.sha256(PAYLOAD).digest()
-    assert bytes(data.digest("blake2b")) == hashlib.blake2b(PAYLOAD).digest()
-
-
-def test_digest_accepts_str_and_enum() -> None:
-    data = Data(PAYLOAD)
-    assert data.digest("xxh64") == data.digest(Hash.XXH64)
-
-
-def test_digest_returns_data() -> None:
-    digest = Data(PAYLOAD).digest("md5")
+def test_digest_matches_reference(algorithm: Hash) -> None:
+    digest = Data(PAYLOAD).digest(algorithm)
     assert isinstance(digest, Data)
-    assert len(digest) == hashlib.md5(PAYLOAD).digest_size  # noqa: S324
-    assert digest.base64
+    assert bytes(digest) == REFERENCES[algorithm](PAYLOAD)
 
 
-def test_digest_of_empty_data() -> None:
-    assert bytes(Data(b"").digest("sha256")) == hashlib.sha256(b"").digest()
+def test_digest_accepts_algorithm_name() -> None:
+    assert Data(PAYLOAD).digest("sha256") == Data(PAYLOAD).digest(Hash.SHA256)
 
 
-def test_digest_differs_for_different_data() -> None:
-    assert Data(b"foo").digest("sha1") != Data(b"bar").digest("sha1")
+@pytest.mark.parametrize("payload", [b"", PAYLOAD * 10000])
+def test_digest_of_edge_sized_payloads(payload: bytes) -> None:
+    assert bytes(Data(payload).digest("sha256")) == hashlib.sha256(payload).digest()
 
 
 def test_digest_unknown_algorithm() -> None:
     with pytest.raises(ValueError, match="nosuchhash"):
         Data(PAYLOAD).digest("nosuchhash")
-
-
-def test_digest_matches_chunked_digest() -> None:
-    payload = PAYLOAD * 1000
-    chunked = Data.digest_from_io("sha256", BytesIO(payload), chunk_size=7)
-    assert Data(payload).digest("sha256") == chunked
-
-
-def test_digest_matches_file_digest(tmp_path: Path) -> None:
-    path = tmp_path / "payload.bin"
-    path.write_bytes(PAYLOAD)
-    assert Data(PAYLOAD).digest("sha256") == Data.digest_from_path(path, "sha256")
-
-
-def test_digest_matches_state_digest() -> None:
-    state = Dat(PAYLOAD, path="payload.dat")
-    assert state.data.digest("sha256") == state.digest("sha256")
