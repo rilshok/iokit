@@ -13,7 +13,7 @@ import boto3
 from botocore import UNSIGNED
 from botocore.exceptions import ClientError
 
-from .storage import BinaryStorage, Storage
+from .storage import BinaryStorage, Storage, validate_uid
 
 _HTTP_UNAUTHORIZED = 401
 _HTTP_FORBIDDEN = 403
@@ -200,7 +200,18 @@ class StreamS3Storage(Storage[BinaryIO]):
         return self._get_client()
 
     def _uid_parts(self, uid: str) -> dict[str, str]:
-        """Address an object in the storage bucket by its UID."""
+        """Address an object in the storage bucket by its UID.
+
+        Args:
+            uid: UID of the object, a relative posix path within the storage folder.
+
+        Returns:
+            The bucket and key the object is addressed by.
+
+        Raises:
+            ValueError: If `uid` is not a relative path naming a record.
+        """
+        validate_uid(uid)
         return {"Bucket": self._bucket, "Key": f"{self._folder}{uid}"}
 
     def _failure(
@@ -235,7 +246,7 @@ class StreamS3Storage(Storage[BinaryIO]):
                 )
                 return PermissionError(msg)
             case _Reason.MISSING:
-                msg = f"State not found, {subject} ({detail})."
+                msg = f"Record with {subject} does not exist ({detail})."
                 return FileNotFoundError(msg)
             case _:
                 msg = f"Failed to {action}, {subject}, bucket={self._bucket!r} ({detail}). {exc}"
@@ -261,7 +272,7 @@ class StreamS3Storage(Storage[BinaryIO]):
         except ClientError as exc:
             failure = self._failure(
                 exc,
-                subject=f"{uid=!r}",
+                subject=f"uid {uid!r}",
                 action="read the object",
                 assume=_Reason.MISSING,
             )
@@ -318,7 +329,7 @@ class StreamS3Storage(Storage[BinaryIO]):
                 return self._size_by_range(uid)
             failure = self._failure(
                 exc,
-                subject=f"{uid=!r}",
+                subject=f"uid {uid!r}",
                 action="inspect the object",
                 assume=_Reason.MISSING,
             )
@@ -349,7 +360,7 @@ class StreamS3Storage(Storage[BinaryIO]):
                 return 0
             failure = self._failure(
                 exc,
-                subject=f"{uid=!r}",
+                subject=f"uid {uid!r}",
                 action="measure the object",
                 assume=_Reason.MISSING,
             )
@@ -384,7 +395,7 @@ class StreamS3Storage(Storage[BinaryIO]):
                 return
             failure = self._failure(
                 exc,
-                subject=f"{uid=!r}",
+                subject=f"uid {uid!r}",
                 action="upload the object",
                 assume=_Reason.FAILURE,
             )
@@ -408,7 +419,7 @@ class StreamS3Storage(Storage[BinaryIO]):
         except ClientError as exc:
             failure = self._failure(
                 exc,
-                subject=f"{uid=!r}",
+                subject=f"uid {uid!r}",
                 action="upload the object",
                 assume=_Reason.FAILURE,
             )
@@ -426,7 +437,7 @@ class StreamS3Storage(Storage[BinaryIO]):
             RuntimeError: The service failed to remove the object.
         """
         if not self.exists(uid=uid):
-            msg = f"State not found, {uid=!r}."
+            msg = f"Record with uid {uid!r} does not exist"
             raise FileNotFoundError(msg)
 
         try:
@@ -435,7 +446,7 @@ class StreamS3Storage(Storage[BinaryIO]):
         except ClientError as exc:
             failure = self._failure(
                 exc,
-                subject=f"{uid=!r}",
+                subject=f"uid {uid!r}",
                 action="remove the object",
                 assume=_Reason.FAILURE,
             )
@@ -488,7 +499,7 @@ class StreamS3Storage(Storage[BinaryIO]):
                 if spent or _classify(exc) is not _Reason.UNKNOWN:
                     failure = self._failure(
                         exc,
-                        subject=f"{prefix=!r}",
+                        subject=f"prefix {prefix!r}",
                         action="list the bucket",
                         assume=_Reason.FAILURE,
                     )

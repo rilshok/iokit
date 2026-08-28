@@ -1,58 +1,40 @@
 from typing import Any
 
+import pytest
+
 from iokit import Json
 
-
-def test_json_empty() -> None:
-    state = Json({}, stem="empty")
-    assert state.name == "empty.json"
-    assert state.size == 2
-    assert state.data == b"{}"
-    assert not state.load()
-
-
-def test_json_single() -> None:
-    state = Json({"key": "value"}, stem="single")
-    assert state.name == "single.json"
-    assert state.data == b'{"key": "value"}'
-    assert state.load() == {"key": "value"}
+DOCUMENT: dict[str, Any] = {
+    "list": [1, 2, 3],
+    "tuple": (4, 5, 6),
+    "dict": {"a": 1, "b": 2},
+    "str": "hello",
+    "int": 42,
+}
 
 
-def test_json_multiple() -> None:
-    state = Json({"first": 1, "second": 2}, stem="multiple")
-    assert state.name == "multiple.json"
-    assert state.data == b'{"first": 1, "second": 2}'
-    assert state.load() == {"first": 1, "second": 2}
-    assert 20 < state.size < 30
+@pytest.mark.parametrize(
+    ("value", "data"),
+    [
+        ({}, b"{}"),
+        ({"key": "value"}, b'{"key": "value"}'),
+        ({"first": 1, "second": 2}, b'{"first": 1, "second": 2}'),
+        ("hello", b'"hello"'),
+        ([1, 2, 3], b"[1, 2, 3]"),
+    ],
+)
+def test_a_value_is_written_as_json_and_read_back(value: object, data: bytes) -> None:
+    state = Json(value, stem="document")
+    assert state.data == data
+    assert state.size == len(data)
+    assert state.load() == value
 
 
-def test_json_different() -> None:
-    data: dict[str, Any] = {
-        "list": [1, 2, 3],
-        "tuple": (4, 5, 6),
-        "dict": {"a": 1, "b": 2},
-        "str": "hello",
-        "int": 42,
-    }
-    state = Json(data, stem="different")
-    assert state.name == "different.json"
-    loaded = state.load()
-    assert all(v1 == v2 for v1, v2 in zip(loaded["list"], [1, 2, 3], strict=True))
-    assert all(v1 == v2 for v1, v2 in zip(loaded["tuple"], (4, 5, 6), strict=True))
-    assert loaded["dict"] == {"a": 1, "b": 2}
-    assert loaded["str"] == "hello"
-    assert loaded["int"] == 42
+def test_the_stem_names_the_state() -> None:
+    assert Json({}, stem="document").name == "document.json"
 
 
-def test_json_is_string() -> None:
-    state = Json("hello", "string")
-    assert state.load() == "hello"
-    assert state.size == 7
-    assert state.data == b'"hello"'
-
-
-def test_json_is_sequence() -> None:
-    state = Json([1, 2, 3], "sequence")
-    assert state.load() == [1, 2, 3]
-    assert state.size == 9
-    assert state.data == b"[1, 2, 3]"
+def test_what_json_has_no_shape_for_comes_back_as_what_it_has() -> None:
+    """A tuple is written as an array, and an array is what is read back."""
+    loaded = Json(DOCUMENT, stem="document").load()
+    assert loaded == {**DOCUMENT, "tuple": [4, 5, 6]}

@@ -188,19 +188,6 @@ def test_size_falls_back_to_the_cold_storage_in_a_single_lookup() -> None:
     assert hot.calls == {"exists": 1}
 
 
-def test_missing_record_raises() -> None:
-    """Every operation on a record neither storage holds reports it as missing."""
-    _, _, storage = cached()
-    assert not storage.exists("missing.json")
-    assert list(storage.index()) == []
-    with pytest.raises(FileNotFoundError, match="does not exist"):
-        storage.pull("missing.json")
-    with pytest.raises(FileNotFoundError, match="does not exist"):
-        storage.remove("missing.json")
-    with pytest.raises(FileNotFoundError, match="does not exist"):
-        storage.size("missing.json")
-
-
 # walking the records
 
 
@@ -211,18 +198,9 @@ def test_index_walks_the_cold_storage_alone() -> None:
     hot.push("hot.json", b"{}")
     quiet(hot, cold)
     assert sorted(storage.index()) == ["cold.json"]
-    assert cold.calls == {"index": 1}
-    assert hot.calls == {}
-
-
-def test_index_is_filtered_by_prefix() -> None:
-    """Only the records under the prefix are indexed, in a single walk of the cold storage."""
-    hot, cold, storage = cached()
-    storage.push("reports/first.json", b"{}")
-    storage.push("notes.txt", b"hello")
-    quiet(hot, cold)
-    assert sorted(storage.index(prefix="reports/")) == ["reports/first.json"]
-    assert cold.calls == {"index": 1}
+    # a prefix is handed to the cold storage, still in a single walk and still without the cache
+    assert list(storage.index(prefix="cold")) == ["cold.json"]
+    assert cold.calls == {"index": 2}
     assert hot.calls == {}
 
 

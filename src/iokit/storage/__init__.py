@@ -8,6 +8,8 @@ __all__ = [
     "Storage",
     "StreamLocalStorage",
     "StreamMemoryStorage",
+    "is_record_uid",
+    "validate_uid",
 ]
 
 from .cached import CachedStorage
@@ -19,4 +21,4 @@ from .local import (
     StreamLocalStorage,
     StreamMemoryStorage,
 )
-from .storage import BinaryStorage, Storage
+from .storage import BinaryStorage, Storage, is_record_uid, validate_uid

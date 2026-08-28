@@ -11,7 +11,6 @@ from iokit.storage.local import (
     StateStorage,
     StreamMemoryStorage,
 )
-from iokit.storage.storage import BinaryStorage
 
 DOCUMENT: dict[str, Any] = {"list": [1, 2, 3], "str": "hello", "int": 42}
 
@@ -111,11 +110,7 @@ def test_exists_and_remove() -> None:
     assert not storage.exists("data.json")
 
 
-def test_size_is_the_stored_size(tmp_path: Path) -> None:
-    for backend in (MemoryStorage(), LocalStorage(tmp_path)):
-        backend.push("data.json", b'{"key": 1}')
-        assert backend.size("data.json") == len(b'{"key": 1}')
-
+def test_size_is_the_stored_size() -> None:
     backend, storage = state_storage(compression=9, password="pA$sw0Rd")
     storage.push("data.json", DOCUMENT)
     assert storage.size("data.json") == len(backend.pull("data.json.gz.enc"))
@@ -158,76 +153,21 @@ def test_local_backend_roundtrip(tmp_path: Path) -> None:
 
 def test_local_backend_stays_under_its_root(tmp_path: Path) -> None:
     storage = LocalStorage(tmp_path / "root")
-    with pytest.raises(ValueError, match="outside of the storage root"):
+    with pytest.raises(ValueError, match="is not a relative path naming a record"):
         storage.push("../escaped.json", b"{}")
+    assert not (tmp_path / "escaped.json").exists()
 
 
-def test_memory_storage_roundtrip() -> None:
-    storage = MemoryStorage()
-    assert list(storage.index()) == []
-    assert not storage.exists("data.bin")
-    storage.push("data.bin", b"hello")
-    assert storage.exists("data.bin")
-    assert storage.pull("data.bin") == b"hello"
-    assert storage.size("data.bin") == 5
-    assert list(storage.index()) == ["data.bin"]
-    storage.remove("data.bin")
-    assert not storage.exists("data.bin")
-    assert list(storage.index()) == []
-
-
-def test_memory_storage_holds_an_empty_record() -> None:
-    storage = MemoryStorage()
-    storage.push("empty.bin", b"")
-    assert storage.exists("empty.bin")
-    assert storage.pull("empty.bin") == b""
-    assert storage.size("empty.bin") == 0
-
-
-def test_memory_storage_push_refuses_to_overwrite_without_force() -> None:
-    storage = MemoryStorage()
-    storage.push("data.bin", b"hello")
-    with pytest.raises(FileExistsError, match="already exists"):
-        storage.push("data.bin", b"other")
-    assert storage.pull("data.bin") == b"hello"
-    storage.push("data.bin", b"other", force=True)
-    assert storage.pull("data.bin") == b"other"
-
-
-def test_memory_storage_missing_record_raises() -> None:
-    storage = MemoryStorage()
-    with pytest.raises(FileNotFoundError, match="does not exist"):
-        storage.pull("missing.bin")
-    with pytest.raises(FileNotFoundError, match="does not exist"):
-        storage.size("missing.bin")
-    with pytest.raises(FileNotFoundError, match="does not exist"):
-        storage.remove("missing.bin")
-
-
-def test_memory_storage_index_is_filtered_by_prefix() -> None:
-    storage = MemoryStorage()
-    storage.push("reports/first.bin", b"a")
-    storage.push("reports/second.bin", b"b")
-    storage.push("notes.bin", b"c")
-    assert sorted(storage.index()) == ["notes.bin", "reports/first.bin", "reports/second.bin"]
-    assert sorted(storage.index(prefix="reports/")) == [
-        "reports/first.bin",
-        "reports/second.bin",
-    ]
-    assert list(storage.index(prefix="nothing/")) == []
-
-
-def test_memory_storage_index_is_a_snapshot() -> None:
-    storage = MemoryStorage()
-    storage.push("first.bin", b"a")
-    storage.push("second.bin", b"b")
-    seen: list[str] = []
-    for uid in storage.index():
-        seen.append(uid)
-        storage.remove(uid)
-        storage.push(f"{uid}.copy", b"c")
-    assert sorted(seen) == ["first.bin", "second.bin"]
-    assert sorted(storage.index()) == ["first.bin.copy", "second.bin.copy"]
+def test_local_backend_does_not_follow_a_symlink_out_of_its_root(tmp_path: Path) -> None:
+    root = tmp_path / "root"
+    root.mkdir()
+    outside = tmp_path / "outside"
+    outside.mkdir()
+    (root / "away").symlink_to(outside, target_is_directory=True)
+    storage = LocalStorage(root)
+    with pytest.raises(ValueError, match="outside of the storage root"):
+        storage.push("away/escaped.json", b"{}")
+    assert not (outside / "escaped.json").exists()
 
 
 def test_memory_storage_starts_empty_by_default() -> None:
@@ -236,23 +176,19 @@ def test_memory_storage_starts_empty_by_default() -> None:
     assert list(MemoryStorage().index()) == []
 
 
-def test_memory_storage_serves_a_given_dictionary() -> None:
+def test_memory_storage_adopts_the_given_dictionary() -> None:
     records = {"data.bin": b"hello"}
     storage = MemoryStorage(records)
-    assert storage.exists("data.bin")
+    # what the mapping came filled with is served as records of its own
     assert storage.pull("data.bin") == b"hello"
     assert list(storage.index()) == ["data.bin"]
-
-
-def test_memory_storage_adopts_the_given_dictionary() -> None:
-    records: dict[str, bytes] = {}
-    storage = MemoryStorage(records)
-    storage.push("data.bin", b"hello")
-    assert records == {"data.bin": b"hello"}
-    records["other.bin"] = b"world"
-    assert storage.pull("other.bin") == b"world"
+    # and the two sides go on seeing each other's writes
+    storage.push("other.bin", b"world")
+    assert records == {"data.bin": b"hello", "other.bin": b"world"}
+    records["third.bin"] = b"!"
+    assert storage.pull("third.bin") == b"!"
     storage.remove("data.bin")
-    assert records == {"other.bin": b"world"}
+    assert sorted(records) == ["other.bin", "third.bin"]
 
 
 def test_memory_storage_records_property_is_the_live_mapping() -> None:
@@ -275,23 +211,32 @@ def test_memory_storages_share_one_dictionary() -> None:
     assert not first.exists("data.bin")
 
 
-def test_memory_storage_backs_a_state_storage() -> None:
-    records: dict[str, bytes] = {}
-    storage = StateStorage(MemoryStorage(records))
-    storage.push("notes.txt", "hello")
-    assert records == {"notes.txt": b"hello"}
+@pytest.mark.parametrize("key", ["", ".", "..", "./data.bin", "data.bin/", "a//b.bin"])
+def test_memory_storage_ignores_a_mapping_key_that_is_no_uid(key: str) -> None:
+    records = {key: b"hello", "data.bin": b"world"}
+    storage = MemoryStorage(records)
+    # the key stays in the mapping, but names no record as far as the storage is concerned
+    assert list(storage.index()) == ["data.bin"]
+    with pytest.raises(ValueError, match="is not a relative path naming a record"):
+        storage.pull(key)
+    assert records[key] == b"hello"
 
 
-def test_stream_memory_storage_roundtrip() -> None:
+def test_memory_storage_index_only_yields_what_it_can_hand_back() -> None:
+    records = {"": b"a", "./data.bin": b"b", "reports/first.bin": b"c"}
+    storage = MemoryStorage(records)
+    for uid in storage.index():
+        assert storage.exists(uid)
+        assert storage.pull(uid) == records[uid]
+
+
+def test_stream_memory_storage_hands_out_a_reader_of_its_own_on_every_pull() -> None:
     storage = StreamMemoryStorage()
     storage.push("data.bin", BytesIO(b"hello"))
-    assert storage.exists("data.bin")
-    assert storage.size("data.bin") == 5
-    with storage.pull("data.bin") as stream:
-        assert stream.read() == b"hello"
-    # every pull hands out its own reader over the record
-    with storage.pull("data.bin") as stream:
-        assert stream.read() == b"hello"
+    first, second = storage.pull("data.bin"), storage.pull("data.bin")
+    with first, second:
+        assert first.read(2) == b"he"
+        assert second.read() == b"hello"
 
 
 def test_stream_memory_storage_shares_the_backend() -> None:
@@ -302,46 +247,3 @@ def test_stream_memory_storage_shares_the_backend() -> None:
     backend.push("other.bin", b"world")
     with storage.pull("other.bin") as stream:
         assert stream.read() == b"world"
-
-
-def test_stream_memory_storage_push_refuses_to_overwrite_without_force() -> None:
-    storage = StreamMemoryStorage()
-    storage.push("data.bin", BytesIO(b"hello"))
-    with pytest.raises(FileExistsError, match="already exists"):
-        storage.push("data.bin", BytesIO(b"other"))
-    storage.push("data.bin", BytesIO(b"other"), force=True)
-    with storage.pull("data.bin") as stream:
-        assert stream.read() == b"other"
-
-
-def test_stream_memory_storage_missing_record_raises() -> None:
-    storage = StreamMemoryStorage()
-    assert not storage.exists("missing.bin")
-    with pytest.raises(FileNotFoundError, match="does not exist"):
-        storage.pull("missing.bin")
-    with pytest.raises(FileNotFoundError, match="does not exist"):
-        storage.size("missing.bin")
-    with pytest.raises(FileNotFoundError, match="does not exist"):
-        storage.remove("missing.bin")
-
-
-def test_stream_memory_storage_index_is_filtered_by_prefix() -> None:
-    storage = StreamMemoryStorage()
-    storage.push("reports/first.bin", BytesIO(b"a"))
-    storage.push("reports/second.bin", BytesIO(b"b"))
-    storage.push("notes.bin", BytesIO(b"c"))
-    assert sorted(storage.index()) == ["notes.bin", "reports/first.bin", "reports/second.bin"]
-    assert sorted(storage.index(prefix="reports/")) == [
-        "reports/first.bin",
-        "reports/second.bin",
-    ]
-
-
-def test_stream_memory_storage_backs_a_binary_storage() -> None:
-    storage = BinaryStorage(StreamMemoryStorage())
-    storage.push("data.bin", b"hello")
-    assert storage.pull("data.bin") == b"hello"
-    assert storage.size("data.bin") == 5
-    assert list(storage.index()) == ["data.bin"]
-    storage.remove("data.bin")
-    assert not storage.exists("data.bin")

@@ -15,7 +15,7 @@ from typing import Any, BinaryIO, TypeVar, overload
 from iokit.codec.base import best_codec
 from iokit.state import Enc, FormatState, Gzip, LoadedState, State
 
-from .storage import BinaryStorage, Storage
+from .storage import BinaryStorage, Storage, is_record_uid, validate_uid
 
 S = TypeVar("S", bound=FormatState[Any])
 
@@ -26,31 +26,42 @@ class StreamLocalStorage(Storage[BinaryIO]):
         self._root = Path(root).resolve()
 
     def _path(self, uid: str) -> Path:
-        """Path holding the record, checked to stay under the storage root."""
-        path = (self._root / uid).resolve()
+        """Path holding the record, checked to name a record this storage can hand back.
+
+        Args:
+            uid: The identifier of the record, a relative posix path under the storage root.
+
+        Returns:
+            The path of the file the record lives in.
+
+        Raises:
+            ValueError: If `uid` names no record, or would land outside the storage root.
+
+        """
+        path = self._root.joinpath(*validate_uid(uid)).resolve()
         if not path.is_relative_to(self._root):
-            msg = f"Record with uid '{uid}' would land outside of the storage root"
+            msg = f"Record with uid {uid!r} would land outside of the storage root"
             raise ValueError(msg)
         return path
 
     def pull(self, uid: str) -> BinaryIO:
         path = self._path(uid)
         if not path.is_file():
-            msg = f"Record with uid '{uid}' does not exist"
+            msg = f"Record with uid {uid!r} does not exist"
             raise FileNotFoundError(msg)
         return path.open("rb")
 
     def size(self, uid: str) -> int:
         path = self._path(uid)
         if not path.is_file():
-            msg = f"Record with uid '{uid}' does not exist"
+            msg = f"Record with uid {uid!r} does not exist"
             raise FileNotFoundError(msg)
         return path.stat().st_size
 
     def push(self, uid: str, record: BinaryIO, *, force: bool = False) -> None:
         path = self._path(uid)
         if path.exists() and not force:
-            msg = f"Record with uid '{uid}' already exists"
+            msg = f"Record with uid {uid!r} already exists"
             raise FileExistsError(msg)
         path.parent.mkdir(parents=True, exist_ok=True)
         with record, path.open("wb") as file:
@@ -59,7 +70,7 @@ class StreamLocalStorage(Storage[BinaryIO]):
     def remove(self, uid: str) -> None:
         path = self._path(uid)
         if not path.is_file():
-            msg = f"Record with uid '{uid}' does not exist"
+            msg = f"Record with uid {uid!r} does not exist"
             raise FileNotFoundError(msg)
         path.unlink()
 
@@ -70,11 +81,7 @@ class StreamLocalStorage(Storage[BinaryIO]):
         for path in self._root.rglob("*"):
             if not path.is_file():
                 continue
-            relative = path.relative_to(self._root)
-            # nothing hidden is a record, however deep it lies
-            if any(part.startswith(".") for part in relative.parts):
-                continue
-            uid = relative.as_posix()
+            uid = path.relative_to(self._root).as_posix()
             if prefix is None or uid.startswith(prefix):
                 yield uid
 
@@ -89,7 +96,8 @@ class MemoryStorage(Storage[bytes]):
 
     The dictionary can be handed in at construction and stays reachable as `records`, so a
     mapping filled elsewhere can be served as a storage and the records a storage holds can be
-    read or edited directly.
+    read or edited directly. Keys are uids, and a key that is no uid, `is_record_uid` being
+    the judge, names no record: the storage neither lists it nor hands it back.
     """
 
     def __init__(self, records: dict[str, bytes] | None = None) -> None:
@@ -103,37 +111,45 @@ class MemoryStorage(Storage[bytes]):
         return self._records
 
     def pull(self, uid: str) -> bytes:
+        validate_uid(uid)
         try:
             return self._records[uid]
         except KeyError as exc:
-            msg = f"Record with uid '{uid}' does not exist"
+            msg = f"Record with uid {uid!r} does not exist"
             raise FileNotFoundError(msg) from exc
 
     def push(self, uid: str, record: bytes, *, force: bool = False) -> None:
+        validate_uid(uid)
         if uid in self._records and not force:
-            msg = f"Record with uid '{uid}' already exists"
+            msg = f"Record with uid {uid!r} already exists"
             raise FileExistsError(msg)
         self._records[uid] = record
 
     def remove(self, uid: str) -> None:
+        validate_uid(uid)
         if uid not in self._records:
-            msg = f"Record with uid '{uid}' does not exist"
+            msg = f"Record with uid {uid!r} does not exist"
             raise FileNotFoundError(msg)
         del self._records[uid]
 
     def exists(self, uid: str) -> bool:
+        validate_uid(uid)
         return uid in self._records
 
     def size(self, uid: str) -> int:
+        validate_uid(uid)
         try:
             return len(self._records[uid])
         except KeyError as exc:
-            msg = f"Record with uid '{uid}' does not exist"
+            msg = f"Record with uid {uid!r} does not exist"
             raise FileNotFoundError(msg) from exc
 
     def index(self, prefix: str | None = None) -> Iterator[str]:
         # a snapshot, so that pushing or removing while walking the index is not an error
         for uid in list(self._records):
+            # a key put in the mapping by hand may be no uid at all, and names no record
+            if not is_record_uid(uid):
+                continue
             if prefix is None or uid.startswith(prefix):
                 yield uid
 
@@ -154,7 +170,7 @@ class StreamMemoryStorage(Storage[BinaryIO]):
 
     def push(self, uid: str, record: BinaryIO, *, force: bool = False) -> None:
         if self._backend.exists(uid) and not force:
-            msg = f"Record with uid '{uid}' already exists"
+            msg = f"Record with uid {uid!r} already exists"
             raise FileExistsError(msg)
         with record:
             data = record.read()
@@ -237,7 +253,7 @@ class StateStorage(Storage[Any]):
         try:
             data = self._backend.pull(path)
         except FileNotFoundError as exc:
-            msg = f"Record with uid '{uid}' does not exist"
+            msg = f"Record with uid {uid!r} does not exist"
             raise FileNotFoundError(msg) from exc
         state: State[Any] = LoadedState(data, path=path)
         if self._password is not None:
@@ -261,14 +277,14 @@ class StateStorage(Storage[Any]):
         try:
             self._backend.push(uid=state.path, record=state.data, force=force)
         except FileExistsError as exc:
-            msg = f"Record with uid '{uid}' already exists"
+            msg = f"Record with uid {uid!r} already exists"
             raise FileExistsError(msg) from exc
 
     def remove(self, uid: str) -> None:
         try:
             self._backend.remove(self._path(uid))
         except FileNotFoundError as exc:
-            msg = f"Record with uid '{uid}' does not exist"
+            msg = f"Record with uid {uid!r} does not exist"
             raise FileNotFoundError(msg) from exc
 
     def exists(self, uid: str) -> bool:
@@ -278,7 +294,7 @@ class StateStorage(Storage[Any]):
         try:
             return self._backend.size(self._path(uid))
         except FileNotFoundError as exc:
-            msg = f"Record with uid '{uid}' does not exist"
+            msg = f"Record with uid {uid!r} does not exist"
             raise FileNotFoundError(msg) from exc
 
     def index(self, prefix: str | None = None) -> Iterator[str]:

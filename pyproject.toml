@@ -28,6 +28,7 @@ lint = [
     "types-requests>=2.31.0",
 ]
 test = [
+    "moto[s3,server]>=5.0.0",
     "pytest>=8.2.2",
     "pytest-cov==6.0.0",
     "pytest-xdist>=3.6.1",

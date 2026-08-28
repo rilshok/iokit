@@ -58,7 +58,7 @@ class CachedStorage(Storage[T]):
 
         """
         if not force and self.exists(uid):
-            msg = f"Record with uid '{uid}' already exists"
+            msg = f"Record with uid {uid!r} already exists"
             raise FileExistsError(msg)
         self._hot.push(uid, record, force=True)
         try:
@@ -84,7 +84,7 @@ class CachedStorage(Storage[T]):
                 storage.remove(uid)
                 found = True
         if not found:
-            msg = f"Record with uid '{uid}' does not exist"
+            msg = f"Record with uid {uid!r} does not exist"
             raise FileNotFoundError(msg)
 
     def exists(self, uid: str) -> bool:

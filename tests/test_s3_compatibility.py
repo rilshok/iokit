@@ -302,3 +302,39 @@ def test_listing_strips_the_folder_of_the_storage() -> None:
     pages = [{"Contents": [{"Key": "folder/a"}, {"Key": "folder/b"}]}]
     storage = served_by(FakeS3(list_objects_v2=pages), folder="folder")
     assert list(storage.index()) == ["a", "b"]
+
+
+# a uid that names no record
+
+
+@pytest.mark.parametrize("method", ["pull", "size", "exists", "remove"])
+def test_a_uid_naming_no_record_never_reaches_the_service(method: str) -> None:
+    """Which uid names no record is settled in the contract; here, none is sent anywhere."""
+    client = FakeS3()
+    storage = served_by(client)
+    call = {
+        "pull": lambda: storage.pull("./object.txt"),
+        "size": lambda: storage.size("./object.txt"),
+        "exists": lambda: storage.exists("./object.txt"),
+        "remove": lambda: storage.remove("./object.txt"),
+    }[method]
+    with pytest.raises(ValueError, match="is not a relative path naming a record"):
+        call()
+    assert client.calls == []
+
+
+def test_a_push_under_a_uid_naming_no_record_uploads_nothing() -> None:
+    client = FakeS3(head_object=MISSING)
+    storage = served_by(client)
+    with pytest.raises(ValueError, match="is not a relative path naming a record"):
+        storage.push("./object.txt", BytesIO(b"hello"))
+    assert client.calls == []
+
+
+def test_a_uid_is_read_within_the_storage_folder() -> None:
+    """The folder is the root a uid is relative to, so it may not be escaped with '..'."""
+    client = FakeS3()
+    storage = served_by(client, "folder")
+    with pytest.raises(ValueError, match="is not a relative path naming a record"):
+        storage.exists("../elsewhere/object.txt")
+    assert client.calls == []
