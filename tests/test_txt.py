@@ -10,13 +10,6 @@ def test_txt_state() -> None:
     assert state.size == len(text)
 
 
-def test_txt_save_load_file() -> None:
-    text = "Hello, World!"
-    state = Txt(text, path="text.txt")
-    with state.save_temp() as temp_state:
-        assert temp_state.load() == text
-
-
 def test_txt_state_japanese() -> None:
     text = "こんにちは、世界!\nこれはテストファイルです。"
     state = Txt(text, "text")

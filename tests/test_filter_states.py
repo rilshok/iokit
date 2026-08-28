@@ -20,7 +20,6 @@ def test_filtrate_states() -> None:
     assert filtrate_states_(states, "") == []
     assert filtrate_states_(states, "*") == states
     assert filtrate_states_(states, "o*") == [orange]
-    assert filtrate_states_(states, "o*") == [orange]
     assert filtrate_states_(states, "x*") == []
     assert filtrate_states_(states, "b*n") == [banana]
     assert filtrate_states_(states, "c*") == [cherry]
