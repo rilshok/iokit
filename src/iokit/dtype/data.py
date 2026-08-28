@@ -6,6 +6,7 @@ from base64 import (
     urlsafe_b64decode,
     urlsafe_b64encode,
 )
+from io import BytesIO
 from os import urandom
 from pathlib import Path
 from typing import (
@@ -118,6 +119,11 @@ class Data(bytes):
         """Compute hash of a file at the given path."""
         with Path(path).open("rb") as buffer:
             return cls.digest_from_io(algorithm, buffer, chunk_size=chunk_size)
+
+    def digest(self, algorithm: str | Hash, *, chunk_size: int = HASH_CHUNK_SIZE) -> "Data":
+        """Compute hash of the data."""
+        with BytesIO(self) as buffer:
+            return self.digest_from_io(algorithm=algorithm, buffer=buffer, chunk_size=chunk_size)
 
 
 _BASE32_CROCKFORD_ENCODE_ALPHABET = dict(enumerate(b"0123456789ABCDEFGHJKMNPQRSTVWXYZ"))

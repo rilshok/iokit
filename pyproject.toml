@@ -1,6 +1,6 @@
 [project]
 name = "iokit"
-version = "0.4.2"
+version = "0.4.3"
 description = "Input Output Kit"
 readme = "README.md"
 requires-python = ">=3.10"
