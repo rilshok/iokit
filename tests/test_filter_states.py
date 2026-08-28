@@ -1,31 +1,47 @@
-from collections.abc import Iterable
 from typing import Any
 
-from iokit import Json, State, filtrate
+import pytest
+
+from iokit import Json, State, filtrate, first
+
+BANANA = Json({"name": "banana"}, stem="banana")
+TOMATO = Json({"name": "tomato"}, stem="tomato")
+ORANGE = Json({"name": "orange"}, stem="orange")
+CHERRY = Json({"name": "cherry"}, path="cherry.json")
+POTATO = Json({"name": "potato"}, stem="potato", path="potato.json")
+
+STATES: list[State[Any]] = [BANANA, TOMATO, ORANGE, CHERRY, POTATO]
 
 
-def filtrate_states_(states: Iterable[State[Any]], pattern: str) -> list[State[Any]]:
-    return list(filtrate(states, pattern))
+@pytest.mark.parametrize(
+    ("pattern", "matched"),
+    [
+        ("", []),
+        ("*", STATES),
+        ("o*", [ORANGE]),
+        ("x*", []),
+        ("b*n", [BANANA]),
+        ("c*", [CHERRY]),
+        ("b*n*", [BANANA]),
+        ("p*t*", [POTATO]),
+        ("b*n*o", []),
+        ("[bpt]*", [BANANA, TOMATO, POTATO]),
+        ("[*", []),
+        ("t?mato*", [TOMATO]),
+    ],
+)
+def test_the_pattern_says_which_states_are_kept(
+    pattern: str,
+    matched: list[State[Any]],
+) -> None:
+    assert list(filtrate(STATES, pattern)) == matched
 
 
-def test_filtrate_states() -> None:
-    banana = Json({"name": "banana"}, stem="banana")
-    tomato = Json({"name": "tomato"}, stem="tomato")
-    orange = Json({"name": "orange"}, stem="orange")
-    cherry = Json({"name": "cherry"}, path="cherry.json")
-    potato = Json({"name": "potato"}, stem="potato", path="potato.json")
+def test_the_first_match_is_the_one_handed_back() -> None:
+    assert first(STATES, "*") is BANANA
+    assert first(STATES, "[po]*") is ORANGE
 
-    states = [banana, tomato, orange, cherry, potato]
 
-    assert filtrate_states_(states, "") == []
-    assert filtrate_states_(states, "*") == states
-    assert filtrate_states_(states, "o*") == [orange]
-    assert filtrate_states_(states, "x*") == []
-    assert filtrate_states_(states, "b*n") == [banana]
-    assert filtrate_states_(states, "c*") == [cherry]
-    assert filtrate_states_(states, "b*n*") == [banana]
-    assert filtrate_states_(states, "p*t*") == [potato]
-    assert filtrate_states_(states, "b*n*o") == []
-    assert filtrate_states_(states, "[bpt]*") == [banana, tomato, potato]
-    assert filtrate_states_(states, "[*") == []
-    assert filtrate_states_(states, "t?mato*") == [tomato]
+def test_asking_for_a_first_match_there_is_none_of_is_refused() -> None:
+    with pytest.raises(FileNotFoundError, match="State not found"):
+        first(STATES, "x*")

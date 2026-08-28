@@ -1,22 +1,40 @@
+"""What an image is written as, over and above what every format owes in the contract."""
+
 import numpy as np
-from PIL import Image
+import pytest
+from PIL import Image as PillowImage
 
-from iokit import Jpeg, LoadedState, Png
+from iokit import Image, Jpeg, Jpg, LoadedState, Png
 
-
-def test_jpeg() -> None:
-    image = Image.new("RGB", (100, 100), color="red")
-    state = Jpeg(image, path="test.jpeg")
-    assert str(state.name) == "test.jpeg"
-    assert 800 < state.size < 900
-    assert state.load().size == (100, 100)
-    raw = LoadedState(state.data, path="test.jpg")
-    np.testing.assert_allclose(raw.load(), state.load(), atol=0.1)
+SIDE = 100
 
 
-def test_png() -> None:
-    image = Image.new("RGB", (100, 100), color="red")
-    state = Png(image, stem="test")
-    assert state.name == "test.png"
-    assert 200 < state.size < 300
-    assert state.load().size == (100, 100)
+def picture() -> PillowImage.Image:
+    """A picture of a plain red square, small enough for the sizes below to mean something."""
+    return PillowImage.new("RGB", (SIDE, SIDE), color="red")
+
+
+@pytest.mark.parametrize(
+    ("kind", "smallest", "largest"),
+    [(Jpeg, 800, 900), (Jpg, 800, 900), (Png, 200, 300)],
+)
+def test_a_picture_is_written_in_the_encoding_of_the_format(
+    kind: type[Image],
+    smallest: int,
+    largest: int,
+) -> None:
+    """Each format writes the same picture at the size its own encoding calls for."""
+    state = kind(picture(), stem="picture")
+    assert smallest < state.size < largest
+    assert state.load().size == (SIDE, SIDE)
+
+
+def test_the_jpeg_extensions_name_the_same_encoding() -> None:
+    """`.jpg` and `.jpeg` differ in the name alone, the bytes under them being the same."""
+    assert Jpg(picture(), stem="picture").data == Jpeg(picture(), stem="picture").data
+
+
+def test_a_picture_is_read_back_the_same_however_its_extension_is_spelled() -> None:
+    state = Jpeg(picture(), path="picture.jpeg")
+    same = LoadedState(bytes(state.data), path="picture.jpg")
+    np.testing.assert_allclose(np.asarray(same.load()), np.asarray(state.load()), atol=0.1)

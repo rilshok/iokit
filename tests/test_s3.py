@@ -18,7 +18,7 @@ NAME = "gec00.t00z.pgrb2aanl.idx"
 UID = f"{FOLDER}/{NAME}"
 SIZE = 3411
 
-#: the only module reaching a real service, and the only one needing the network to pass
+#: the only module reaching a real service, which the network is needed to reach
 pytestmark = pytest.mark.network
 
 
