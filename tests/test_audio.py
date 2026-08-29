@@ -111,6 +111,60 @@ def test_conversion_between_formats(
     assert rewritten.load().frames == 2048
 
 
+#: turns through a format a wave is put for the drift of it to show
+GENERATIONS = 5
+
+#: how far a wave may drift over those turns, as a share of its own loudness; a lossless
+#: format holds the wave as it is, a lossy one gives a little of it up on every turn. Half
+#: again as much as each format drifts today, so that a real change in the encoding shows.
+DRIFT = {
+    "wav": 0.001,
+    "flac": 0.001,
+    "mp3": 0.15,
+    "ogg": 0.40,
+    "oga": 0.40,
+    "opus": 0.15,
+}
+
+
+def music(frames: int = FREQ // 4) -> Waveform:
+    """A dying stack of harmonics under a little noise, over two channels of unlike loudness.
+
+    A plain tone is the one thing every lossy format carries almost untouched, so it says
+    little about how a format holds a recording; this drifts the way a real one does, within
+    a few points of a piece of music put through ogg over and again.
+    """
+    time = np.arange(frames) / FREQ
+    partials = (220, 440, 880, 1760, 3520)
+    wave = sum(np.sin(2 * np.pi * hz * time) / (order + 1) for order, hz in enumerate(partials))
+    noised = np.asarray(wave) * np.exp(-2 * time)
+    noised += 0.05 * np.random.default_rng(0).standard_normal(frames)
+    mono = (noised / np.abs(noised).max() * 0.4).astype(np.float32)
+    return Waveform(wave=np.stack([mono, mono * 0.9], axis=1), freq=FREQ)
+
+
+@pytest.mark.parametrize("name", [name for name, _, _ in CONVERSIONS])
+def test_wave_holds_its_shape_through_repeated_conversion(name: str) -> None:
+    """A wave written and read back over and over stays the wave it was.
+
+    Every turn through a lossy format gives a little of the wave up, and the loss of it
+    compounds, so the drift is held against `DRIFT` rather than against nothing. What it may
+    not do is run away, which is how an encoding that mangles the wave shows itself.
+    """
+    original = music()
+    waveform = original
+    for _ in range(GENERATIONS):
+        waveform = getattr(waveform, f"to_{name}")("sound").load()
+
+    assert waveform.freq == original.freq
+    assert waveform.channels == original.channels
+    assert waveform.frames == original.frames
+
+    loudness = np.sqrt(np.mean(original.wave.astype(float) ** 2))
+    drift = np.sqrt(np.mean((waveform.wave.astype(float) - original.wave) ** 2))
+    assert drift < DRIFT[name] * loudness, f"{name} drifted by {drift / loudness:.1%}"
+
+
 #: a stack small enough to keep the check quick, and large enough for the interpreter itself
 STACK_BYTES = 2 * 1024 * 1024
 

@@ -14,6 +14,10 @@ import soundfile
 from iokit.codec.base import Codec
 from iokit.dtype.waveform import Waveform
 
+#: Frames written at a time. Handed a whole wave at once, libsndfile lays out four bytes of
+#: stack for every frame of it, so a long enough one overruns the stack of the process.
+BLOCK_FRAMES = 1 << 16
+
 
 class _SoundfileCodec(Codec[Waveform]):
     """Reads and writes a waveform with libsndfile, which works on the buffer directly."""
@@ -31,13 +35,16 @@ class _SoundfileCodec(Codec[Waveform]):
 
     def encode(self, data: Waveform) -> BytesIO:
         buffer = BytesIO()
-        soundfile.write(
+        with soundfile.SoundFile(
             file=buffer,
-            data=data.wave,
+            mode="w",
             samplerate=data.freq,
+            channels=data.channels,
             format=self.__format_name__,
             subtype=self._subtype,
-        )
+        ) as file:
+            for start in range(0, data.frames, BLOCK_FRAMES):
+                file.write(data.wave[start : start + BLOCK_FRAMES])
         buffer.seek(0)
         return buffer
 
