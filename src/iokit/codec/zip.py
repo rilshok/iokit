@@ -2,7 +2,7 @@ __all__ = ["ZipCodec"]
 
 from collections.abc import Iterable
 from contextlib import suppress
-from datetime import datetime
+from datetime import datetime, timezone
 from io import BytesIO
 from typing import Any, BinaryIO
 from zipfile import ZipFile, ZipInfo
@@ -37,7 +37,9 @@ class ZipCodec(Codec[Iterable[State[Any]]]):
                     continue
                 timestamp: Timestamp | None = None
                 with suppress(ValueError):
-                    timestamp = Timestamp.from_datetime(datetime(*info.date_time))
+                    # a zip keeps a bare wall clock, so read it back as local time
+                    touched = datetime(*info.date_time, tzinfo=timezone.utc).replace(tzinfo=None)
+                    timestamp = Timestamp.from_datetime(touched.astimezone())
                 with archive.open(file) as member_buffer:
                     if self._buffered:
                         yield BufferedState(buffer=member_buffer, path=file, timestamp=timestamp)
