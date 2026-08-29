@@ -111,12 +111,11 @@ def test_conversion_between_formats(
     assert rewritten.load().frames == 2048
 
 
-#: turns through a format a wave is put for the drift of it to show
+#: turns through a format a wave is put for its drift to show
 GENERATIONS = 5
 
-#: how far a wave may drift over those turns, as a share of its own loudness; a lossless
-#: format holds the wave as it is, a lossy one gives a little of it up on every turn. Half
-#: again as much as each format drifts today, so that a real change in the encoding shows.
+#: drift allowed over those turns, as a share of the loudness of the wave: half again as
+#: much as each format drifts today
 DRIFT = {
     "wav": 0.001,
     "flac": 0.001,
@@ -128,11 +127,9 @@ DRIFT = {
 
 
 def music(frames: int = FREQ // 4) -> Waveform:
-    """A dying stack of harmonics under a little noise, over two channels of unlike loudness.
+    """Dying harmonics under a little noise, worn down by a lossy format as a recording is.
 
-    A plain tone is the one thing every lossy format carries almost untouched, so it says
-    little about how a format holds a recording; this drifts the way a real one does, within
-    a few points of a piece of music put through ogg over and again.
+    A plain tone is carried almost untouched, and says little about how a format holds music.
     """
     time = np.arange(frames) / FREQ
     partials = (220, 440, 880, 1760, 3520)
@@ -145,12 +142,7 @@ def music(frames: int = FREQ // 4) -> Waveform:
 
 @pytest.mark.parametrize("name", [name for name, _, _ in CONVERSIONS])
 def test_wave_holds_its_shape_through_repeated_conversion(name: str) -> None:
-    """A wave written and read back over and over stays the wave it was.
-
-    Every turn through a lossy format gives a little of the wave up, and the loss of it
-    compounds, so the drift is held against `DRIFT` rather than against nothing. What it may
-    not do is run away, which is how an encoding that mangles the wave shows itself.
-    """
+    """A wave written and read back over and over drifts no further than `DRIFT`."""
     original = music()
     waveform = original
     for _ in range(GENERATIONS):
@@ -165,13 +157,13 @@ def test_wave_holds_its_shape_through_repeated_conversion(name: str) -> None:
     assert drift < DRIFT[name] * loudness, f"{name} drifted by {drift / loudness:.1%}"
 
 
-#: a stack small enough to keep the check quick, and large enough for the interpreter itself
+#: small enough to keep the check quick, large enough for the interpreter itself
 STACK_BYTES = 2 * 1024 * 1024
 
-#: more frames than fit on that stack, libsndfile taking four bytes of it for each of them
+#: more frames than fit on that stack, at the four bytes libsndfile takes for each
 LONG_FRAMES = 800_000
 
-#: a conversion run apart, so that a stack the encoding overruns takes nothing else down
+#: run apart, so that an overrun stack takes nothing else down
 LONG_CONVERSION = """
 import resource
 
@@ -192,10 +184,7 @@ print(waveform.to_{name}("sound").load().frames)
 def test_long_wave_is_written_within_the_stack(name: str) -> None:
     """A wave longer than the stack holds goes to a format, and comes back whole.
 
-    Handed a whole wave at once, libsndfile lays out four bytes of stack for every frame of
-    it, so a long enough one overruns the stack and takes the process down with it. The wave
-    has to reach it in blocks, which is what a run of `LONG_FRAMES` frames on a stack of
-    `STACK_BYTES` bytes checks.
+    Handed a whole wave at once, libsndfile overruns the stack and takes the process with it.
     """
     script = LONG_CONVERSION.format(
         stack=STACK_BYTES,
@@ -211,7 +200,6 @@ def test_long_wave_is_written_within_the_stack(name: str) -> None:
         timeout=300,
     )
     assert conversion.returncode == 0, (
-        f"converting to {name} left the process with {conversion.returncode}"
-        f" (-11 being a stack overrun): {conversion.stderr}"
+        f"converting to {name} left {conversion.returncode}, -11 being a stack overrun"
     )
     assert int(conversion.stdout) == LONG_FRAMES
