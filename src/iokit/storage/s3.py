@@ -210,6 +210,7 @@ class StreamS3Storage(Storage[BinaryIO]):
 
         Raises:
             ValueError: If `uid` is not a relative path naming a record.
+
         """
         validate_uid(uid)
         return {"Bucket": self._bucket, "Key": f"{self._folder}{uid}"}
@@ -232,6 +233,7 @@ class StreamS3Storage(Storage[BinaryIO]):
 
         Returns:
             A `PermissionError`, a `FileNotFoundError` or a `RuntimeError`, ready to raise.
+
         """
         reason = _classify(exc)
         if reason is _Reason.UNKNOWN:
@@ -265,6 +267,7 @@ class StreamS3Storage(Storage[BinaryIO]):
             PermissionError: The service refused to serve the object.
             FileNotFoundError: The object is not there, as far as the service let on.
             RuntimeError: The service failed to answer the request.
+
         """
         try:
             response = self._client.get_object(**self._uid_parts(uid))
@@ -297,6 +300,7 @@ class StreamS3Storage(Storage[BinaryIO]):
         Raises:
             PermissionError: The service refused to answer for the object.
             RuntimeError: The service failed to answer the request.
+
         """
         try:
             self.size(uid)
@@ -320,6 +324,7 @@ class StreamS3Storage(Storage[BinaryIO]):
             PermissionError: The service refused to answer for the object.
             FileNotFoundError: The object is not there, as far as the service let on.
             RuntimeError: The service failed to answer the request.
+
         """
         try:
             response = self._client.head_object(**self._uid_parts(uid))
@@ -351,6 +356,7 @@ class StreamS3Storage(Storage[BinaryIO]):
             PermissionError: The service refused to serve the object.
             FileNotFoundError: The object is not there, as far as the service let on.
             RuntimeError: The service failed to answer the request.
+
         """
         try:
             response = self._client.get_object(**self._uid_parts(uid), Range="bytes=0-0")
@@ -381,6 +387,7 @@ class StreamS3Storage(Storage[BinaryIO]):
             FileExistsError: An object is already stored under `uid` and `force` is unset.
             PermissionError: The service refused the upload.
             RuntimeError: The service failed to store the object.
+
         """
         if not force and self.exists(uid=uid):
             msg = f"State already exists, {uid=!r}"
@@ -411,6 +418,7 @@ class StreamS3Storage(Storage[BinaryIO]):
         Raises:
             PermissionError: The service refused the upload.
             RuntimeError: The service failed to store the object.
+
         """
         record.seek(0)
         try:
@@ -435,6 +443,7 @@ class StreamS3Storage(Storage[BinaryIO]):
             FileNotFoundError: The object is not there, as far as the service let on.
             PermissionError: The service refused to remove the object.
             RuntimeError: The service failed to remove the object.
+
         """
         if not self.exists(uid=uid):
             msg = f"Record with uid {uid!r} does not exist"
@@ -464,6 +473,7 @@ class StreamS3Storage(Storage[BinaryIO]):
         Raises:
             PermissionError: The service refused to list the bucket.
             RuntimeError: The service failed to list the bucket.
+
         """
         offset = len(self._folder)
         keys = self._iter_keys(f"{self._folder}{prefix or ''}")
@@ -481,6 +491,7 @@ class StreamS3Storage(Storage[BinaryIO]):
         Raises:
             PermissionError: The service refused to list the bucket.
             RuntimeError: The service failed to list the bucket.
+
         """
         options: dict[str, str] = {"Bucket": self._bucket}
         if prefix:
