@@ -1,7 +1,11 @@
+"""File extension enumeration."""
+
 from enum import Enum
 
 
 class Extension(Enum):
+    """Enumeration of supported file extensions."""
+
     NULL = ""
     BIN = ".bin"
     DAT = ".dat"

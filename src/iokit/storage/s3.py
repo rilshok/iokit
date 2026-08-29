@@ -179,6 +179,17 @@ class StreamS3Storage(Storage[BinaryIO]):
         endpoint_url: str | None = None,
         region_name: str | None = None,
     ) -> None:
+        """Initialize an S3 client for a specific bucket and folder.
+
+        Args:
+            bucket: The S3 bucket name.
+            folder: Optional folder prefix within the bucket.
+            access_key: AWS access key ID. If not provided, uses unsigned requests.
+            secret_access_key: AWS secret access key.
+            endpoint_url: Custom S3 endpoint URL for S3-compatible services.
+            region_name: AWS region name.
+
+        """
         self._bucket = bucket
         folder = (folder or "").strip("/")
         self._folder = f"{folder}/" if folder else ""
@@ -203,13 +214,13 @@ class StreamS3Storage(Storage[BinaryIO]):
         """Address an object in the storage bucket by its UID.
 
         Args:
-            uid: UID of the object, a relative posix path within the storage folder.
+            uid: Record identifier as relative POSIX path.
 
         Returns:
-            The bucket and key the object is addressed by.
+            Bucket and key for the S3 object.
 
         Raises:
-            ValueError: If `uid` is not a relative path naming a record.
+            ValueError: If `uid` is not a valid record identifier.
 
         """
         validate_uid(uid)
@@ -275,7 +286,7 @@ class StreamS3Storage(Storage[BinaryIO]):
         except ClientError as exc:
             failure = self._failure(
                 exc,
-                subject=f"uid {uid!r}",
+                subject=f"{uid=!r}",
                 action="read the object",
                 assume=_Reason.MISSING,
             )
@@ -334,7 +345,7 @@ class StreamS3Storage(Storage[BinaryIO]):
                 return self._size_by_range(uid)
             failure = self._failure(
                 exc,
-                subject=f"uid {uid!r}",
+                subject=f"{uid=!r}",
                 action="inspect the object",
                 assume=_Reason.MISSING,
             )
@@ -366,7 +377,7 @@ class StreamS3Storage(Storage[BinaryIO]):
                 return 0
             failure = self._failure(
                 exc,
-                subject=f"uid {uid!r}",
+                subject=f"{uid=!r}",
                 action="measure the object",
                 assume=_Reason.MISSING,
             )
@@ -402,7 +413,7 @@ class StreamS3Storage(Storage[BinaryIO]):
                 return
             failure = self._failure(
                 exc,
-                subject=f"uid {uid!r}",
+                subject=f"{uid=!r}",
                 action="upload the object",
                 assume=_Reason.FAILURE,
             )
@@ -427,7 +438,7 @@ class StreamS3Storage(Storage[BinaryIO]):
         except ClientError as exc:
             failure = self._failure(
                 exc,
-                subject=f"uid {uid!r}",
+                subject=f"{uid=!r}",
                 action="upload the object",
                 assume=_Reason.FAILURE,
             )
@@ -455,7 +466,7 @@ class StreamS3Storage(Storage[BinaryIO]):
         except ClientError as exc:
             failure = self._failure(
                 exc,
-                subject=f"uid {uid!r}",
+                subject=f"{uid=!r}",
                 action="remove the object",
                 assume=_Reason.FAILURE,
             )
@@ -510,7 +521,7 @@ class StreamS3Storage(Storage[BinaryIO]):
                 if spent or _classify(exc) is not _Reason.UNKNOWN:
                     failure = self._failure(
                         exc,
-                        subject=f"prefix {prefix!r}",
+                        subject=f"{prefix=!r}",
                         action="list the bucket",
                         assume=_Reason.FAILURE,
                     )
@@ -543,6 +554,8 @@ class BotoClientFactory:
 
 
 class S3Storage(BinaryStorage):
+    """Binary storage backed by Amazon S3 or an S3-compatible service."""
+
     def __init__(  # noqa: PLR0913
         self,
         bucket: str,
@@ -553,6 +566,17 @@ class S3Storage(BinaryStorage):
         endpoint_url: str | None = None,
         region_name: str | None = None,
     ) -> None:
+        """Initialize an S3 storage for a specific bucket and folder.
+
+        Args:
+            bucket: The S3 bucket name.
+            folder: Optional folder prefix within the bucket.
+            access_key: AWS access key ID. If not provided, uses unsigned requests.
+            secret_access_key: AWS secret access key.
+            endpoint_url: Custom S3 endpoint URL for S3-compatible services.
+            region_name: AWS region name.
+
+        """
         backend = StreamS3Storage(
             bucket,
             folder,

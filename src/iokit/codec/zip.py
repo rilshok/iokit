@@ -1,3 +1,5 @@
+"""Codec for ZIP archives containing typed states."""
+
 __all__ = ["ZipCodec"]
 
 from collections.abc import Iterable
@@ -13,13 +15,36 @@ from iokit.utils.time import Timestamp
 
 
 class ZipCodec(Codec[Iterable[State[Any]]]):
+    """Serialize states to and from ZIP archives, optionally streaming member content."""
+
     def __init__(self, *, buffered: bool = False) -> None:
+        """Initialize codec to stream or load member content.
+
+        Args:
+            buffered: Stream members as BufferedState instead of loading into memory.
+
+        """
         self._buffered = buffered
 
     def __repr__(self) -> str:
+        """Return the string representation with buffering mode.
+
+        Returns:
+            String representation.
+
+        """
         return f"{type(self).__name__}(buffered={self._buffered})"
 
     def encode(self, data: Iterable[State[Any]]) -> BytesIO:
+        """Pack states into a ZIP archive.
+
+        Args:
+            data: Iterable of states to pack.
+
+        Returns:
+            ZIP archive in BytesIO with states, paths, and timestamps preserved.
+
+        """
         buffer = BytesIO()
         with ZipFile(buffer, mode="w") as archive:
             for state in data:
@@ -30,6 +55,15 @@ class ZipCodec(Codec[Iterable[State[Any]]]):
         return buffer
 
     def decode(self, buffer: BinaryIO) -> Iterable[State[Any]]:
+        """Yield states from a ZIP archive.
+
+        Args:
+            buffer: Binary buffer containing ZIP archive data.
+
+        Yields:
+            States from the archive, optionally buffered based on configuration.
+
+        """
         with buffer, ZipFile(buffer, mode="r") as archive:
             for file in archive.namelist():
                 info = archive.getinfo(file)

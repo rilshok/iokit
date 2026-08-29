@@ -1,3 +1,5 @@
+"""Lazy-load files into state objects with automatic format detection."""
+
 __all__ = ["file"]
 
 from pathlib import Path
@@ -19,19 +21,18 @@ def file(path: PathLike, expected_type: None = None) -> FileState[Any]: ...
 
 
 def file(path: PathLike, expected_type: type[F] | None = None) -> F | FileState[Any]:
-    """Take a file on disk as a state, read from it as it is asked for.
+    """Load a file as a lazy state with automatic format detection.
 
     Args:
-        path: The file to stand for.
-        expected_type: The format the file is expected to be in, its extension checked
-            against the path. Left out, the state stays untyped.
+        path: Path to the file.
+        expected_type: Expected format type; extension verified against `path`.
 
     Returns:
-        The state of the file, timestamped after its modification time.
+        The file state, timestamped.
 
     Raises:
-        FileNotFoundError: If `path` leads to no regular file.
-        ValueError: If `path` lacks the extension of `expected_type`.
+        FileNotFoundError: If `path` is not a file.
+        ValueError: If `path` lacks extension of `expected_type`.
 
     """
     state: FileState[Any] = FileState(path)

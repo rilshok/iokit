@@ -1,3 +1,5 @@
+"""Codecs for NumPy arrays."""
+
 __all__ = ["CompressedNumpyCodec", "NumpyCodec"]
 
 from io import BytesIO
@@ -22,7 +24,7 @@ _RESERVED_NAMES = frozenset({"file", "allow_pickle", _LONE_NAME})
 
 
 def _members(data: D | M) -> M:
-    """The archive members of a lone array or of an already named mapping."""
+    """Extract archive members from a lone array or named mapping."""
     if isinstance(data, np.ndarray):
         return {_LONE_NAME: data}
     reserved = sorted(_RESERVED_NAMES.intersection(data))
@@ -34,7 +36,7 @@ def _members(data: D | M) -> M:
 
 
 def _reject_objects(members: M) -> None:
-    """`np.savez_compressed` has no `allow_pickle` switch, so object arrays are refused here."""
+    """Raise if `members` contain object arrays (pickling is disabled)."""
     objects = sorted(name for name, array in members.items() if array.dtype == object)
     if objects:
         names = ", ".join(repr(name) for name in objects)
@@ -43,30 +45,44 @@ def _reject_objects(members: M) -> None:
 
 
 class _NumpyCodec(Codec[T]):
+    """Base codec for NumPy serialization."""
+
     def __init__(self, *, allow_pickle: bool = False) -> None:
+        """Initialize codec with pickle permission.
+
+        Args:
+            allow_pickle: Permit pickling of object arrays.
+
+        """
         self._allow_pickle = allow_pickle
 
     def __repr__(self) -> str:
+        """Return codec representation."""
         return f"{type(self).__name__}(allow_pickle={self._allow_pickle})"
 
 
 class NumpyCodec(_NumpyCodec[D]):
+    """Convert a single array to and from NumPy's .npy format."""
+
     def encode(self, data: D) -> BytesIO:
+        """Serialize `data` to NumPy .npy format."""
         buffer = BytesIO()
         np.save(buffer, data, allow_pickle=self._allow_pickle)
         buffer.seek(0)
         return buffer
 
     def decode(self, buffer: BinaryIO) -> D:
+        """Deserialize a NumPy array from `buffer`."""
         with buffer:
             array: D = np.load(buffer, allow_pickle=self._allow_pickle)
             return array
 
 
 class CompressedNumpyCodec(_NumpyCodec[D | M]):
-    """Stores either a lone array or a mapping of named arrays, and gives back what it stored."""
+    """Serialize arrays (lone or named) to compressed .npz archives."""
 
     def encode(self, data: D | M) -> BytesIO:
+        """Write `data` to a compressed archive, returning array or mapping as stored."""
         members = _members(data)
         if not self._allow_pickle:
             _reject_objects(members)
@@ -76,6 +92,7 @@ class CompressedNumpyCodec(_NumpyCodec[D | M]):
         return buffer
 
     def decode(self, buffer: BinaryIO) -> D | M:
+        """Read a compressed archive, returning a single array or named mapping as stored."""
         # Members are read lazily, so they are materialized before the archive closes.
         with buffer, np.load(buffer, allow_pickle=self._allow_pickle) as archive:
             if archive.files == [_LONE_NAME]:

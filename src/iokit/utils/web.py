@@ -1,3 +1,5 @@
+"""Download data from HTTP URLs into state objects."""
+
 __all__ = ["web"]
 
 from contextlib import suppress
@@ -41,17 +43,16 @@ def web(
     timeout: int = 60,
     keep_path: bool = False,
 ) -> F | LoadedState[Any]:
-    """Download a file into a state, pathed after the path of the url.
+    """Download a file as a state with URL path.
 
     Args:
-        url: The address to fetch.
-        expected_type: The format the downloaded state is expected to be in, its extension
-            checked against the path. Left out, the state stays untyped.
-        timeout: Seconds to wait for the response.
-        keep_path: Whether the path holds the whole url path instead of just the file name.
+        url: URL to fetch.
+        expected_type: Expected format; extension verified against path.
+        timeout: Response timeout in seconds.
+        keep_path: Use full URL path instead of just filename.
 
     Returns:
-        The downloaded state, timestamped after `Last-Modified` when the server sends it.
+        The downloaded state, timestamped from server.
 
     """
     response = requests.get(url, timeout=timeout)

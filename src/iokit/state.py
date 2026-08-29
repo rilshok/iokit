@@ -1,3 +1,5 @@
+"""State classes for managing payloads with paths and timestamps."""
+
 from collections.abc import Generator, Iterable, Iterator
 from contextlib import contextmanager
 from importlib import import_module
@@ -35,10 +37,7 @@ PathLike = str | Path
 
 
 class State(Generic[T]):
-    """A payload with somewhere to go: a path, and the time it was last touched.
-
-    The path may be given whole, or completed from a stem by the extension of the format.
-    """
+    """A payload with a path and timestamp."""
 
     def __init__(
         self,
@@ -46,13 +45,26 @@ class State(Generic[T]):
         path: str | None = None,
         timestamp: float | None = None,
     ) -> None:
+        """Initialize a state with optional path and timestamp.
+
+        Args:
+            stem: Filename without extension, defaults to empty.
+            path: Full path with extension; can be derived from `stem`.
+            timestamp: Seconds since epoch; uses current time if None.
+
+        """
         # the field rather than the property, which a subclass may hold shut against renaming
         self._path = self._resolve_path(stem=stem, path=path)
         self._timestamp = Timestamp.now() if timestamp is None else Timestamp(timestamp)
 
     @classmethod
     def extension(cls) -> str:
-        """The extension a state of this kind closes its path with; none for a plain one."""
+        """Return the file extension for this state kind.
+
+        Returns:
+            File extension string; empty for plain states.
+
+        """
         return ""
 
     @classmethod
@@ -71,11 +83,15 @@ class State(Generic[T]):
 
     @classmethod
     def _resolve_path(cls, stem: str | None, path: str | None) -> str:
-        """Return where a state goes, given the `stem` of a name, the `path` itself, or both.
+        """Resolve state path from stem or path, or both.
 
-        Either may be left out, but a stem that is given, empty or not, has to agree with a
-        path that is given: they came from somewhere, and disagreeing means something upstream
-        went wrong.
+        Args:
+            stem: Filename without extension.
+            path: Full path with extension.
+
+        Returns:
+            The resolved path.
+
         """
         stem = None if stem is None else str(stem)
         path = None if path is None else str(path)
@@ -101,11 +117,18 @@ class State(Generic[T]):
         return path
 
     def __repr__(self) -> str:
+        """Return a string representation of the state."""
         size = naturalsize(self.size, gnu=True)
         return f"{self.path} ({size})"
 
     @property
     def timestamp(self) -> Timestamp:
+        """Return the modification timestamp.
+
+        Returns:
+            The timestamp value.
+
+        """
         return self._timestamp
 
     @timestamp.setter
@@ -114,7 +137,7 @@ class State(Generic[T]):
 
     @property
     def path(self) -> str:
-        """Where this state goes; `name` and `stem` are set through it."""
+        """Return the state's path."""
         return self._path
 
     @path.setter
@@ -123,7 +146,7 @@ class State(Generic[T]):
 
     @property
     def name(self) -> str:
-        """The last part of the path, extension included."""
+        """Return the filename with extension."""
         return PurePath(self._path).name
 
     @name.setter
@@ -132,7 +155,7 @@ class State(Generic[T]):
 
     @property
     def stem(self) -> str:
-        """The name with its extension taken off, as a format is given one."""
+        """Return the filename without extension."""
         return PurePath(self._path).stem
 
     @stem.setter
@@ -141,7 +164,7 @@ class State(Generic[T]):
 
     @property
     def suffix(self) -> str:
-        """Whatever the name carries past its stem, which a format knows beforehand."""
+        """Return the file extension."""
         return PurePath(self._path).suffix
 
     @suffix.setter
@@ -150,19 +173,46 @@ class State(Generic[T]):
 
     @property
     def size(self) -> int:
+        """Return the data size in bytes.
+
+        Returns:
+            Size in bytes.
+
+        """
         return len(self.data)
 
     @property
     def data(self) -> Data:
+        """Return the state's data content.
+
+        Returns:
+            The data.
+
+        """
         with self.buffer as buffer:
             return Data(buffer.read())
 
     def digest(self, algorithm: str | Hash) -> Data:
+        """Compute a digest of the state's data.
+
+        Args:
+            algorithm: Hashing algorithm to use.
+
+        Returns:
+            The digest.
+
+        """
         with self.buffer as buffer:
             return Data.digest_from_io(algorithm, buffer)
 
     @property
     def buffer(self) -> BinaryIO:
+        """Return a binary buffer of the state's data.
+
+        Returns:
+            BytesIO buffer.
+
+        """
         return BytesIO(self.data)
 
     def _load(self, expected: "type[T] | UnionType | None", **config: object) -> T:
@@ -174,6 +224,15 @@ class State(Generic[T]):
         raise TypeError(msg)
 
     def load(self, **config: object) -> T:
+        """Decode the state's data.
+
+        Args:
+            **config: Codec options.
+
+        Returns:
+            The decoded payload.
+
+        """
         return self._load(None, **config)
 
     def save(
@@ -183,22 +242,19 @@ class State(Generic[T]):
         parents: bool = False,
         force: bool = False,
     ) -> "FileState[T]":
-        """Write this state to a file, its path taken as relative to `root`.
-
-        An absolute path lands under `root` the way an archive member would, so
-        `/data/report.json` becomes `data/report.json`; the file takes the state timestamp.
+        """Write the state to a file.
 
         Args:
-            root: The directory the path is resolved against; the working directory by default.
-            parents: Whether to create `root` along with any of its missing parents.
-            force: Whether to overwrite a file already at the path.
+            root: Directory to resolve path against; current directory by default.
+            parents: Create missing parent directories.
+            force: Overwrite existing file.
 
         Returns:
-            The state of the file written to.
+            The saved file state.
 
         Raises:
-            ValueError: If the path resolves outside of `root`.
-            FileExistsError: If the path already exists and `force` is not set.
+            ValueError: If path resolves outside `root`.
+            FileExistsError: If file exists and `force` is not set.
 
         """
         root = Path(root).resolve()
@@ -219,13 +275,13 @@ class State(Generic[T]):
 
     @contextmanager
     def save_temp(self, root: PathLike | None = None) -> Generator["FileState[T]", None, None]:
-        """Write this state to a file in a temporary directory, removed on leaving the context.
+        """Write state to a temporary file, removed on context exit.
 
         Args:
-            root: The directory holding the temporary one; the system default if `None`.
+            root: Directory for temporary file; system temp if `None`.
 
         Yields:
-            The path written to, valid only inside the context.
+            The saved file state.
 
         """
         with TemporaryDirectory(dir=root) as temp:
@@ -289,6 +345,8 @@ class _StreamView(RawIOBase):
 
 
 class BufferedState(State[T]):
+    """A state backed by an in-memory buffer."""
+
     def __init__(
         self,
         buffer: BinaryIO,
@@ -296,6 +354,18 @@ class BufferedState(State[T]):
         path: str | None = None,
         timestamp: float | None = None,
     ) -> None:
+        """Initialize a state from a binary buffer.
+
+        Args:
+            buffer: A readable, seekable binary I/O buffer.
+            stem: The name without extension, completing the path when left out.
+            path: The full path including extension, completed from stem when left out.
+            timestamp: The modification time in seconds since epoch; current time if None.
+
+        Raises:
+            ValueError: If the buffer is not readable or seekable.
+
+        """
         self._source = buffer
         super().__init__(stem=stem, path=path, timestamp=timestamp)
         if not buffer.readable():
@@ -306,14 +376,27 @@ class BufferedState(State[T]):
             raise ValueError(msg)
 
     def __del__(self) -> None:
+        """Close the underlying source buffer."""
         self._source.close()
 
     @property
     def buffer(self) -> BufferedReader:
+        """Get a buffered reader for this state's data.
+
+        Returns:
+            A buffered reader wrapping the source buffer.
+
+        """
         return BufferedReader(_StreamView(self._source))
 
     @property
     def size(self) -> int:
+        """Get the size of the buffer in bytes.
+
+        Returns:
+            The number of bytes in the buffer.
+
+        """
         return self._source.seek(0, SEEK_END)
 
 
@@ -324,6 +407,15 @@ class FileState(State[T]):
     """
 
     def __init__(self, path: str | Path) -> None:
+        """Initialize a state from a file on disk.
+
+        Args:
+            path: The path to an existing file.
+
+        Raises:
+            FileNotFoundError: If the path is not a regular file.
+
+        """
         file = Path(path)
         if not file.is_file():
             msg = "Path is not a regular file"
@@ -342,14 +434,28 @@ class FileState(State[T]):
 
     @property
     def buffer(self) -> BufferedReader:
+        """Get a buffered reader for the file.
+
+        Returns:
+            An open file in binary read mode.
+
+        """
         return Path(self._path).open("rb")
 
     @property
     def size(self) -> int:
+        """Get the size of the file in bytes.
+
+        Returns:
+            The file size in bytes.
+
+        """
         return Path(self._path).stat().st_size
 
 
 class LoadedState(State[T]):
+    """A state backed by data loaded in memory."""
+
     def __init__(
         self,
         data: bytes,
@@ -357,11 +463,26 @@ class LoadedState(State[T]):
         path: str | None = None,
         timestamp: float | None = None,
     ) -> None:
+        """Initialize a state from raw data bytes.
+
+        Args:
+            data: The raw data bytes.
+            stem: The name without extension, completing the path when left out.
+            path: The full path including extension, completed from stem when left out.
+            timestamp: The modification time in seconds since epoch; current time if None.
+
+        """
         super().__init__(stem=stem, path=path, timestamp=timestamp)
         self._data = data
 
     @property
     def data(self) -> Data:
+        """Get the data content of this state.
+
+        Returns:
+            The data as a Data object.
+
+        """
         return Data(self._data)
 
 
@@ -411,16 +532,39 @@ class FormatState(LoadedState[T]):
 
     @classmethod
     def extension(cls) -> str:
+        """Get the file extension for this format state.
+
+        Returns:
+            The extension value as a string.
+
+        """
         return cls.__extension__.value
 
     @classmethod
     def _to_encode(cls, data: T) -> object:
-        """What the codec is handed for `data`, which is the payload unless a kind says else."""
+        """Get the data for encoding by the codec.
+
+        The codec receives the payload unless a subclass specifies otherwise.
+
+        Args:
+            data: The payload to encode.
+
+        Returns:
+            The data to pass to the codec.
+
+        """
         return data
 
     @classmethod
     def _expected(cls) -> "type[Any] | UnionType | None":
-        """The type the loaded payload is checked against, imported now if it was named."""
+        """Get the expected type for the loaded payload.
+
+        Imports the type if it was given as a named reference.
+
+        Returns:
+            The expected type for validation, or None if not specified.
+
+        """
         if isinstance(cls.__expected__, str):
             module, _, attribute = cls.__expected__.partition(":")
             expected: type[Any] = getattr(import_module(module), attribute)
@@ -429,14 +573,42 @@ class FormatState(LoadedState[T]):
 
     @classmethod
     def from_state(cls, state: State[Any]) -> Self:
+        """Create a format state from another state.
+
+        Args:
+            state: A state with the correct file extension.
+
+        Returns:
+            A format state with the data from the given state.
+
+        """
         cls._assert_path(state.path)
         return cls(data=state.data, path=state.path, timestamp=state.timestamp)
 
     def load(self, **config: object) -> T:
+        """Load and decode the format state's data.
+
+        Args:
+            **config: Codec configuration options.
+
+        Returns:
+            The decoded payload, validated against the expected type.
+
+        """
         return self._load(self._expected(), **config)
 
 
 def filtrate(states: Iterable[State[T]], pattern: str | Pattern) -> Iterator[State[T]]:
+    """Filter states by path pattern.
+
+    Args:
+        states: An iterable of states to filter.
+        pattern: A pattern to match against state paths.
+
+    Yields:
+        States whose paths match the pattern.
+
+    """
     pattern = Pattern(pattern)
     for state in states:
         if pattern(state.path):
@@ -444,6 +616,19 @@ def filtrate(states: Iterable[State[T]], pattern: str | Pattern) -> Iterator[Sta
 
 
 def first(states: Iterable[State[T]], pattern: str | Pattern) -> State[T]:
+    """Get the first state matching a pattern.
+
+    Args:
+        states: An iterable of states to search.
+        pattern: A pattern to match against state paths.
+
+    Returns:
+        The first state whose path matches the pattern.
+
+    Raises:
+        FileNotFoundError: If no matching state is found.
+
+    """
     for state in filtrate(states, pattern):
         return state
     msg = f"State not found: {pattern!r}"
@@ -451,15 +636,21 @@ def first(states: Iterable[State[T]], pattern: str | Pattern) -> State[T]:
 
 
 class Dat(FormatState[bytes]):
+    """A binary data file state."""
+
     __extension__ = Extension.DAT
     __expected__ = bytes
 
 
 class Bin(Dat):
+    """A binary file state."""
+
     __extension__ = Extension.BIN
 
 
 class Txt(FormatState[str]):
+    """A plain text file state."""
+
     __extension__ = Extension.TXT
     __expected__ = str
 
@@ -471,6 +662,8 @@ class Document(FormatState[dict[str, Any] | list[Any] | str]):
 
 
 class Json(Document):
+    """A JSON document state."""
+
     __extension__ = Extension.JSON
 
 
@@ -482,10 +675,14 @@ class Jsonl(FormatState[list[dict[str, Any]]]):
 
 
 class Yaml(Document):
+    """A YAML document state."""
+
     __extension__ = Extension.YAML
 
 
 class Yml(Yaml):
+    """A YML document state (YAML variant)."""
+
     __extension__ = Extension.YML
 
 
@@ -497,6 +694,8 @@ class Env(FormatState[dict[str, str | None]]):
 
 
 class Npy(FormatState["NDArray[Any]"]):
+    """A NumPy array state."""
+
     __extension__ = Extension.NPY
     __expected__ = "numpy:ndarray"
 
@@ -508,10 +707,14 @@ class Pandas(FormatState["DataFrame"]):
 
 
 class Csv(Pandas):
+    """A CSV file state."""
+
     __extension__ = Extension.CSV
 
 
 class Tsv(Pandas):
+    """A TSV (tab-separated values) file state."""
+
     __extension__ = Extension.TSV
 
 
@@ -522,14 +725,20 @@ class Image(FormatState["PillowImage"]):
 
 
 class Jpeg(Image):
+    """A JPEG image state."""
+
     __extension__ = Extension.JPEG
 
 
 class Jpg(Jpeg):
+    """A JPG image state (JPEG variant)."""
+
     __extension__ = Extension.JPG
 
 
 class Png(Image):
+    """A PNG image state."""
+
     __extension__ = Extension.PNG
 
 
@@ -540,10 +749,14 @@ class Archive(FormatState[Iterable[State[Any]]]):
 
 
 class Zip(Archive):
+    """A ZIP archive state."""
+
     __extension__ = Extension.ZIP
 
 
 class Tar(Archive):
+    """A TAR archive state."""
+
     __extension__ = Extension.TAR
 
 
@@ -562,6 +775,16 @@ class LayerState(FormatState[State[Any]]):
         timestamp: float | None = None,
         **config: object,
     ) -> None:
+        """Initialize a layer state by wrapping another state.
+
+        Args:
+            data: A state to wrap or data to encode.
+            stem: The name without extension, completing the path when left out.
+            path: The full path including extension, completed from stem when left out.
+            timestamp: The modification time, inherited from the wrapped state if left out.
+            **config: Codec configuration options.
+
+        """
         if isinstance(data, State):
             if stem is None and path is None:
                 path = data.path + self.extension()
@@ -617,6 +840,8 @@ A = TypeVar("A", bound="Audio")
 
 
 class Audio(FormatState["Waveform"]):
+    """A waveform audio file state."""
+
     __expected__ = "iokit.dtype.waveform:Waveform"
 
     def _to_audio(self, kls: type[A]) -> A:
@@ -626,52 +851,102 @@ class Audio(FormatState["Waveform"]):
 
     @property
     def flac(self) -> "Flac":
+        """Convert this audio to FLAC format.
+
+        Returns:
+            This audio as a FLAC state.
+
+        """
         return self._to_audio(Flac)
 
     @property
     def wav(self) -> "Wav":
+        """Convert this audio to WAV format.
+
+        Returns:
+            This audio as a WAV state.
+
+        """
         return self._to_audio(Wav)
 
     @property
     def mp3(self) -> "Mp3":
+        """Convert this audio to MP3 format.
+
+        Returns:
+            This audio as an MP3 state.
+
+        """
         return self._to_audio(Mp3)
 
     @property
     def ogg(self) -> "Ogg":
+        """Convert this audio to OGG format.
+
+        Returns:
+            This audio as an OGG state.
+
+        """
         return self._to_audio(Ogg)
 
     @property
     def oga(self) -> "Oga":
+        """Convert this audio to OGA format.
+
+        Returns:
+            This audio as an OGA state.
+
+        """
         return self._to_audio(Oga)
 
     @property
     def opus(self) -> "Opus":
+        """Convert this audio to Opus format.
+
+        Returns:
+            This audio as an Opus state.
+
+        """
         return self._to_audio(Opus)
 
 
 class Flac(Audio):
+    """A FLAC audio file state."""
+
     __extension__ = Extension.FLAC
 
 
 class Wav(Audio):
+    """A WAV audio file state."""
+
     __extension__ = Extension.WAV
 
 
 class Mp3(Audio):
+    """An MP3 audio file state."""
+
     __extension__ = Extension.MP3
 
 
 class Ogg(Audio):
+    """An OGG audio file state."""
+
     __extension__ = Extension.OGG
 
 
 class Oga(Ogg):
+    """An OGA audio file state."""
+
     __extension__ = Extension.OGA
 
 
 class Ogx(Ogg):
+    """An OGX audio file state."""
+
     __extension__ = Extension.OGX
 
 
 class Opus(Ogg):
+    """An Opus audio file state."""
+
     __extension__ = Extension.OPUS

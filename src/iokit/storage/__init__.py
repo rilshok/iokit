@@ -1,3 +1,5 @@
+"""Storage backends for binary and typed data with optional caching and encryption."""
+
 __all__ = [
     "BinaryStorage",
     "CachedStorage",

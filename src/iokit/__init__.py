@@ -1,3 +1,5 @@
+"""Typed I/O with automatic codec selection from file extensions."""
+
 __all__ = [
     "Archive",
     "Audio",
