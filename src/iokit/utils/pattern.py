@@ -2,6 +2,8 @@ from fnmatch import fnmatch
 
 
 class Pattern(str):
+    __slots__ = ()
+
     def __len__(self) -> int:
         return len(self.replace("*", ""))
 
