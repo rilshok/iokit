@@ -62,11 +62,9 @@ class Waveform:
         stop = min(stop, self.wave.shape[0])
         return Waveform(self.wave[start:stop], self.freq)
 
-    def display(self) -> None:
-        # TODO(@rilshok): rebase to _repr_html_
-        from IPython.display import Audio, display
-
-        return display(Audio(self.wave.T, rate=self.freq))
+    def _repr_html_(self) -> str:
+        source = self.to_ogg().data.base64
+        return f'<audio controls src="data:audio/ogg;base64,{source}"></audio>'
 
     def to_mono(self) -> "Waveform":
         if self.channels == 1:
