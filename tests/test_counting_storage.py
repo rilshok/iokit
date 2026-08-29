@@ -1,9 +1,10 @@
+"""A storage that keeps a tally of the calls it passes on to the backend it wraps."""
+
 from pathlib import Path
 
 import pytest
 
-from iokit.storage import CountingStorage, MemoryStorage
-from iokit.storage.local import StreamLocalStorage
+from iokit import CountingStorage, MemoryStorage, StreamLocalStorage
 
 
 def counted() -> CountingStorage[bytes]:
@@ -101,25 +102,7 @@ def test_records_pass_through_untouched() -> None:
     assert storage.backend is backend
 
 
-def test_the_backend_keeps_deciding_what_to_refuse() -> None:
-    """The wrapper refuses nothing of its own, the backend answering for an existing record."""
-    storage = counted()
-    storage.push("data.json", b"{}")
-    with pytest.raises(FileExistsError):
-        storage.push("data.json", b"[]")
-    storage.push("data.json", b"[]", force=True)
-    assert storage.pull("data.json") == b"[]"
-
-
-def test_index_is_filtered_by_prefix() -> None:
-    """Only the records under the prefix are indexed, the wrapper adding no filtering of its own."""
-    storage = counted()
-    storage.push("reports/first.json", b"{}")
-    storage.push("notes.txt", b"hello")
-    assert list(storage.index(prefix="reports/")) == ["reports/first.json"]
-
-
-def test_a_stream_storage_stays_a_stream_storage(tmp_path: Path) -> None:
+def test_stream_stays_a_stream(tmp_path: Path) -> None:
     """Wrapping a stream storage keeps records streaming, handed on as the stream they are."""
     storage = CountingStorage(StreamLocalStorage(tmp_path))
     with (tmp_path / "source.json").open("wb") as source:

@@ -1,3 +1,5 @@
+"""Typed I/O with automatic codec selection from file extensions."""
+
 __all__ = [
     "Archive",
     "Audio",
@@ -29,6 +31,7 @@ __all__ = [
     "Npy",
     "Oga",
     "Ogg",
+    "Ogx",
     "Opus",
     "Pandas",
     "Png",
@@ -36,6 +39,7 @@ __all__ = [
     "StateStorage",
     "Storage",
     "StreamLocalStorage",
+    "StreamMemoryStorage",
     "Tar",
     "Tsv",
     "Txt",
@@ -79,6 +83,7 @@ from .state import (
     Npy,
     Oga,
     Ogg,
+    Ogx,
     Opus,
     Pandas,
     Png,
@@ -102,6 +107,7 @@ from .storage import (
     StateStorage,
     Storage,
     StreamLocalStorage,
+    StreamMemoryStorage,
 )
 from .utils.file import file
 

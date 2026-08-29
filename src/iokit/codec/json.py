@@ -1,3 +1,5 @@
+"""Codec for JSON documents with configurable formatting."""
+
 import json
 from io import BytesIO
 from typing import Any, BinaryIO
@@ -8,6 +10,8 @@ D = dict[str, Any] | list[Any] | str
 
 
 class JsonCodec(Codec[D]):
+    """Convert between JSON and binary with formatting options."""
+
     def __init__(
         self,
         *,
@@ -15,6 +19,14 @@ class JsonCodec(Codec[D]):
         ensure_ascii: bool = False,
         allow_nan: bool = False,
     ) -> None:
+        """Initialize codec with JSON serialization options.
+
+        Args:
+            compact: No space after separators (default: readable spacing).
+            ensure_ascii: Escape non-ASCII characters.
+            allow_nan: Permit `NaN`, `Infinity`, `-Infinity` in output.
+
+        """
         self._compact = compact
         self._ensure_ascii = ensure_ascii
         self._allow_nan = allow_nan
@@ -28,6 +40,7 @@ class JsonCodec(Codec[D]):
         ).encode
 
     def __repr__(self) -> str:
+        """Return codec representation with all options."""
         return (
             f"{type(self).__name__}("
             f"compact={self._compact}, "
@@ -37,8 +50,10 @@ class JsonCodec(Codec[D]):
         )
 
     def encode(self, data: D) -> BytesIO:
+        """Serialize `data` to JSON bytes."""
         return BytesIO(self._encode(data).encode("utf-8"))
 
     def decode(self, buffer: BinaryIO) -> D:
+        """Parse JSON from `buffer`."""
         with buffer:
             return json.load(buffer)

@@ -1,3 +1,5 @@
+"""Base codec protocol and registry for encoding and decoding typed data."""
+
 from collections.abc import Iterable, Iterator
 from dataclasses import dataclass, replace
 from importlib import import_module
@@ -12,10 +14,14 @@ T = TypeVar("T", bound=object)
 
 
 class Codec(Generic[T]):
+    """Convert between typed data and binary I/O streams."""
+
     def encode(self, data: T) -> BinaryIO:
+        """Write `data` to a binary buffer."""
         raise NotImplementedError
 
     def decode(self, buffer: BinaryIO) -> T:
+        """Read `buffer` and return typed data."""
         raise NotImplementedError
 
 
@@ -25,14 +31,14 @@ Requirements = str | Requirement | Iterable[str | Requirement]
 
 
 def _requirements(requirements: Requirements | None) -> list[Requirement]:
-    """The named requirements as parsed `Requirement`s, deduplicated and ordered for hashing."""
+    """Parse and normalize `requirements` for hashing."""
     if isinstance(requirements, str | Requirement):
         requirements = [requirements]
     return [Requirement(r) for r in sorted({str(r) for r in requirements or ()})]
 
 
 def _suffix(extension: Extension | str) -> str:
-    """The extension as it trails a name: lowercase and dotted, `""` standing for any name."""
+    """Format `extension` as a lowercase dotted suffix."""
     suffix = extension.value if isinstance(extension, Extension) else extension
     suffix = suffix.strip().lower()
     if suffix and not suffix.startswith("."):
@@ -42,6 +48,8 @@ def _suffix(extension: Extension | str) -> str:
 
 @dataclass
 class CodecSpec:
+    """Codec specification with extension and dependencies."""
+
     ext: Extension | str
     spec: str
     config: dict[str, Any]
@@ -49,6 +57,7 @@ class CodecSpec:
     cacheble: bool
 
     def __post_init__(self) -> None:
+        """Validate and normalize the specification."""
         if not self.module or not self.attribute:
             msg = f"Codec spec must read as 'module:attribute', got {self.spec!r}"
             raise ValueError(msg)
@@ -65,20 +74,21 @@ class CodecSpec:
 
     @property
     def suffix(self) -> str:
-        """The extension this spec is registered for, as it trails a name."""
+        """Return the file extension suffix."""
         return _suffix(self.ext)
 
     @property
     def module(self) -> str:
-        """The module the codec class lives in, the part of the spec before the colon."""
+        """Return the module containing the codec class."""
         return self.spec.partition(":")[0]
 
     @property
     def attribute(self) -> str:
-        """The name the codec class goes by in its module, the part after the colon."""
+        """Return the codec class name in the module."""
         return self.spec.partition(":")[2]
 
     def __hash__(self) -> int:
+        """Return hash of the specification."""
         state = (
             self.spec,
             tuple((k, hash(v)) for k, v in self.config.items()),
@@ -87,6 +97,7 @@ class CodecSpec:
         return hash(state)
 
     def produce(self, **config: object) -> Codec[Any]:
+        """Instantiate the codec class with merged config."""
         merged = self.config | config
         obj = replace(self, config={key: merged[key] for key in self.config})
 
@@ -122,6 +133,17 @@ def registrate(
     cacheble: bool = True,
     **kwargs: object,
 ) -> None:
+    """Register a codec for an extension.
+
+    Args:
+        ext: File extension.
+        spec: Module and class in 'module:class' format.
+        requirements: Package requirements.
+        override: Check this codec first.
+        cacheble: Cache codec instances.
+        **kwargs: Codec configuration.
+
+    """
     entry = CodecSpec(
         ext=ext,
         spec=spec,
@@ -136,7 +158,7 @@ def registrate(
 
 
 def _candidates(name: str) -> Iterator[CodecSpec]:
-    """Registry entries claiming the name, narrowed down to the longest extensions."""
+    """Yield codecs matching `name` with longest extension."""
     matched = [codec for codec in _CODEC_REGISTRY if name.endswith(codec.suffix)]
     if not matched:
         msg = f"No codec registered for {name!r}"
@@ -148,6 +170,20 @@ def _candidates(name: str) -> Iterator[CodecSpec]:
 
 
 def best_codec(name: str, **config: object) -> Codec[Any]:
+    """Get the first matching codec with satisfied dependencies.
+
+    Args:
+        name: Filename to find codec for.
+        **config: Codec configuration overrides.
+
+    Returns:
+        An instantiated codec.
+
+    Raises:
+        LookupError: No codec for extension.
+        ModuleNotFoundError: Matching codecs lack dependencies.
+
+    """
     failures: list[ModuleNotFoundError] = []
     for codec in _candidates(name.lower()):
         try:
@@ -237,6 +273,7 @@ _AUDIO_CODECS = {
     Extension.FLAC: "Flac",
     Extension.MP3: "Mp3",
     Extension.OGG: "Ogg",
+    Extension.OGX: "Ogg",
     Extension.OGA: "Ogg",  # `.oga` is an ogg container, told apart only by its extension
     Extension.OPUS: "Opus",
 }

@@ -1,3 +1,5 @@
+"""Codec for JSON Lines (newline-delimited JSON)."""
+
 __all__ = ["JsonlCodec"]
 
 import json
@@ -12,6 +14,8 @@ D = list[Any]
 
 
 class JsonlCodec(Codec[D]):
+    """Convert lists to/from JSON Lines format."""
+
     def __init__(
         self,
         *,
@@ -19,6 +23,14 @@ class JsonlCodec(Codec[D]):
         ensure_ascii: bool = False,
         allow_nan: bool = False,
     ) -> None:
+        """Initialize codec with JSON options.
+
+        Args:
+            compact: Compact format (no spaces).
+            ensure_ascii: Escape non-ASCII.
+            allow_nan: Allow `NaN` and `Infinity`.
+
+        """
         self._compact = compact
         self._ensure_ascii = ensure_ascii
         self._allow_nan = allow_nan
@@ -32,6 +44,7 @@ class JsonlCodec(Codec[D]):
         ).encode
 
     def __repr__(self) -> str:
+        """Return codec representation."""
         return (
             f"{type(self).__name__}("
             f"compact={self._compact}, "
@@ -41,6 +54,7 @@ class JsonlCodec(Codec[D]):
         )
 
     def encode(self, data: D) -> BytesIO:
+        """Write each item in `data` as a separate JSON line."""
         buffer = BytesIO()
         with Writer(buffer, compact=self._compact, sort_keys=False, dumps=self._dumps) as writer:
             for item in data:
@@ -49,5 +63,6 @@ class JsonlCodec(Codec[D]):
         return buffer
 
     def decode(self, buffer: BinaryIO) -> D:
+        """Read and parse JSON Lines from `buffer` into a list of objects."""
         with buffer, Reader(buffer) as reader:
             return list(reader)

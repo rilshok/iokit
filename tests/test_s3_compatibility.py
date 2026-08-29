@@ -1,7 +1,6 @@
-"""Tests for how the S3 client copes with services that stray from the protocol.
+"""How the S3 client copes with services that stray from the protocol, every reply a stand-in.
 
-Every reply here is served by a stand-in client, so nothing in this module touches the
-network. See `tests/test_s3.py` for the smoke tests against a real bucket.
+See `tests/test_s3.py` for the smoke tests against a real bucket.
 """
 
 from collections.abc import Iterator
@@ -16,6 +15,8 @@ from iokit.storage.s3 import StreamS3Storage
 BUCKET = "bucket"
 UID = "folder/object.txt"
 SIZE = 3411
+#: what every call refuses a uid no record could be handed back under with
+NO_RECORD = "is not a relative path naming a record"
 
 Reply = Any
 
@@ -29,11 +30,13 @@ def error(operation: str, code: str = "", status: int = 0) -> ClientError:
     return ClientError(response, operation)
 
 
-#: What the service of the issue answers to a HEAD of a key it does not hold.
+#: a HEAD answered with something that cannot mean anything, as some services do
 BAD_REQUEST = error("HeadObject", code="400", status=400)
 DENIED = error("HeadObject", code="AccessDenied", status=403)
 MISSING = error("GetObject", code="NoSuchKey", status=404)
 BROKEN = error("GetObject", code="InternalError", status=500)
+NO_MULTIPART = error("CreateMultipartUpload", code="NotImplemented", status=501)
+NO_LIST_V2 = error("ListObjectsV2", code="NotImplemented", status=501)
 
 
 class FakePaginator:
@@ -49,11 +52,7 @@ class FakePaginator:
 
 
 class FakeS3:
-    """A stand-in for an S3 service, answering whatever a test told it to.
-
-    A reply is either a value to return or an exception to raise. The calls it took and
-    the arguments of the last of each are kept, so that a test can look at them.
-    """
+    """A stand-in service, answering each call with a value to return or an error to raise."""
 
     def __init__(self, **replies: Reply) -> None:
         self._replies = replies
@@ -90,7 +89,7 @@ class FakeS3:
 def served_by(client: FakeS3, folder: str | None = None) -> StreamS3Storage:
     """Point a storage at a stand-in service instead of a real bucket."""
     storage = StreamS3Storage(BUCKET, folder)
-    storage._get_client = lambda: client
+    storage._get_client = lambda: client  # noqa: SLF001
     return storage
 
 
@@ -132,19 +131,19 @@ def test_size_of_an_empty_object_is_zero() -> None:
     assert served_by(client).size(UID) == 0
 
 
-def test_size_of_missing_raises_when_the_service_says_nothing_useful() -> None:
+def test_size_of_missing_when_nothing_is_said() -> None:
     """Two replies that carry no meaning are read as the likeliest thing: no such object."""
     client = FakeS3(head_object=BAD_REQUEST, get_object=error("GetObject", status=400))
     with pytest.raises(FileNotFoundError):
         served_by(client).size(UID)
 
 
-def test_exists_is_false_when_the_fallback_finds_nothing() -> None:
+def test_fallback_finds_nothing() -> None:
     client = FakeS3(head_object=BAD_REQUEST, get_object=MISSING)
     assert not served_by(client).exists(UID)
 
 
-def test_exists_is_true_when_the_fallback_finds_the_object() -> None:
+def test_fallback_finds_the_object() -> None:
     client = FakeS3(head_object=BAD_REQUEST, get_object=ranged(SIZE))
     assert served_by(client).exists(UID)
 
@@ -166,7 +165,7 @@ def test_a_standard_absence_costs_a_single_call() -> None:
 # a service that refuses the request
 
 
-def test_denied_head_is_reported_rather_than_believed() -> None:
+def test_denied_head_is_reported() -> None:
     """A refusal must not pass for an absence, or a push would overwrite unseen data."""
     with pytest.raises(PermissionError):
         served_by(FakeS3(head_object=DENIED)).exists(UID)
@@ -205,7 +204,7 @@ def test_denied_listing_is_reported() -> None:
         list(served_by(FakeS3(list_objects_v2=denied)).index())
 
 
-def test_the_denial_names_the_bucket_and_what_was_refused() -> None:
+def test_denial_names_bucket_and_uid() -> None:
     """The message has to be enough to go and fix the policy that caused it."""
     with pytest.raises(PermissionError, match="AccessDenied") as failure:
         served_by(FakeS3(get_object=DENIED)).pull(UID)
@@ -216,13 +215,13 @@ def test_the_denial_names_the_bucket_and_what_was_refused() -> None:
 # a service that is merely broken
 
 
-def test_a_failing_service_is_not_an_absence() -> None:
+def test_failing_service_is_not_an_absence() -> None:
     """A service in trouble says nothing about whether the object is there."""
     with pytest.raises(RuntimeError, match="InternalError"):
         served_by(FakeS3(get_object=BROKEN)).pull(UID)
 
 
-def test_a_failing_service_is_not_an_absence_on_a_head() -> None:
+def test_failing_head_is_not_an_absence() -> None:
     client = FakeS3(head_object=error("HeadObject", status=503), get_object=BROKEN)
     with pytest.raises(RuntimeError):
         served_by(client).size(UID)
@@ -233,16 +232,14 @@ def test_a_failing_service_is_not_an_absence_on_a_head() -> None:
 
 def test_push_falls_back_to_a_single_request() -> None:
     """An upload the service could not make sense of is retried the simplest way."""
-    unsupported = error("CreateMultipartUpload", code="NotImplemented", status=501)
-    client = FakeS3(head_object=MISSING, upload_fileobj=unsupported, put_object={})
+    client = FakeS3(head_object=MISSING, upload_fileobj=NO_MULTIPART, put_object={})
     served_by(client).push(UID, BytesIO(b"data"))
     assert client.calls == ["head_object", "upload_fileobj", "put_object"]
 
 
 def test_push_rewinds_the_record_before_the_fallback() -> None:
     """The failed attempt has read the record, so the retry starts over from the front."""
-    unsupported = error("CreateMultipartUpload", code="NotImplemented", status=501)
-    client = FakeS3(head_object=MISSING, upload_fileobj=unsupported, put_object={})
+    client = FakeS3(head_object=MISSING, upload_fileobj=NO_MULTIPART, put_object={})
     record = BytesIO(b"data")
     record.read()
     served_by(client).push(UID, record)
@@ -250,9 +247,8 @@ def test_push_rewinds_the_record_before_the_fallback() -> None:
 
 
 def test_push_reports_what_the_fallback_ran_into() -> None:
-    unsupported = error("CreateMultipartUpload", code="NotImplemented", status=501)
     denied = error("PutObject", code="AccessDenied", status=403)
-    client = FakeS3(head_object=MISSING, upload_fileobj=unsupported, put_object=denied)
+    client = FakeS3(head_object=MISSING, upload_fileobj=NO_MULTIPART, put_object=denied)
     with pytest.raises(PermissionError):
         served_by(client).push(UID, BytesIO(b"data"))
 
@@ -278,20 +274,18 @@ def test_listing_of_an_empty_bucket_yields_nothing() -> None:
 
 def test_listing_falls_back_to_the_older_api() -> None:
     """A service that never implemented the second version still has a first one."""
-    unsupported = error("ListObjectsV2", code="NotImplemented", status=501)
     pages = [{"Contents": [{"Key": "a"}]}]
-    client = FakeS3(list_objects_v2=unsupported, list_objects=pages)
+    client = FakeS3(list_objects_v2=NO_LIST_V2, list_objects=pages)
     assert list(served_by(client).index()) == ["a"]
     assert client.calls == ["list_objects_v2", "list_objects"]
 
 
-def test_listing_does_not_repeat_what_it_already_yielded() -> None:
+def test_listing_does_not_repeat_itself() -> None:
     """A listing that broke halfway is reported, rather than started over on the older api."""
-    unsupported = error("ListObjectsV2", code="NotImplemented", status=501)
 
     def pages() -> Iterator[dict[str, Any]]:
         yield {"Contents": [{"Key": "a"}]}
-        raise unsupported
+        raise NO_LIST_V2
 
     client = FakeS3(list_objects_v2=pages(), list_objects=[{"Contents": [{"Key": "a"}]}])
     with pytest.raises(RuntimeError):
@@ -302,3 +296,38 @@ def test_listing_strips_the_folder_of_the_storage() -> None:
     pages = [{"Contents": [{"Key": "folder/a"}, {"Key": "folder/b"}]}]
     storage = served_by(FakeS3(list_objects_v2=pages), folder="folder")
     assert list(storage.index()) == ["a", "b"]
+
+
+# a uid that names no record
+
+
+def test_bad_uid_never_reaches_the_service() -> None:
+    """Which uid names no record is settled in the contract; here, none is sent anywhere."""
+    client = FakeS3()
+    storage = served_by(client)
+    with pytest.raises(ValueError, match=NO_RECORD):
+        storage.pull("./object.txt")
+    with pytest.raises(ValueError, match=NO_RECORD):
+        storage.size("./object.txt")
+    with pytest.raises(ValueError, match=NO_RECORD):
+        storage.exists("./object.txt")
+    with pytest.raises(ValueError, match=NO_RECORD):
+        storage.remove("./object.txt")
+    assert client.calls == []
+
+
+def test_bad_uid_uploads_nothing() -> None:
+    client = FakeS3(head_object=MISSING)
+    storage = served_by(client)
+    with pytest.raises(ValueError, match=NO_RECORD):
+        storage.push("./object.txt", BytesIO(b"hello"))
+    assert client.calls == []
+
+
+def test_uid_stays_within_the_folder() -> None:
+    """The folder is the root a uid is relative to, so it may not be escaped with '..'."""
+    client = FakeS3()
+    storage = served_by(client, "folder")
+    with pytest.raises(ValueError, match=NO_RECORD):
+        storage.exists("../elsewhere/object.txt")
+    assert client.calls == []

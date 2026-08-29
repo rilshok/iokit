@@ -1,3 +1,5 @@
+"""Codec for TAR archives containing typed states."""
+
 __all__ = ["TarCodec"]
 
 import tarfile
@@ -10,13 +12,23 @@ from iokit.state import BufferedState, LoadedState, State
 
 
 class TarCodec(Codec[Iterable[State[Any]]]):
+    """Pack states into TAR archives."""
+
     def __init__(self, *, buffered: bool = False) -> None:
+        """Initialize with buffering mode.
+
+        Args:
+            buffered: Stream as `BufferedState` or load into memory.
+
+        """
         self._buffered = buffered
 
     def __repr__(self) -> str:
+        """Return codec representation."""
         return f"{type(self).__name__}(buffered={self._buffered})"
 
     def encode(self, data: Iterable[State[Any]]) -> BytesIO:
+        """Pack states to TAR with paths and timestamps."""
         buffer = BytesIO()
         with tarfile.open(fileobj=buffer, mode="w") as archive:
             for state in data:
@@ -28,6 +40,7 @@ class TarCodec(Codec[Iterable[State[Any]]]):
         return buffer
 
     def decode(self, buffer: BinaryIO) -> Iterable[State[Any]]:
+        """Yield states from a TAR archive, optionally buffering member content."""
         with buffer, tarfile.open(fileobj=buffer, mode="r") as archive:
             for member in archive.getmembers():
                 if not member.isfile():

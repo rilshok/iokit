@@ -1,3 +1,5 @@
+"""Bytes with encoding and serialization convenience methods."""
+
 from base64 import (
     b32decode,
     b32encode,
@@ -23,8 +25,11 @@ from iokit.utils.checksum import Hash
 
 
 class Data(bytes):
+    """Bytes with encoding and serialization convenience methods."""
+
     @classmethod
     def from_ascii(cls, string: str) -> Self:
+        """Create `Data` from an ASCII string."""
         return cls(string.encode("ascii"))
 
     @classmethod
@@ -34,39 +39,49 @@ class Data(bytes):
         length: SupportsIndex = 1,
         byteorder: Literal["little", "big"] = "big",
     ) -> Self:
+        """Create `Data` from an integer with specified byte length and order."""
         return cls(value.to_bytes(length, byteorder))
 
     def to_int(self, byteorder: Literal["little", "big"] = "big") -> int:
+        """Convert bytes to an integer with specified byte order."""
         return int.from_bytes(self, byteorder)
 
     @classmethod
     def random(cls, nbytes: int) -> Self:
+        """Generate `Data` with `nbytes` of random bytes."""
         return cls(urandom(nbytes))
 
     @classmethod
     def from_base64(cls, string: str) -> Self:
+        """Decode `string` from standard Base64."""
         return cls(b64decode(string))
 
     @property
     def base64(self) -> str:
+        """Encode bytes as standard Base64 string."""
         return b64encode(self).decode("ascii")
 
     @classmethod
     def from_base64url(cls, string: str) -> Self:
+        """Decode `string` from URL-safe Base64 (padding optional)."""
         padding = "=" * (-len(string) % 4)
         return cls(urlsafe_b64decode(string + padding))
 
     @property
     def base64url(self) -> str:
+        """Encode bytes as URL-safe Base64 string without padding."""
         return urlsafe_b64encode(self).decode("ascii").rstrip("=")
 
     def __add__(self, other: Buffer) -> "Data":
+        """Concatenate `other` bytes, returning `Data`."""
         return Data(super().__add__(other))
 
     def __mul__(self, other: SupportsIndex) -> "Data":
+        """Repeat bytes `other` times, returning `Data`."""
         return Data(super().__mul__(other))
 
     def __rmul__(self, other: SupportsIndex) -> "Data":
+        """Repeat bytes `other` times (reverse), returning `Data`."""
         return Data(super().__rmul__(other))
 
     @overload
@@ -76,11 +91,13 @@ class Data(bytes):
     def __getitem__(self, key: slice) -> "Data": ...
 
     def __getitem__(self, key: int | slice | SupportsIndex) -> "Data | int":
+        """Get byte(s) by index or slice, returning `Data` for slices."""
         result = super().__getitem__(key)
         return result if isinstance(result, int) else Data(result)
 
     @property
     def base32crockford(self) -> str:
+        """Encode bytes as Crockford Base32 (for human-readable identifiers)."""
         # source: https://www.crockford.com/base32.html
         return "".join(
             chr(_BASE32_CROCKFORD_ENCODE_ALPHABET[_BASE32_RFC4648_DECODE_ALPHABET[ch]])
@@ -89,6 +106,7 @@ class Data(bytes):
 
     @classmethod
     def from_base32crockford(cls, string: str) -> Self:
+        """Decode `string` from Crockford Base32."""
         raw = "".join(
             chr(_BASE32_RFC4648_ENCODE_ALPHABET[_BASE32_CROCKFORD_DECODE_ALPHABET[ch]])
             for ch in string.encode()

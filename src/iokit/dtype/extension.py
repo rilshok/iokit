@@ -1,7 +1,11 @@
+"""File extension enumeration."""
+
 from enum import Enum
 
 
 class Extension(Enum):
+    """Enumeration of supported file extensions."""
+
     NULL = ""
     BIN = ".bin"
     DAT = ".dat"
@@ -13,6 +17,7 @@ class Extension(Enum):
     MP3 = ".mp3"
     OGG = ".ogg"
     OGA = ".oga"
+    OGX = ".ogx"
     OPUS = ".opus"
     TAR = ".tar"
     GZ = ".gz"
