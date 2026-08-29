@@ -3,6 +3,10 @@
 That a waveform survives each audio format is checked in `tests/test_state_contract.py`.
 """
 
+import os
+import subprocess
+import sys
+
 import numpy as np
 import pytest
 from numpy.testing import assert_array_equal
@@ -105,3 +109,55 @@ def test_conversion_between_formats(
     assert isinstance(rewritten, kind)
     assert rewritten.path == "nested/sound" + extension
     assert rewritten.load().frames == 2048
+
+
+#: a stack small enough to keep the check quick, and large enough for the interpreter itself
+STACK_BYTES = 2 * 1024 * 1024
+
+#: more frames than fit on that stack, libsndfile taking four bytes of it for each of them
+LONG_FRAMES = 800_000
+
+#: a conversion run apart, so that a stack the encoding overruns takes nothing else down
+LONG_CONVERSION = """
+import resource
+
+_, hard = resource.getrlimit(resource.RLIMIT_STACK)
+resource.setrlimit(resource.RLIMIT_STACK, ({stack}, hard))
+
+import numpy as np
+
+from iokit.dtype.waveform import Waveform
+
+waveform = Waveform(wave=np.full(({frames}, 2), 0.5, dtype=np.float32), freq={freq})
+print(waveform.to_{name}("sound").load().frames)
+"""
+
+
+@pytest.mark.skipif(os.name != "posix", reason="the stack is bounded through a posix resource")
+@pytest.mark.parametrize("name", [name for name, _, _ in CONVERSIONS])
+def test_long_wave_is_written_within_the_stack(name: str) -> None:
+    """A wave longer than the stack holds goes to a format, and comes back whole.
+
+    Handed a whole wave at once, libsndfile lays out four bytes of stack for every frame of
+    it, so a long enough one overruns the stack and takes the process down with it. The wave
+    has to reach it in blocks, which is what a run of `LONG_FRAMES` frames on a stack of
+    `STACK_BYTES` bytes checks.
+    """
+    script = LONG_CONVERSION.format(
+        stack=STACK_BYTES,
+        frames=LONG_FRAMES,
+        freq=FREQ,
+        name=name,
+    )
+    conversion = subprocess.run(  # noqa: S603
+        [sys.executable, "-c", script],
+        capture_output=True,
+        text=True,
+        check=False,
+        timeout=300,
+    )
+    assert conversion.returncode == 0, (
+        f"converting to {name} left the process with {conversion.returncode}"
+        f" (-11 being a stack overrun): {conversion.stderr}"
+    )
+    assert int(conversion.stdout) == LONG_FRAMES

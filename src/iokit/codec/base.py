@@ -237,6 +237,7 @@ _AUDIO_CODECS = {
     Extension.FLAC: "Flac",
     Extension.MP3: "Mp3",
     Extension.OGG: "Ogg",
+    Extension.OGX: "Ogg",
     Extension.OGA: "Ogg",  # `.oga` is an ogg container, told apart only by its extension
     Extension.OPUS: "Opus",
 }

@@ -13,6 +13,7 @@ class Extension(Enum):
     MP3 = ".mp3"
     OGG = ".ogg"
     OGA = ".oga"
+    OGX = ".ogx"
     OPUS = ".opus"
     TAR = ".tar"
     GZ = ".gz"

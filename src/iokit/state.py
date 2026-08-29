@@ -669,5 +669,9 @@ class Oga(Ogg):
     __extension__ = Extension.OGA
 
 
+class Ogx(Ogg):
+    __extension__ = Extension.OGX
+
+
 class Opus(Ogg):
     __extension__ = Extension.OPUS
