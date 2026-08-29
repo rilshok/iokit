@@ -66,7 +66,7 @@ def test_wrong_password() -> None:
     backend = MemoryStorage()
     StateStorage(backend, password=PASSWORD).push("data.json", DOCUMENT)
     with pytest.raises(ValueError, match="Decryption failed"):
-        StateStorage(backend, password="wrong").pull("data.json")
+        StateStorage(backend, password="wrong").pull("data.json")  # noqa: S106
 
 
 def test_pull_state_is_pathed_by_its_uid() -> None:

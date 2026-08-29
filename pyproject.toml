@@ -92,46 +92,15 @@ docstring-code-format = true
 
 
 [tool.ruff.lint]
-select = [
-    "RUF",
-    "W",
-    "E",
-    "F",
-    "UP",
-    "YTT",
-    "B",
-    "C4",
-    "T10",
-    "SIM",
-    "I",
-    "PGH",
-    "COM",
-    "RSE",
-    "FLY",
-    "RET",
-    "TC",
-    "FURB",
-    "A",
-    "S",
-    "TRY",
-    "EM",
-    "ANN",
-    "BLE",
-    "N",
-    "C90",
-    "FBT",
-    "SLF",
-    "TID",
-    "ARG",
-    "PTH",
-    "NPY",
-    "PERF",
-    "PL",
-]
+select = ["ALL"]
 ignore = [
-    "RUF100",
+    "CPY001",
+    "D203",
+    "D213",
     "F403",
+    "PLR2004",
+    "RUF100",
 ]
 
 [tool.ruff.lint.per-file-ignores]
-"tests/*" = ["PLR2004", "PLR0915", "S101", "S106", "ANN201", "SLF001"]
+"tests/*" = ["D", "S101"]

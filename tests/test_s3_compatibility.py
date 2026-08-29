@@ -89,7 +89,7 @@ class FakeS3:
 def served_by(client: FakeS3, folder: str | None = None) -> StreamS3Storage:
     """Point a storage at a stand-in service instead of a real bucket."""
     storage = StreamS3Storage(BUCKET, folder)
-    storage._get_client = lambda: client
+    storage._get_client = lambda: client  # noqa: SLF001
     return storage
 
 
