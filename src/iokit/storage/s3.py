@@ -13,7 +13,7 @@ import boto3
 from botocore import UNSIGNED
 from botocore.exceptions import ClientError
 
-from .storage import BinaryStorage, Storage
+from .storage import BinaryStorage, Storage, validate_uid
 
 _HTTP_UNAUTHORIZED = 401
 _HTTP_FORBIDDEN = 403
@@ -179,6 +179,17 @@ class StreamS3Storage(Storage[BinaryIO]):
         endpoint_url: str | None = None,
         region_name: str | None = None,
     ) -> None:
+        """Initialize an S3 client for a specific bucket and folder.
+
+        Args:
+            bucket: The S3 bucket name.
+            folder: Optional folder prefix within the bucket.
+            access_key: AWS access key ID. If not provided, uses unsigned requests.
+            secret_access_key: AWS secret access key.
+            endpoint_url: Custom S3 endpoint URL for S3-compatible services.
+            region_name: AWS region name.
+
+        """
         self._bucket = bucket
         folder = (folder or "").strip("/")
         self._folder = f"{folder}/" if folder else ""
@@ -200,7 +211,19 @@ class StreamS3Storage(Storage[BinaryIO]):
         return self._get_client()
 
     def _uid_parts(self, uid: str) -> dict[str, str]:
-        """Address an object in the storage bucket by its UID."""
+        """Address an object in the storage bucket by its UID.
+
+        Args:
+            uid: Record identifier as relative POSIX path.
+
+        Returns:
+            Bucket and key for the S3 object.
+
+        Raises:
+            ValueError: If `uid` is not a valid record identifier.
+
+        """
+        validate_uid(uid)
         return {"Bucket": self._bucket, "Key": f"{self._folder}{uid}"}
 
     def _failure(
@@ -221,6 +244,7 @@ class StreamS3Storage(Storage[BinaryIO]):
 
         Returns:
             A `PermissionError`, a `FileNotFoundError` or a `RuntimeError`, ready to raise.
+
         """
         reason = _classify(exc)
         if reason is _Reason.UNKNOWN:
@@ -235,7 +259,7 @@ class StreamS3Storage(Storage[BinaryIO]):
                 )
                 return PermissionError(msg)
             case _Reason.MISSING:
-                msg = f"State not found, {subject} ({detail})."
+                msg = f"Record with {subject} does not exist ({detail})."
                 return FileNotFoundError(msg)
             case _:
                 msg = f"Failed to {action}, {subject}, bucket={self._bucket!r} ({detail}). {exc}"
@@ -254,6 +278,7 @@ class StreamS3Storage(Storage[BinaryIO]):
             PermissionError: The service refused to serve the object.
             FileNotFoundError: The object is not there, as far as the service let on.
             RuntimeError: The service failed to answer the request.
+
         """
         try:
             response = self._client.get_object(**self._uid_parts(uid))
@@ -286,6 +311,7 @@ class StreamS3Storage(Storage[BinaryIO]):
         Raises:
             PermissionError: The service refused to answer for the object.
             RuntimeError: The service failed to answer the request.
+
         """
         try:
             self.size(uid)
@@ -309,6 +335,7 @@ class StreamS3Storage(Storage[BinaryIO]):
             PermissionError: The service refused to answer for the object.
             FileNotFoundError: The object is not there, as far as the service let on.
             RuntimeError: The service failed to answer the request.
+
         """
         try:
             response = self._client.head_object(**self._uid_parts(uid))
@@ -340,6 +367,7 @@ class StreamS3Storage(Storage[BinaryIO]):
             PermissionError: The service refused to serve the object.
             FileNotFoundError: The object is not there, as far as the service let on.
             RuntimeError: The service failed to answer the request.
+
         """
         try:
             response = self._client.get_object(**self._uid_parts(uid), Range="bytes=0-0")
@@ -370,6 +398,7 @@ class StreamS3Storage(Storage[BinaryIO]):
             FileExistsError: An object is already stored under `uid` and `force` is unset.
             PermissionError: The service refused the upload.
             RuntimeError: The service failed to store the object.
+
         """
         if not force and self.exists(uid=uid):
             msg = f"State already exists, {uid=!r}"
@@ -400,6 +429,7 @@ class StreamS3Storage(Storage[BinaryIO]):
         Raises:
             PermissionError: The service refused the upload.
             RuntimeError: The service failed to store the object.
+
         """
         record.seek(0)
         try:
@@ -424,9 +454,10 @@ class StreamS3Storage(Storage[BinaryIO]):
             FileNotFoundError: The object is not there, as far as the service let on.
             PermissionError: The service refused to remove the object.
             RuntimeError: The service failed to remove the object.
+
         """
         if not self.exists(uid=uid):
-            msg = f"State not found, {uid=!r}."
+            msg = f"Record with uid {uid!r} does not exist"
             raise FileNotFoundError(msg)
 
         try:
@@ -453,6 +484,7 @@ class StreamS3Storage(Storage[BinaryIO]):
         Raises:
             PermissionError: The service refused to list the bucket.
             RuntimeError: The service failed to list the bucket.
+
         """
         offset = len(self._folder)
         keys = self._iter_keys(f"{self._folder}{prefix or ''}")
@@ -470,6 +502,7 @@ class StreamS3Storage(Storage[BinaryIO]):
         Raises:
             PermissionError: The service refused to list the bucket.
             RuntimeError: The service failed to list the bucket.
+
         """
         options: dict[str, str] = {"Bucket": self._bucket}
         if prefix:
@@ -521,6 +554,8 @@ class BotoClientFactory:
 
 
 class S3Storage(BinaryStorage):
+    """Binary storage backed by Amazon S3 or an S3-compatible service."""
+
     def __init__(  # noqa: PLR0913
         self,
         bucket: str,
@@ -531,6 +566,17 @@ class S3Storage(BinaryStorage):
         endpoint_url: str | None = None,
         region_name: str | None = None,
     ) -> None:
+        """Initialize an S3 storage for a specific bucket and folder.
+
+        Args:
+            bucket: The S3 bucket name.
+            folder: Optional folder prefix within the bucket.
+            access_key: AWS access key ID. If not provided, uses unsigned requests.
+            secret_access_key: AWS secret access key.
+            endpoint_url: Custom S3 endpoint URL for S3-compatible services.
+            region_name: AWS region name.
+
+        """
         backend = StreamS3Storage(
             bucket,
             folder,

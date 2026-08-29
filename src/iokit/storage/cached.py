@@ -1,3 +1,5 @@
+"""Storage wrapper that caches reads from a backend."""
+
 __all__ = [
     "CachedStorage",
 ]
@@ -11,34 +13,31 @@ T = TypeVar("T")
 
 
 class CachedStorage(Storage[T]):
-    """A fast storage kept in front of a slow one, holding whatever has been read or written.
-
-    The cold storage is the source of truth: every record that reaches the hot storage is
-    written to the cold one as well, so a record found in the cache is known to be stored.
-    That invariant is what lets `exists` and `size` answer from the hot storage alone,
-    without ever asking the cold one, while `index` always walks the cold storage.
-
-    Records travel between the two as whatever type the storages hold, and a record pulled
-    from the cold storage is handed straight to the hot one. Streams are therefore consumed
-    by the caching push, and what the caller gets back is always read from the hot storage.
-    """
+    """Cache reads and writes to a fast storage in front of a slow one."""
 
     def __init__(self, hot: Storage[T], cold: Storage[T]) -> None:
+        """Initialize cached storage with hot and cold backends.
+
+        Args:
+            hot: Fast storage layer.
+            cold: Slow storage layer serving as source of truth.
+
+        """
         super().__init__()
         self._hot = hot
         self._cold = cold
 
     def pull(self, uid: str) -> T:
-        """Read a record back, caching it in the hot storage if it was not there yet.
+        """Read a record, caching it in hot storage if needed.
 
         Args:
-            uid: The identifier the record is stored under.
+            uid: Record identifier.
 
         Returns:
-            The record, always as the hot storage holds it.
+            The record from hot storage.
 
         Raises:
-            FileNotFoundError: If neither storage holds a record under `uid`.
+            FileNotFoundError: If the record is not in either storage.
 
         """
         if not self._hot.exists(uid):
@@ -46,19 +45,19 @@ class CachedStorage(Storage[T]):
         return self._hot.pull(uid)
 
     def push(self, uid: str, record: T, *, force: bool = False) -> None:
-        """Write a record to both storages, the hot one first.
+        """Write a record to both storages.
 
         Args:
-            uid: The identifier to store the record under.
-            record: The record to store.
-            force: Whether to overwrite a record already stored under `uid`.
+            uid: Record identifier.
+            record: Record to store.
+            force: Overwrite existing record.
 
         Raises:
-            FileExistsError: If a record is stored under `uid` and `force` is not set.
+            FileExistsError: If the record already exists and `force` is not set.
 
         """
         if not force and self.exists(uid):
-            msg = f"Record with uid '{uid}' already exists"
+            msg = f"Record with uid {uid!r} already exists"
             raise FileExistsError(msg)
         self._hot.push(uid, record, force=True)
         try:
@@ -72,10 +71,10 @@ class CachedStorage(Storage[T]):
         """Remove a record from both storages.
 
         Args:
-            uid: The identifier the record is stored under.
+            uid: Record identifier.
 
         Raises:
-            FileNotFoundError: If neither storage holds a record under `uid`.
+            FileNotFoundError: If the record does not exist in either storage.
 
         """
         found = False
@@ -84,23 +83,32 @@ class CachedStorage(Storage[T]):
                 storage.remove(uid)
                 found = True
         if not found:
-            msg = f"Record with uid '{uid}' does not exist"
+            msg = f"Record with uid {uid!r} does not exist"
             raise FileNotFoundError(msg)
 
     def exists(self, uid: str) -> bool:
+        """Check if a record exists in either storage.
+
+        Args:
+            uid: Record identifier.
+
+        Returns:
+            True if the record exists in hot or cold storage.
+
+        """
         return self._hot.exists(uid) or self._cold.exists(uid)
 
     def size(self, uid: str) -> int:
-        """Return the size in bytes of a record, asking the hot storage whenever it can answer.
+        """Return the size of a record from hot storage if available, else cold.
 
         Args:
-            uid: The identifier the record is stored under.
+            uid: Record identifier.
 
         Returns:
-            The size of the record as the storage that answered holds it.
+            Size of the record in bytes.
 
         Raises:
-            FileNotFoundError: If neither storage holds a record under `uid`.
+            FileNotFoundError: If the record does not exist in either storage.
 
         """
         if self._hot.exists(uid):
@@ -108,13 +116,13 @@ class CachedStorage(Storage[T]):
         return self._cold.size(uid)
 
     def index(self, prefix: str | None = None) -> Iterator[str]:
-        """Walk the cold storage, the only one that knows every record.
+        """Yield all record identifiers from cold storage.
 
         Args:
-            prefix: The prefix the yielded uids are filtered by, or `None` to yield them all.
+            prefix: Filter yielded identifiers by prefix, or `None` for all.
 
         Yields:
-            The uid of every record in the cold storage.
+            Record identifiers in cold storage.
 
         """
         return self._cold.index(prefix)

@@ -1,4 +1,11 @@
+"""A state read straight from a uri, the name taken from the last part of the path."""
+
+import pytest
+
 from iokit.utils.web import web
+
+#: reaching the raw content of the repository itself, so the test needs the network to pass
+pytestmark = pytest.mark.network
 
 
 def test_download() -> None:

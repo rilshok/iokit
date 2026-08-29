@@ -1,3 +1,5 @@
+"""Codecs for audio files using torchaudio backend."""
+
 __all__ = [
     "FlacTorchaudioCodec",
     "Mp3TorchaudioCodec",
@@ -23,7 +25,15 @@ from iokit.dtype.waveform import Waveform
 
 @contextmanager
 def _temp_path(extension: str) -> Iterator[Path]:
-    """A path in a private directory, named so that torchaudio infers the format from it."""
+    """Create a path in a private directory, named so that torchaudio infers the format from it.
+
+    Args:
+        extension: File extension to use for the temporary audio file.
+
+    Yields:
+        A path object pointing to a temporary file with the given extension.
+
+    """
     with TemporaryDirectory() as directory:
         yield Path(directory) / f"audio.{extension}"
 
@@ -51,20 +61,30 @@ class _TorchaudioCodec(Codec[Waveform]):
 
 
 class WavTorchaudioCodec(_TorchaudioCodec):
+    """Codec for WAV audio files using torchaudio."""
+
     __extension__ = "wav"
 
 
 class FlacTorchaudioCodec(_TorchaudioCodec):
+    """Codec for FLAC audio files using torchaudio."""
+
     __extension__ = "flac"
 
 
 class Mp3TorchaudioCodec(_TorchaudioCodec):
+    """Codec for MP3 audio files using torchaudio."""
+
     __extension__ = "mp3"
 
 
 class OggTorchaudioCodec(_TorchaudioCodec):
+    """Codec for OGG audio files using torchaudio."""
+
     __extension__ = "ogg"
 
 
 class OpusTorchaudioCodec(_TorchaudioCodec):
+    """Codec for Opus audio files using torchaudio."""
+
     __extension__ = "opus"

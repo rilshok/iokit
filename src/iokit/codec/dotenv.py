@@ -1,3 +1,5 @@
+"""Codec for .env files with name-value pairs."""
+
 __all__ = ["DotenvCodec"]
 
 
@@ -12,18 +14,30 @@ D = dict[str, str | None]
 
 
 class DotenvCodec(Codec[D]):
+    """Convert between environment variables and .env files."""
+
     def __init__(self, encoding: str = "utf-8", *, interpolate: bool = False) -> None:
+        """Initialize codec with `encoding` and variable expansion.
+
+        Args:
+            encoding: File character encoding.
+            interpolate: Expand `$VAR` and `${VAR}` references.
+
+        """
         self._encoding = encoding
         self._interpolate = interpolate
 
     def __repr__(self) -> str:
+        """Return codec representation."""
         return f"{type(self).__name__}(encoding={self._encoding}, interpolate={self._interpolate})"
 
     def _parse(self, buffer: BinaryIO, *, interpolate: bool) -> D:
+        """Parse .env format from `buffer`."""
         with buffer, TextIOWrapper(buffer, encoding=self._encoding, newline="") as stream:
             return dict(dotenv_values(stream=stream, interpolate=interpolate))
 
     def encode(self, data: D) -> BytesIO:
+        """Write `data` to .env format with validation."""
         buffer = BytesIO()
         for key, value in data.items():
             if value is None:
@@ -42,4 +56,5 @@ class DotenvCodec(Codec[D]):
         return buffer
 
     def decode(self, buffer: BinaryIO) -> D:
+        """Parse .env format, expanding variables if enabled."""
         return self._parse(buffer, interpolate=self._interpolate)

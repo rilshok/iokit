@@ -1,3 +1,5 @@
+"""Hash algorithm enumeration and utilities."""
+
 __all__ = ["Hash"]
 
 import hashlib
@@ -19,6 +21,8 @@ class _HashAlgorithm(Protocol):
 
 
 class Hash(Enum):
+    """Enumeration of supported hash algorithms."""
+
     XXH32 = "xxh32"
     XXH64 = "xxh64"
     XXH128 = "xxh128"
@@ -39,9 +43,25 @@ class Hash(Enum):
 
     @property
     def algorithm(self) -> _HashAlgorithm:
+        """Get a new algorithm instance for this hash type.
+
+        Returns:
+            A hash algorithm instance.
+
+        """
         return _FACTORIES[self]()
 
     def digest(self, buffer: BinaryIO, *, chunk_size: int = CHUNK_SIZE) -> bytes:
+        """Compute the digest of data from a binary buffer.
+
+        Args:
+            buffer: A binary stream to read data from.
+            chunk_size: The size of chunks to read at a time.
+
+        Returns:
+            The digest bytes.
+
+        """
         algorithm = self.algorithm
         while True:
             chunk = buffer.read(chunk_size)
