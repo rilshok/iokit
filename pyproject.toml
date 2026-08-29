@@ -4,7 +4,8 @@ version = "0.4.3"
 description = "Input Output Kit"
 readme = "README.md"
 requires-python = ">=3.10"
-license = {text = "MIT"}
+license = "MIT"
+license-files = ["LICENSE"]
 authors = [
     {name = "Vladislav A. Proskurov", email = "rilshok@pm.me"},
 ]
