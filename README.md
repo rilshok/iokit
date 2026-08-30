@@ -116,6 +116,37 @@ state.digest("sha256").base64
 state.digest("xxh128").base64url
 ```
 
+Payloads of your own, filed under a format that knows nothing of them:
+
+```python
+from dataclasses import dataclass
+from typing import Any
+
+from iokit import Json
+
+
+@dataclass
+class Person:
+    name: str
+    age: int
+
+
+class PersonJson(Json[Person]):
+    def dump(self, data: Person) -> dict[str, Any]:
+        return {"name": data.name, "age": data.age}
+
+    def parse(self, data: dict[str, Any]) -> Person:
+        return Person(data["name"], data["age"])
+
+
+state = PersonJson(Person("Joe", 32), "joe")
+print(state.path)    # joe.json
+print(state.load())  # Person(name='Joe', age=32)
+```
+
+The file stays an ordinary `joe.json`, and `state.load()` is a `Person` both at runtime and for
+the type checker. Every format takes the same pair: `Txt`, `Csv`, `Npy`, and the rest.
+
 ## Storage
 
 Store and retrieve records by uid:
@@ -151,7 +182,3 @@ result = storage.pull("file.json")
 ## Contributing
 
 Found a bug or have an idea? Open an issue or submit a pull request.
-
-## License
-
-MIT
