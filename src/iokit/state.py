@@ -8,10 +8,11 @@ from os import utime
 from pathlib import Path, PurePath
 from shutil import copyfileobj
 from tempfile import TemporaryDirectory
-from typing import TYPE_CHECKING, Any, BinaryIO, Generic, TypeVar
+from types import UnionType
+from typing import TYPE_CHECKING, Any, BinaryIO, Generic, TypeAlias
 
 from humanize import naturalsize
-from typing_extensions import Self
+from typing_extensions import Self, TypeVar
 
 from iokit.codec.base import best_codec
 from iokit.dtype.data import Data
@@ -21,8 +22,6 @@ from iokit.utils.pattern import Pattern
 from iokit.utils.time import Timestamp
 
 if TYPE_CHECKING:
-    from types import UnionType
-
     from _typeshed import WriteableBuffer
     from numpy.typing import NDArray  # noqa: F401
     from pandas import DataFrame  # noqa: F401
@@ -30,6 +29,12 @@ if TYPE_CHECKING:
 
     from iokit.dtype.waveform import Waveform  # noqa: F401
 
+
+#: What a format expects of the value its codec read: a class, a union of them, or a
+#: "module:attribute" name, imported on load when the class needs an optional dependency.
+#: Annotate `__expected__` with it in a class meant to be subclassed, so that the value
+#: given there stays open to change.
+Expected: TypeAlias = type[Any] | UnionType | str | None
 
 T = TypeVar("T", bound=object)
 
@@ -215,8 +220,12 @@ class State(Generic[T]):
         """
         return BytesIO(self.data)
 
-    def _load(self, expected: "type[T] | UnionType | None", **config: object) -> T:
-        data: T = best_codec(self.name, **config).decode(self.buffer)
+    def _load(
+        self,
+        expected: "type[Any] | UnionType | None",
+        **config: object,
+    ) -> Any:  # noqa: ANN401
+        data = best_codec(self.name, **config).decode(self.buffer)
         if expected is None or isinstance(data, expected):
             return data
         expectation = getattr(expected, "__name__", str(expected))
@@ -233,7 +242,8 @@ class State(Generic[T]):
             The decoded payload.
 
         """
-        return self._load(None, **config)
+        payload: T = self._load(None, **config)
+        return payload
 
     def save(
         self,
@@ -491,12 +501,33 @@ class FormatState(LoadedState[T]):
 
     `Json(document, "greeting")` is the state `greeting.json`; a path may be given instead,
     or both when they agree, or neither for a state filed under the bare extension.
+
+    A subclass may carry a payload of its own. Name the payload as the type parameter, then
+    override `dump` and `parse` to convert it to and from what the codec speaks:
+
+        class PersonJson(Json[Person]):
+            __expected__ = dict
+
+            def dump(self, data: Person) -> dict[str, Any]:
+                return {"name": data.name, "age": data.age}
+
+            def parse(self, data: dict[str, Any]) -> Person:
+                return Person(data["name"], data["age"])
+
+    `PersonJson(person, "joe")` is then an ordinary `joe.json` that loads as a `Person`.
+
+    Such a class may be subclassed further:
+
+    - `dump` and `parse` may be overridden again, and `super()` reaches the ones above.
+    - The payload of `Json[Person]` is fixed. A subclass may write a person differently, but
+      not carry another type; take a type parameter to leave that open: `Json[PersonT]`.
+    - `__expected__ = dict` fixes what every subclass expects as well. Annotating it,
+      `__expected__: Expected = dict`, leaves that open instead.
     """
 
     __extension__: Extension
-    # An unparameterized class, or a union of them, checked against the loaded payload. A type
-    # coming from an optional dependency is named as "module:attribute", imported only on load.
-    __expected__: "type[Any] | UnionType | str | None" = None
+    # checked against what the codec read, before `parse` makes a payload of it
+    __expected__: "Expected" = None
 
     def __init__(
         self,
@@ -526,9 +557,12 @@ class FormatState(LoadedState[T]):
                 msg = "Cannot configure a codec for already encoded data"
                 raise ValueError(msg)
             super().__init__(data=data, path=path, timestamp=timestamp)
-        else:
-            with best_codec(path, **config).encode(self._to_encode(data)) as content:
-                super().__init__(data=content.read(), path=path, timestamp=timestamp)
+            return
+        # path and timestamp first, so that `dump` sees a named state; the bytes are what
+        # `dump` is there to produce
+        super().__init__(data=b"", path=path, timestamp=timestamp)
+        with best_codec(path, **config).encode(self.dump(data)) as content:
+            self._data = content.read()
 
     @classmethod
     def extension(cls) -> str:
@@ -540,20 +574,36 @@ class FormatState(LoadedState[T]):
         """
         return cls.__extension__.value
 
-    @classmethod
-    def _to_encode(cls, data: T) -> object:
-        """Get the data for encoding by the codec.
+    def dump(self, data: T) -> object:
+        """Convert a payload into what the codec writes.
 
-        The codec receives the payload unless a subclass specifies otherwise.
+        Here the payload is handed over unchanged; override this to write a payload of your
+        own. The state knows its path and timestamp by now, and holds no bytes yet.
 
         Args:
-            data: The payload to encode.
+            data: The payload to convert.
 
         Returns:
-            The data to pass to the codec.
+            The value handed to the codec.
 
         """
         return data
+
+    def parse(self, data: Any) -> T:  # noqa: ANN401
+        """Convert what the codec read into a payload.
+
+        Here it is taken as the payload unchanged; override this to read a payload of your
+        own. It has been checked against `__expected__` by the time it arrives.
+
+        Args:
+            data: The value the codec read.
+
+        Returns:
+            The payload it stands for.
+
+        """
+        payload: T = data
+        return payload
 
     @classmethod
     def _expected(cls) -> "type[Any] | UnionType | None":
@@ -586,16 +636,16 @@ class FormatState(LoadedState[T]):
         return cls(data=state.data, path=state.path, timestamp=state.timestamp)
 
     def load(self, **config: object) -> T:
-        """Load and decode the format state's data.
+        """Read the payload back.
 
         Args:
-            **config: Codec configuration options.
+            **config: Codec settings.
 
         Returns:
-            The decoded payload, validated against the expected type.
+            What `parse` makes of the decoded value, once `__expected__` has passed on it.
 
         """
-        return self._load(self._expected(), **config)
+        return self.parse(self._load(self._expected(), **config))
 
 
 def filtrate(states: Iterable[State[T]], pattern: str | Pattern) -> Iterator[State[T]]:
@@ -635,126 +685,153 @@ def first(states: Iterable[State[T]], pattern: str | Pattern) -> State[T]:
     raise FileNotFoundError(msg)
 
 
-class Dat(FormatState[bytes]):
+BytesT = TypeVar("BytesT", default=bytes)
+
+
+class Dat(FormatState[BytesT]):
     """A binary data file state."""
 
     __extension__ = Extension.DAT
-    __expected__ = bytes
+    __expected__: "Expected" = bytes
 
 
-class Bin(Dat):
+class Bin(Dat[BytesT]):
     """A binary file state."""
 
     __extension__ = Extension.BIN
 
 
-class Txt(FormatState[str]):
+TextT = TypeVar("TextT", default=str)
+
+
+class Txt(FormatState[TextT]):
     """A plain text file state."""
 
     __extension__ = Extension.TXT
-    __expected__ = str
+    __expected__: "Expected" = str
 
 
-class Document(FormatState[dict[str, Any] | list[Any] | str]):
+DocumentT = TypeVar("DocumentT", default=dict[str, Any] | list[Any] | str)
+
+
+class Document(FormatState[DocumentT]):
     """A structured document: a mapping, a sequence, or a bare scalar string."""
 
-    __expected__ = dict | list | str
+    __expected__: "Expected" = dict | list | str  # pyright: ignore[reportMissingTypeArgument]
 
 
-class Json(Document):
+class Json(Document[DocumentT]):
     """A JSON document state."""
 
     __extension__ = Extension.JSON
 
 
-class Jsonl(FormatState[list[dict[str, Any]]]):
+RecordsT = TypeVar("RecordsT", default=list[dict[str, Any]])
+
+
+class Jsonl(FormatState[RecordsT]):
     """JSON Lines: one record per line, so the payload is always a list of records."""
 
     __extension__ = Extension.JSONL
-    __expected__ = list
+    __expected__: "Expected" = list
 
 
-class Yaml(Document):
+class Yaml(Document[DocumentT]):
     """A YAML document state."""
 
     __extension__ = Extension.YAML
 
 
-class Yml(Yaml):
+class Yml(Yaml[DocumentT]):
     """A YML document state (YAML variant)."""
 
     __extension__ = Extension.YML
 
 
-class Env(FormatState[dict[str, str | None]]):
+EnvT = TypeVar("EnvT", default=dict[str, str | None])
+
+
+class Env(FormatState[EnvT]):
     """A dotenv file; a variable declared without a value loads as `None`."""
 
     __extension__ = Extension.ENV
-    __expected__ = dict
+    __expected__: "Expected" = dict
 
 
-class Npy(FormatState["NDArray[Any]"]):
+ArrayT = TypeVar("ArrayT", default="NDArray[Any]")
+
+
+class Npy(FormatState[ArrayT]):
     """A NumPy array state."""
 
     __extension__ = Extension.NPY
-    __expected__ = "numpy:ndarray"
+    __expected__: "Expected" = "numpy:ndarray"
 
 
-class Pandas(FormatState["DataFrame"]):
+FrameT = TypeVar("FrameT", default="DataFrame")
+
+
+class Pandas(FormatState[FrameT]):
     """A dataframe stored as delimited text."""
 
-    __expected__ = "pandas:DataFrame"
+    __expected__: "Expected" = "pandas:DataFrame"
 
 
-class Csv(Pandas):
+class Csv(Pandas[FrameT]):
     """A CSV file state."""
 
     __extension__ = Extension.CSV
 
 
-class Tsv(Pandas):
+class Tsv(Pandas[FrameT]):
     """A TSV (tab-separated values) file state."""
 
     __extension__ = Extension.TSV
 
 
-class Image(FormatState["PillowImage"]):
+ImageT = TypeVar("ImageT", default="PillowImage")
+
+
+class Image(FormatState[ImageT]):
     """A raster image, decoded by Pillow."""
 
-    __expected__ = "PIL.Image:Image"
+    __expected__: "Expected" = "PIL.Image:Image"
 
 
-class Jpeg(Image):
+class Jpeg(Image[ImageT]):
     """A JPEG image state."""
 
     __extension__ = Extension.JPEG
 
 
-class Jpg(Jpeg):
+class Jpg(Jpeg[ImageT]):
     """A JPG image state (JPEG variant)."""
 
     __extension__ = Extension.JPG
 
 
-class Png(Image):
+class Png(Image[ImageT]):
     """A PNG image state."""
 
     __extension__ = Extension.PNG
 
 
-class Archive(FormatState[Iterable[State[Any]]]):
+MembersT = TypeVar("MembersT", default=Iterable[State[Any]])
+
+
+class Archive(FormatState[MembersT]):
     """A container of whole states: loading one yields its members, lazily."""
 
-    __expected__ = Iterable
+    __expected__: "Expected" = Iterable
 
 
-class Zip(Archive):
+class Zip(Archive[MembersT]):
     """A ZIP archive state."""
 
     __extension__ = Extension.ZIP
 
 
-class Tar(Archive):
+class Tar(Archive[MembersT]):
     """A TAR archive state."""
 
     __extension__ = Extension.TAR
@@ -792,8 +869,16 @@ class LayerState(FormatState[State[Any]]):
                 timestamp = data.timestamp
         super().__init__(data, stem=stem, path=path, timestamp=timestamp, **config)
 
-    @classmethod
-    def _to_encode(cls, data: State[Any]) -> object:
+    def dump(self, data: State[Any]) -> object:
+        """Hand the codec the bytes of the state being covered, and nothing else.
+
+        Args:
+            data: The state the layer is laid over.
+
+        Returns:
+            The bytes of that state.
+
+        """
         return data.data
 
     def load(self, **config: object) -> State[Any]:
@@ -836,13 +921,15 @@ class Enc(LayerState):
     __extension__ = Extension.ENC
 
 
-A = TypeVar("A", bound="Audio")
+A = TypeVar("A", bound="Audio[Any]")
+
+AudioT = TypeVar("AudioT", default="Waveform")
 
 
-class Audio(FormatState["Waveform"]):
+class Audio(FormatState[AudioT]):
     """A waveform audio file state."""
 
-    __expected__ = "iokit.dtype.waveform:Waveform"
+    __expected__: "Expected" = "iokit.dtype.waveform:Waveform"
 
     def _to_audio(self, kls: type[A]) -> A:
         self._assert_path(self.path)
@@ -910,43 +997,43 @@ class Audio(FormatState["Waveform"]):
         return self._to_audio(Opus)
 
 
-class Flac(Audio):
+class Flac(Audio[AudioT]):
     """A FLAC audio file state."""
 
     __extension__ = Extension.FLAC
 
 
-class Wav(Audio):
+class Wav(Audio[AudioT]):
     """A WAV audio file state."""
 
     __extension__ = Extension.WAV
 
 
-class Mp3(Audio):
+class Mp3(Audio[AudioT]):
     """An MP3 audio file state."""
 
     __extension__ = Extension.MP3
 
 
-class Ogg(Audio):
+class Ogg(Audio[AudioT]):
     """An OGG audio file state."""
 
     __extension__ = Extension.OGG
 
 
-class Oga(Ogg):
+class Oga(Ogg[AudioT]):
     """An OGA audio file state."""
 
     __extension__ = Extension.OGA
 
 
-class Ogx(Ogg):
+class Ogx(Ogg[AudioT]):
     """An OGX audio file state."""
 
     __extension__ = Extension.OGX
 
 
-class Opus(Ogg):
+class Opus(Ogg[AudioT]):
     """An Opus audio file state."""
 
     __extension__ = Extension.OPUS
