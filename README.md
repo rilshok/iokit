@@ -109,6 +109,15 @@ state = web("https://example.com/data.json", Json)
 data = state.load()
 ```
 
+A `data:` URL is decoded where it stands, without reaching the network. It carries no name
+for its payload, so the state is left with the bare extension of its media type:
+
+```python
+state = web("data:application/json;base64,eyJhIjogMX0=")
+assert state.path == ".json"
+assert state.load() == {"a": 1}
+```
+
 Checksum:
 
 ```python
