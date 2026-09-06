@@ -112,15 +112,14 @@ from .storage import (
     StreamMemoryStorage,
 )
 from .utils.file import file
+from .utils.web import web
 
 if TYPE_CHECKING:
     from .dtype.waveform import Waveform
-    from .utils.web import web
 
 _LAZY = {
     # each rests on a dependency of the `ultra` extra, unasked for at import time
     "Waveform": "iokit.dtype.waveform",
-    "web": "iokit.utils.web",
     "S3Storage": "iokit.storage.s3",
     "StreamS3Storage": "iokit.storage.s3",
 }
