@@ -158,17 +158,29 @@ def registrate(
         codecs.append(entry)
 
 
-def _candidates(name: str) -> list[CodecSpec]:
-    """Return codecs matching `name` with longest extension."""
+def best_extension(name: str) -> str:
+    """Get the longest extension with a registered codec that `name` ends with.
+
+    Args:
+        name: Filename to find extension for.
+
+    Returns:
+        The extension, lowercase and dotted; empty if only the bare one fits.
+
+    Raises:
+        LookupError: No codec for extension.
+
+    """
+    name = name.lower()
     # an extension starts with a dot, so `name` can only end with one from a dot of its own,
     # the first dot giving the longest
     start = name.find(".")
     while start != -1:
-        if codecs := _CODEC_REGISTRY.get(name[start:]):
-            return codecs
+        if name[start:] in _CODEC_REGISTRY:
+            return name[start:]
         start = name.find(".", start + 1)
-    if codecs := _CODEC_REGISTRY.get(""):
-        return codecs
+    if "" in _CODEC_REGISTRY:
+        return ""
     msg = f"No codec registered for {name!r}"
     raise LookupError(msg)
 
@@ -189,7 +201,7 @@ def best_codec(name: str, **config: object) -> Codec[Any]:
 
     """
     failures: list[ModuleNotFoundError] = []
-    for codec in _candidates(name.lower()):
+    for codec in _CODEC_REGISTRY[best_extension(name)]:
         try:
             return codec.produce(**config)
         except ModuleNotFoundError as exc:  # noqa: PERF203

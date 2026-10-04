@@ -14,7 +14,7 @@ from typing import TYPE_CHECKING, Any, BinaryIO, Generic, TypeAlias
 from humanize import naturalsize
 from typing_extensions import Self, TypeVar
 
-from iokit.codec.base import best_codec
+from iokit.codec.base import best_codec, best_extension
 from iokit.dtype.data import Data
 from iokit.dtype.extension import Extension
 from iokit.utils.checksum import Hash
@@ -886,19 +886,25 @@ class LayerState(FormatState[State[Any]]):
     def covering(cls, name: str) -> "type[LayerState] | None":
         """Find the layer a state of `name` is covered with, among the kinds of this one.
 
+        The extension is the one a codec is picked by, so a codec of a longer one, `.tar.gz`
+        say, leaves the name to no layer of `.gz`.
+
         Args:
             name: The name of the state, whose extension tells the layer.
 
         Returns:
-            The layer whose extension `name` ends with, or `None` if it ends with none.
+            The layer of the extension `name` is decoded by, or `None` if it is of none.
 
         """
-        for kind in cls.__subclasses__():
+        extension = best_extension(name)
+        kinds = cls.__subclasses__()
+        while kinds:
+            kind = kinds.pop(0)
             # a kind without an extension of its own only groups the layers below it
-            if hasattr(kind, "__extension__") and name.lower().endswith(kind.extension()):
+            if hasattr(kind, "__extension__") and kind.extension() == extension:
                 return kind
-            if layer := kind.covering(name):
-                return layer
+            # the kinds below it are looked through before the ones beside it
+            kinds[:0] = kind.__subclasses__()
         return None
 
     def dump(self, data: State[Any]) -> object:
