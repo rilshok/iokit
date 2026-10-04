@@ -57,11 +57,14 @@ def test_lines_keep_their_own_shape() -> None:
     assert Jsonl(lines, stem="document").load() == lines
 
 
-def test_bare_number_is_no_document() -> None:
-    """A json file may hold a bare number; a `Json` state is a document, and says so."""
-    number: Json = Json.from_state(LoadedState(b"42", path="number.json"))
-    assert number.data == b"42"
-    with pytest.raises(TypeError, match="Expected loaded data of type"):
-        number.load()
-    # read without the promise of a format, the same bytes come back as the number they are
-    assert LoadedState(b"42", path="number.json").load() == 42
+@pytest.mark.parametrize(
+    ("value", "data"),
+    [(42, b"42"), (3.14, b"3.14"), (True, b"true"), (None, b"null")],
+)
+def test_json_scalar(value: object, data: bytes) -> None:
+    """Whatever a json file can hold, a `Json` state holds as well."""
+    state = Json(value, stem="scalar")
+    assert state.data == data
+    assert state.load() == value
+    assert Json.from_state(LoadedState(data, path="scalar.json")).load() == value
+    assert LoadedState(data, path="scalar.json").load() == value
