@@ -246,7 +246,7 @@ class State(Generic[T]):
 
         """
         if layer := LayerState.covering(self.name):
-            covered: T = layer.from_state(self).load(**config)
+            covered: T = layer.uncover(self, **config)
             return covered
         payload: T = self._load(None, **config)
         return payload
@@ -919,6 +919,31 @@ class LayerState(FormatState[State[Any]]):
         """
         return data.data
 
+    @classmethod
+    def uncover(cls, state: State[Any], **config: object) -> State[Any]:
+        """Take this layer off a state covered with it, reading the state as a stream.
+
+        Args:
+            state: A state covered with this layer, of whatever kind.
+            **config: Settings for the codec taking the layer off.
+
+        Returns:
+            The state under the layer, pathed the way `state` is less the suffix.
+
+        Raises:
+            TypeError: If the codec of the layer gives back anything but bytes.
+
+        """
+        payload = best_codec(state.name, **config).decode(state.buffer)
+        if not isinstance(payload, bytes):
+            msg = f"Expected a layer of bytes, got '{type(payload).__name__}'"
+            raise TypeError(msg)
+        return LoadedState(
+            payload,
+            path=cls._strip_extension(state.path),
+            timestamp=state.timestamp,
+        )
+
     def load(self, **config: object) -> State[Any]:
         """Take the layer off, recovering the state it was laid over.
 
@@ -928,19 +953,8 @@ class LayerState(FormatState[State[Any]]):
         Returns:
             The state under the layer, pathed the way this one is less the suffix.
 
-        Raises:
-            TypeError: If the codec of the layer gives back anything but bytes.
-
         """
-        payload = best_codec(self.name, **config).decode(self.buffer)
-        if not isinstance(payload, bytes):
-            msg = f"Expected a layer of bytes, got '{type(payload).__name__}'"
-            raise TypeError(msg)
-        return LoadedState(
-            payload,
-            path=self._strip_extension(self.path),
-            timestamp=self.timestamp,
-        )
+        return self.uncover(self, **config)
 
 
 class Gzip(LayerState):
