@@ -35,7 +35,12 @@ class StreamLocalStorage(Storage[BinaryIO]):
         super().__init__()
         self._root = Path(root).resolve()
 
-    def _path(self, uid: str) -> Path:
+    @property
+    def root(self) -> Path:
+        """Return the root directory of records."""
+        return self._root
+
+    def path(self, uid: str) -> Path:
         """Resolve `uid` to a path under root, validated.
 
         Args:
@@ -48,8 +53,8 @@ class StreamLocalStorage(Storage[BinaryIO]):
             ValueError: If `uid` is invalid or outside root.
 
         """
-        path = self._root.joinpath(*validate_uid(uid)).resolve()
-        if not path.is_relative_to(self._root):
+        path = self.root.joinpath(*validate_uid(uid)).resolve()
+        if not path.is_relative_to(self.root):
             msg = f"Record with uid {uid!r} would land outside of the storage root"
             raise ValueError(msg)
         return path
@@ -67,7 +72,7 @@ class StreamLocalStorage(Storage[BinaryIO]):
             FileNotFoundError: If record does not exist.
 
         """
-        path = self._path(uid)
+        path = self.path(uid)
         if not path.is_file():
             msg = f"Record with uid {uid!r} does not exist"
             raise FileNotFoundError(msg)
@@ -86,7 +91,7 @@ class StreamLocalStorage(Storage[BinaryIO]):
             FileNotFoundError: If record does not exist.
 
         """
-        path = self._path(uid)
+        path = self.path(uid)
         if not path.is_file():
             msg = f"Record with uid {uid!r} does not exist"
             raise FileNotFoundError(msg)
@@ -104,7 +109,7 @@ class StreamLocalStorage(Storage[BinaryIO]):
             FileExistsError: If exists and `force` is not set.
 
         """
-        path = self._path(uid)
+        path = self.path(uid)
         if path.exists() and not force:
             msg = f"Record with uid {uid!r} already exists"
             raise FileExistsError(msg)
@@ -122,7 +127,7 @@ class StreamLocalStorage(Storage[BinaryIO]):
             FileNotFoundError: If does not exist.
 
         """
-        path = self._path(uid)
+        path = self.path(uid)
         if not path.is_file():
             msg = f"Record with uid {uid!r} does not exist"
             raise FileNotFoundError(msg)
@@ -138,7 +143,7 @@ class StreamLocalStorage(Storage[BinaryIO]):
             True if exists.
 
         """
-        return self._path(uid).is_file()
+        return self.path(uid).is_file()
 
     def index(self, prefix: str | None = None) -> Iterator[str]:
         """Yield record files, optionally filtered by prefix.
@@ -168,7 +173,28 @@ class LocalStorage(BinaryStorage):
             root: Root directory for records.
 
         """
+        self._backend: StreamLocalStorage
         super().__init__(StreamLocalStorage(root))
+
+    @property
+    def root(self) -> Path:
+        """Return the root directory of records."""
+        return self._backend.root
+
+    def path(self, uid: str) -> Path:
+        """Resolve `uid` to a path under root, validated.
+
+        Args:
+            uid: Record identifier as relative POSIX path.
+
+        Returns:
+            Resolved file path.
+
+        Raises:
+            ValueError: If `uid` is invalid or outside root.
+
+        """
+        return self._backend.path(uid)
 
 
 class MemoryStorage(Storage[bytes]):
