@@ -5,7 +5,9 @@ That a payload of any format survives one is in `tests/test_state_contract.py`.
 
 import gzip
 from dataclasses import dataclass, field
-from typing import Any
+from io import BytesIO
+from typing import Any, BinaryIO
+from uuid import uuid4
 
 import pytest
 
@@ -21,6 +23,7 @@ from iokit import (
     StateStorage,
     Txt,
 )
+from iokit.codec.base import registrate
 
 PASSWORD = "pA$sw0Rd"  # noqa: S105
 SALT = "s@lt"
@@ -79,13 +82,40 @@ def test_state_under_a_layer_comes_back(layer: Layer, covered: LayerState) -> No
     assert inner.load() == SOURCE.load()
 
 
-def test_layer_off_foreign_bytes(
-    layer: Layer,
-    covered: LayerState,
-) -> None:
+def test_layer_off_foreign_bytes(layer: Layer, covered: LayerState) -> None:
     """What a layer needs to come off is the bytes and the path, not the state that made them."""
     elsewhere: LoadedState[Any] = LoadedState(bytes(covered.data), path=covered.path)
     assert layer.kind.from_state(elsewhere).load(**layer.config).data == SOURCE.data
+
+
+class _Stream(State[Any]):
+    """A state read through its buffer alone, the way a large file is meant to be read."""
+
+    def __init__(self, payload: bytes, path: str) -> None:
+        super().__init__(path=path)
+        self._payload = payload
+
+    @property
+    def buffer(self) -> BinaryIO:
+        return BytesIO(self._payload)
+
+    @property
+    def data(self) -> Data:
+        msg = "A stream is not to be read whole"
+        raise AssertionError(msg)
+
+
+def test_layer_off_a_stream(layer: Layer, covered: LayerState) -> None:
+    """A layer comes off as its codec reads it, the state under it never read whole first."""
+    stream = _Stream(bytes(covered.data), path=covered.path)
+    assert stream.load(**layer.config).data == SOURCE.data
+
+
+def test_layer_over_a_layer(layer: Layer, covered: LayerState) -> None:
+    """Layers come off one by one, the one underneath as readily as the one on top."""
+    inner = Gzip(covered).load().load(**layer.config)
+    assert inner.path == SOURCE.path
+    assert inner.load() == SOURCE.load()
 
 
 def test_layer_hides_the_payload(covered: LayerState) -> None:
@@ -116,6 +146,13 @@ def test_foreign_gzip_is_read_as_a_layer() -> None:
     inner = state.load()
     assert inner.path == "data.txt"
     assert inner.data == b"payload"
+
+
+def test_codec_of_a_longer_extension() -> None:
+    """A codec registered for `.tar.gz`, say, takes the name from the layer `.gz` spells."""
+    ext = f".x{uuid4().hex}.gz"
+    registrate(ext, "iokit.codec.bin:BinCodec")
+    assert LoadedState(b"payload", path=f"data{ext}").load() == b"payload"
 
 
 # encrypting

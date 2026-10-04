@@ -14,7 +14,7 @@ from typing import TYPE_CHECKING, Any, BinaryIO, Generic, TypeAlias
 from humanize import naturalsize
 from typing_extensions import Self, TypeVar
 
-from iokit.codec.base import best_codec
+from iokit.codec.base import best_codec, best_extension
 from iokit.dtype.data import Data
 from iokit.dtype.extension import Extension
 from iokit.utils.checksum import Hash
@@ -235,6 +235,9 @@ class State(Generic[T]):
     def load(self, **config: object) -> T:
         """Decode the state's data.
 
+        A state named after a layer, `data.json.gz` say, is taken for that layer, and gives
+        back the state under it just as the layer itself would.
+
         Args:
             **config: Codec options.
 
@@ -242,6 +245,9 @@ class State(Generic[T]):
             The decoded payload.
 
         """
+        if layer := LayerState.covering(self.name):
+            covered: T = layer.uncover(self, **config)
+            return covered
         payload: T = self._load(None, **config)
         return payload
 
@@ -495,6 +501,16 @@ class LoadedState(State[T]):
         """
         return Data(self._data)
 
+    @property
+    def buffer(self) -> BytesIO:
+        """Return a buffer sharing the bytes held, not a copy."""
+        return BytesIO(self._data)
+
+    @property
+    def size(self) -> int:
+        """Return the number of bytes held."""
+        return len(self._data)
+
 
 class FormatState(LoadedState[T]):
     """A state of a known format, filed under a path its extension closes.
@@ -633,7 +649,11 @@ class FormatState(LoadedState[T]):
 
         """
         cls._assert_path(state.path)
-        return cls(data=state.data, path=state.path, timestamp=state.timestamp)
+        # the bytes as the buffer reads them, which a `Data` of them would copy once more
+        formatted = cls(data=Data(), path=state.path, timestamp=state.timestamp)
+        with state.buffer as buffer:
+            formatted._data = buffer.read()
+        return formatted
 
     def load(self, **config: object) -> T:
         """Read the payload back.
@@ -720,10 +740,17 @@ class Document(FormatState[DocumentT]):
     __expected__: "Expected" = dict | list | str  # pyright: ignore[reportMissingTypeArgument]
 
 
-class Json(Document[DocumentT]):
-    """A JSON document state."""
+JsonT = TypeVar(
+    "JsonT",
+    default=dict[str, Any] | list[Any] | str | int | float | bool | None,
+)
+
+
+class Json(Document[JsonT]):
+    """A JSON state: whatever a json file holds, a bare number or `null` as well."""
 
     __extension__ = Extension.JSON
+    __expected__: "Expected" = dict | list | str | int | float | None  # pyright: ignore[reportMissingTypeArgument]
 
 
 RecordsT = TypeVar("RecordsT", default=list[dict[str, Any]])
@@ -869,6 +896,31 @@ class LayerState(FormatState[State[Any]]):
                 timestamp = data.timestamp
         super().__init__(data, stem=stem, path=path, timestamp=timestamp, **config)
 
+    @classmethod
+    def covering(cls, name: str) -> "type[LayerState] | None":
+        """Find the layer a state of `name` is covered with, among the kinds of this one.
+
+        The extension is the one a codec is picked by, so a codec of a longer one, `.tar.gz`
+        say, leaves the name to no layer of `.gz`.
+
+        Args:
+            name: The name of the state, whose extension tells the layer.
+
+        Returns:
+            The layer of the extension `name` is decoded by, or `None` if it is of none.
+
+        """
+        extension = best_extension(name)
+        kinds = cls.__subclasses__()
+        while kinds:
+            kind = kinds.pop(0)
+            # a kind without an extension of its own only groups the layers below it
+            if hasattr(kind, "__extension__") and kind.extension() == extension:
+                return kind
+            # the kinds below it are looked through before the ones beside it
+            kinds[:0] = kind.__subclasses__()
+        return None
+
     def dump(self, data: State[Any]) -> object:
         """Hand the codec the bytes of the state being covered, and nothing else.
 
@@ -881,6 +933,31 @@ class LayerState(FormatState[State[Any]]):
         """
         return data.data
 
+    @classmethod
+    def uncover(cls, state: State[Any], **config: object) -> State[Any]:
+        """Take this layer off a state covered with it, reading the state as a stream.
+
+        Args:
+            state: A state covered with this layer, of whatever kind.
+            **config: Settings for the codec taking the layer off.
+
+        Returns:
+            The state under the layer, pathed the way `state` is less the suffix.
+
+        Raises:
+            TypeError: If the codec of the layer gives back anything but bytes.
+
+        """
+        payload = best_codec(state.name, **config).decode(state.buffer)
+        if not isinstance(payload, bytes):
+            msg = f"Expected a layer of bytes, got '{type(payload).__name__}'"
+            raise TypeError(msg)
+        return LoadedState(
+            payload,
+            path=cls._strip_extension(state.path),
+            timestamp=state.timestamp,
+        )
+
     def load(self, **config: object) -> State[Any]:
         """Take the layer off, recovering the state it was laid over.
 
@@ -890,19 +967,8 @@ class LayerState(FormatState[State[Any]]):
         Returns:
             The state under the layer, pathed the way this one is less the suffix.
 
-        Raises:
-            TypeError: If the codec of the layer gives back anything but bytes.
-
         """
-        payload = best_codec(self.name, **config).decode(self.buffer)
-        if not isinstance(payload, bytes):
-            msg = f"Expected a layer of bytes, got '{type(payload).__name__}'"
-            raise TypeError(msg)
-        return LoadedState(
-            payload,
-            path=self._strip_extension(self.path),
-            timestamp=self.timestamp,
-        )
+        return self.uncover(self, **config)
 
 
 class Gzip(LayerState):

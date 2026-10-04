@@ -16,6 +16,15 @@ def test_record_is_a_file(tmp_path: Path) -> None:
     assert (tmp_path / "reports/first.bin").read_bytes() == b"hello"
 
 
+def test_path_names_the_record_file(tmp_path: Path) -> None:
+    """The root is kept resolved, and a uid's path is the file its record lives in."""
+    storage = LocalStorage(tmp_path / "nested" / "..")
+    assert storage.root == tmp_path.resolve()
+    storage.push("reports/first.bin", b"hello")
+    assert storage.path("reports/first.bin") == storage.root / "reports" / "first.bin"
+    assert storage.path("reports/first.bin").read_bytes() == b"hello"
+
+
 def test_only_files_are_records(tmp_path: Path) -> None:
     """A directory of the root names no record, so the walk passes it by."""
     storage = LocalStorage(tmp_path)

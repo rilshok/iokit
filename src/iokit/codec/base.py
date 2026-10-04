@@ -1,6 +1,6 @@
 """Base codec protocol and registry for encoding and decoding typed data."""
 
-from collections.abc import Iterable, Iterator
+from collections.abc import Iterable
 from dataclasses import dataclass, replace
 from importlib import import_module
 from typing import Any, BinaryIO, Generic, TypeVar
@@ -121,7 +121,7 @@ class CodecSpec:
         return produced
 
 
-_CODEC_REGISTRY: list[CodecSpec] = []
+_CODEC_REGISTRY: dict[str, list[CodecSpec]] = {}
 
 
 def registrate(
@@ -151,22 +151,38 @@ def registrate(
         requirements=requirements,
         cacheble=cacheble,
     )
+    codecs = _CODEC_REGISTRY.setdefault(entry.suffix, [])
     if override:
-        _CODEC_REGISTRY.insert(0, entry)
+        codecs.insert(0, entry)
     else:
-        _CODEC_REGISTRY.append(entry)
+        codecs.append(entry)
 
 
-def _candidates(name: str) -> Iterator[CodecSpec]:
-    """Yield codecs matching `name` with longest extension."""
-    matched = [codec for codec in _CODEC_REGISTRY if name.endswith(codec.suffix)]
-    if not matched:
-        msg = f"No codec registered for {name!r}"
-        raise LookupError(msg)
-    score = max(len(codec.suffix) for codec in matched)
-    for codec in matched:
-        if len(codec.suffix) == score:
-            yield codec
+def best_extension(name: str) -> str:
+    """Get the longest extension with a registered codec that `name` ends with.
+
+    Args:
+        name: Filename to find extension for.
+
+    Returns:
+        The extension, lowercase and dotted; empty if only the bare one fits.
+
+    Raises:
+        LookupError: No codec for extension.
+
+    """
+    name = name.lower()
+    # an extension starts with a dot, so `name` can only end with one from a dot of its own,
+    # the first dot giving the longest
+    start = name.find(".")
+    while start != -1:
+        if name[start:] in _CODEC_REGISTRY:
+            return name[start:]
+        start = name.find(".", start + 1)
+    if "" in _CODEC_REGISTRY:
+        return ""
+    msg = f"No codec registered for {name!r}"
+    raise LookupError(msg)
 
 
 def best_codec(name: str, **config: object) -> Codec[Any]:
@@ -185,7 +201,7 @@ def best_codec(name: str, **config: object) -> Codec[Any]:
 
     """
     failures: list[ModuleNotFoundError] = []
-    for codec in _candidates(name.lower()):
+    for codec in _CODEC_REGISTRY[best_extension(name)]:
         try:
             return codec.produce(**config)
         except ModuleNotFoundError as exc:  # noqa: PERF203

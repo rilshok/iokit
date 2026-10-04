@@ -42,6 +42,7 @@ __all__ = [
     "StreamLocalStorage",
     "StreamMemoryStorage",
     "Tar",
+    "Timestamp",
     "Tsv",
     "Txt",
     "Wav",
@@ -112,6 +113,7 @@ from .storage import (
     StreamMemoryStorage,
 )
 from .utils.file import file
+from .utils.time import Timestamp
 from .utils.web import web
 
 if TYPE_CHECKING:

@@ -31,6 +31,24 @@ class Timestamp(float):
         """
         return cls(dt.timestamp())
 
+    @classmethod
+    def from_str(cls, value: str) -> Self:
+        """Create a timestamp from a date string.
+
+        Args:
+            value: A date string.
+
+        Returns:
+            A timestamp of the parsed moment.
+
+        """
+        from dateutil.parser import parse  # noqa: PLC0415
+
+        dt = parse(value)
+        if dt.tzinfo is None:
+            dt = dt.replace(tzinfo=timezone.utc)
+        return cls.from_datetime(dt)
+
     @property
     def datetime(self) -> datetime:
         """Get the UTC datetime this timestamp represents.
