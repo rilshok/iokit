@@ -726,10 +726,17 @@ class Document(FormatState[DocumentT]):
     __expected__: "Expected" = dict | list | str  # pyright: ignore[reportMissingTypeArgument]
 
 
-class Json(Document[DocumentT]):
-    """A JSON document state."""
+JsonT = TypeVar(
+    "JsonT",
+    default=dict[str, Any] | list[Any] | str | int | float | bool | None,
+)
+
+
+class Json(Document[JsonT]):
+    """A JSON state: whatever a json file holds, a bare number or `null` as well."""
 
     __extension__ = Extension.JSON
+    __expected__: "Expected" = dict | list | str | int | float | None  # pyright: ignore[reportMissingTypeArgument]
 
 
 RecordsT = TypeVar("RecordsT", default=list[dict[str, Any]])
