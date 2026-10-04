@@ -649,7 +649,11 @@ class FormatState(LoadedState[T]):
 
         """
         cls._assert_path(state.path)
-        return cls(data=state.data, path=state.path, timestamp=state.timestamp)
+        # the bytes as the buffer reads them, which a `Data` of them would copy once more
+        formatted = cls(data=Data(), path=state.path, timestamp=state.timestamp)
+        with state.buffer as buffer:
+            formatted._data = buffer.read()
+        return formatted
 
     def load(self, **config: object) -> T:
         """Read the payload back.
