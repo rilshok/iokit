@@ -6,6 +6,7 @@ That a payload of any format survives one is in `tests/test_state_contract.py`.
 import gzip
 from dataclasses import dataclass, field
 from typing import Any
+from uuid import uuid4
 
 import pytest
 
@@ -21,6 +22,7 @@ from iokit import (
     StateStorage,
     Txt,
 )
+from iokit.codec.base import registrate
 
 PASSWORD = "pA$sw0Rd"  # noqa: S105
 SALT = "s@lt"
@@ -120,6 +122,13 @@ def test_foreign_gzip_is_read_as_a_layer() -> None:
     inner = state.load()
     assert inner.path == "data.txt"
     assert inner.data == b"payload"
+
+
+def test_codec_of_a_longer_extension() -> None:
+    """A codec registered for `.tar.gz`, say, takes the name from the layer `.gz` spells."""
+    ext = f".x{uuid4().hex}.gz"
+    registrate(ext, "iokit.codec.bin:BinCodec")
+    assert LoadedState(b"payload", path=f"data{ext}").load() == b"payload"
 
 
 # encrypting
