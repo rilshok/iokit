@@ -501,6 +501,16 @@ class LoadedState(State[T]):
         """
         return Data(self._data)
 
+    @property
+    def buffer(self) -> BytesIO:
+        """Return a buffer sharing the bytes held, not a copy."""
+        return BytesIO(self._data)
+
+    @property
+    def size(self) -> int:
+        """Return the number of bytes held."""
+        return len(self._data)
+
 
 class FormatState(LoadedState[T]):
     """A state of a known format, filed under a path its extension closes.
