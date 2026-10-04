@@ -11,7 +11,7 @@ from pathlib import Path
 
 import pytest
 
-from iokit import BufferedState, FileState, Json, Yaml, file
+from iokit import BufferedState, FileState, Gzip, Json, Yaml, file
 from iokit.utils.time import Timestamp
 
 DOCUMENT = {"hello": "world"}
@@ -39,6 +39,16 @@ def test_file_as_an_expected_format(document: Path) -> None:
 def test_file_of_another_format_refused(document: Path) -> None:
     with pytest.raises(ValueError, match="Path must end with"):
         file(document, Yaml)
+
+
+def test_file_gzip(tmp_path: Path) -> None:
+    """A gzip file loads the same with and without the expected type."""
+    path = Gzip(Json(DOCUMENT, "greeting")).save(tmp_path).path
+    typed = file(path, expected_type=Gzip).load().load()
+    untyped = file(path).load().load()
+    assert typed == DOCUMENT
+    assert untyped == DOCUMENT
+    assert untyped == typed
 
 
 def test_file_state_keeps_its_path(document: Path) -> None:
