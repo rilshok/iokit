@@ -897,12 +897,14 @@ class LayerState(FormatState[State[Any]]):
 
         """
         extension = best_extension(name)
-        for kind in cls.__subclasses__():
+        kinds = cls.__subclasses__()
+        while kinds:
+            kind = kinds.pop(0)
             # a kind without an extension of its own only groups the layers below it
             if hasattr(kind, "__extension__") and kind.extension() == extension:
                 return kind
-            if layer := kind.covering(name):
-                return layer
+            # the kinds below it are looked through before the ones beside it
+            kinds[:0] = kind.__subclasses__()
         return None
 
     def dump(self, data: State[Any]) -> object:
