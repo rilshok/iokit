@@ -79,13 +79,17 @@ def test_state_under_a_layer_comes_back(layer: Layer, covered: LayerState) -> No
     assert inner.load() == SOURCE.load()
 
 
-def test_layer_off_foreign_bytes(
-    layer: Layer,
-    covered: LayerState,
-) -> None:
+def test_layer_off_foreign_bytes(layer: Layer, covered: LayerState) -> None:
     """What a layer needs to come off is the bytes and the path, not the state that made them."""
     elsewhere: LoadedState[Any] = LoadedState(bytes(covered.data), path=covered.path)
     assert layer.kind.from_state(elsewhere).load(**layer.config).data == SOURCE.data
+
+
+def test_layer_over_a_layer(layer: Layer, covered: LayerState) -> None:
+    """Layers come off one by one, the one underneath as readily as the one on top."""
+    inner = Gzip(covered).load().load(**layer.config)
+    assert inner.path == SOURCE.path
+    assert inner.load() == SOURCE.load()
 
 
 def test_layer_hides_the_payload(covered: LayerState) -> None:

@@ -235,6 +235,9 @@ class State(Generic[T]):
     def load(self, **config: object) -> T:
         """Decode the state's data.
 
+        A state named after a layer, `data.json.gz` say, is taken for that layer, and gives
+        back the state under it just as the layer itself would.
+
         Args:
             **config: Codec options.
 
@@ -242,6 +245,9 @@ class State(Generic[T]):
             The decoded payload.
 
         """
+        if layer := LayerState.covering(self.name):
+            covered: T = layer.from_state(self).load(**config)
+            return covered
         payload: T = self._load(None, **config)
         return payload
 
@@ -720,10 +726,17 @@ class Document(FormatState[DocumentT]):
     __expected__: "Expected" = dict | list | str  # pyright: ignore[reportMissingTypeArgument]
 
 
-class Json(Document[DocumentT]):
-    """A JSON document state."""
+JsonT = TypeVar(
+    "JsonT",
+    default=dict[str, Any] | list[Any] | str | int | float | bool | None,
+)
+
+
+class Json(Document[JsonT]):
+    """A JSON state: whatever a json file holds, a bare number or `null` as well."""
 
     __extension__ = Extension.JSON
+    __expected__: "Expected" = dict | list | str | int | float | None  # pyright: ignore[reportMissingTypeArgument]
 
 
 RecordsT = TypeVar("RecordsT", default=list[dict[str, Any]])
@@ -868,6 +881,25 @@ class LayerState(FormatState[State[Any]]):
             if timestamp is None:
                 timestamp = data.timestamp
         super().__init__(data, stem=stem, path=path, timestamp=timestamp, **config)
+
+    @classmethod
+    def covering(cls, name: str) -> "type[LayerState] | None":
+        """Find the layer a state of `name` is covered with, among the kinds of this one.
+
+        Args:
+            name: The name of the state, whose extension tells the layer.
+
+        Returns:
+            The layer whose extension `name` ends with, or `None` if it ends with none.
+
+        """
+        for kind in cls.__subclasses__():
+            # a kind without an extension of its own only groups the layers below it
+            if hasattr(kind, "__extension__") and name.lower().endswith(kind.extension()):
+                return kind
+            if layer := kind.covering(name):
+                return layer
+        return None
 
     def dump(self, data: State[Any]) -> object:
         """Hand the codec the bytes of the state being covered, and nothing else.

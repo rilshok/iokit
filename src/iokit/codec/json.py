@@ -6,7 +6,7 @@ from typing import Any, BinaryIO
 
 from iokit.codec.base import Codec
 
-D = dict[str, Any] | list[Any] | str
+D = dict[str, Any] | list[Any] | str | int | float | bool | None
 
 
 class JsonCodec(Codec[D]):

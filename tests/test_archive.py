@@ -38,6 +38,16 @@ def test_compressed_archive_unpacks(kind: type[Archive]) -> None:
 
 
 @pytest.mark.parametrize("kind", [Tar, Zip])
+def test_compressed_member_unpacks(kind: type[Archive]) -> None:
+    """A member packed under a layer comes out under it, and the layer comes off."""
+    txt_state = MEMBERS[0]
+    archive = kind([Gzip(txt_state)], stem="archive")
+    member = next(iter(archive.load()))
+    assert member.path == "text1.txt.gz"
+    assert member.load().load() == txt_state.load()
+
+
+@pytest.mark.parametrize("kind", [Tar, Zip])
 def test_member_keeps_its_path(kind: type[Archive]) -> None:
     """Two files of one name from two directories are two records, not one."""
     unpacked = {state.path: state.load() for state in kind(TREE, stem="archive").load()}
