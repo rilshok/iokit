@@ -22,13 +22,13 @@ print(file("config.json").load())  # {'lr': 0.0003, 'epochs': 10}
 pip install iokit
 ```
 
-The core needs four small packages and covers txt, json, bin, dat, gz, tar and zip. Everything else is an extra: `yaml`, `jsonl`, `env`, `crypto`, `numpy`, `pandas`, `image`, `audio`, `torchaudio`, `web` and `s3`, or `ultra` for all of them.
+The core needs four small packages and covers txt, json, bin, dat, gz, tar and zip. Everything else is an extra: `yaml`, `jsonl`, `env`, `crypto`, `numpy`, `pandas`, `image`, `audio`, `web` and `s3`, or `ultra` for all of them.
 
 ```bash
 pip install "iokit[pandas,image]"
 ```
 
-If a format's package is missing, iokit names the package to install the first time the format is used. `web()`, `S3Storage` and `Waveform` fail with the usual `ModuleNotFoundError` instead. `torchaudio` and `ultra` pull in PyTorch, and the torchcodec they install needs FFmpeg on the system.
+If a format's package is missing, iokit names the package to install the first time the format is used. `web()`, `S3Storage` and `Waveform` fail with the usual `ModuleNotFoundError` instead.
 
 ## Reading and writing
 
@@ -74,7 +74,7 @@ print(state.load())  # Hello, World!
 | `Csv`, `Tsv` | `pandas.DataFrame` | `pandas` |
 | `Npy` | `numpy.ndarray` | `numpy` |
 | `Png`, `Jpeg`, `Jpg` | `PIL.Image.Image` | `image` |
-| `Wav`, `Flac`, `Mp3`, `Ogg`, `Oga`, `Ogx`, `Opus` | `Waveform` | `audio` or `torchaudio` |
+| `Wav`, `Flac`, `Mp3`, `Ogg`, `Oga`, `Ogx`, `Opus` | `Waveform` | `audio` |
 
 The extension is the class name in lowercase, except for `Gzip`, which is `.gz`. `file(path).load()` also reads `.npz` as a dict of arrays and about 60 image extensions known to Pillow, such as `.webp`, `.tiff` and `.gif`.
 
