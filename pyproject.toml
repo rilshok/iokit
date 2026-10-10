@@ -75,8 +75,10 @@ build-backend = "uv_build"
 
 [project.urls]
 Homepage = "https://github.com/rilshok/iokit"
-Repository = "https://github.com/rilshok/iokit.git"
+Documentation = "https://github.com/rilshok/iokit#readme"
+Source = "https://github.com/rilshok/iokit"
 Issues = "https://github.com/rilshok/iokit/issues"
+Changelog = "https://github.com/rilshok/iokit/releases"
 
 
 [tool.pytest.ini_options]
