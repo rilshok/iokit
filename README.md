@@ -3,6 +3,7 @@
 [![PyPI](https://img.shields.io/pypi/v/iokit)](https://pypi.org/project/iokit/)
 [![Python](https://img.shields.io/python/required-version-toml?tomlFilePath=https%3A%2F%2Fraw.githubusercontent.com%2Frilshok%2Fiokit%2Fmain%2Fpyproject.toml)](https://pypi.org/project/iokit/)
 [![License](https://img.shields.io/pypi/l/iokit)](https://github.com/rilshok/iokit/blob/main/LICENSE)
+[![GitHub stars](https://img.shields.io/github/stars/rilshok/iokit?style=social)](https://github.com/rilshok/iokit)
 
 iokit gives files of different formats one interface. A file is a `State`: a path, a modification time and the bytes behind them. The extension of the path decides how the bytes turn into a Python object and back, so a JSON config, a CSV table, an image or a tar archive are all read with `load()` and written to disk with `save()`. The same states go into archives and storages, S3 included.
 
