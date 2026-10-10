@@ -9,6 +9,13 @@ license-files = ["LICENSE"]
 authors = [
     {name = "Vladislav A. Proskurov", email = "rilshok@pm.me"},
 ]
+classifiers = [
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
+]
 dependencies = [
     "humanize>=4.9.0",
     "packaging>=23.0",
