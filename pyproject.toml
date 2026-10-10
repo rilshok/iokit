@@ -90,7 +90,7 @@ yaml = [
     "PyYAML>=6.0.1",
 ]
 ultra = [
-    "iokit[audio,crypto,env,image,jsonl,numpy,pandas,s3,torchaudio,web,yaml]",
+    "iokit[audio,crypto,env,image,jsonl,numpy,pandas,s3,web,yaml]",
 ]
 
 
