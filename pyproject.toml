@@ -9,6 +9,22 @@ license-files = ["LICENSE"]
 authors = [
     {name = "Vladislav A. Proskurov", email = "rilshok@pm.me"},
 ]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "Intended Audience :: Science/Research",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3 :: Only",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+    "Topic :: System :: Archiving",
+    "Topic :: System :: Archiving :: Compression",
+    "Typing :: Typed",
+]
 dependencies = [
     "humanize>=4.9.0",
     "packaging>=23.0",
@@ -34,33 +50,61 @@ test = [
     "pytest-cov==6.0.0",
     "pytest-xdist>=3.6.1",
 ]
-ultra = [
-    "cryptography>=41.0.7",
-    "ipython>=8.0.0",
-    "jsonlines>=4.0.0",
+audio = [
     "numpy>=1.21.1",
-    "pandas>=1.5.3",
-    "Pillow>=10.4.0",
-    "python-dateutil>=2.8.2",
-    "python-dotenv>=1.0.1",
-    "PyYAML>=6.0.1",
-    "requests>=2.32.3",
     "soundfile>=0.12.1",
-    "torchaudio>=2.0.0",
+]
+crypto = [
+    "cryptography>=41.0.7",
+]
+env = [
+    "python-dotenv>=1.0.1",
+]
+image = [
+    "Pillow>=10.4.0",
+]
+jsonl = [
+    "jsonlines>=4.0.0",
+]
+numpy = [
+    "numpy>=1.21.1",
+]
+pandas = [
+    "pandas>=1.5.3",
+]
+s3 = [
     "boto3>=1.40.7",
     "botocore>=1.43.67",
+]
+torchaudio = [
+    "numpy>=1.21.1",
+    "torch>=2.0.0",
+    "torchaudio>=2.0.0",
+    "torchcodec>=0.8.0",
+]
+web = [
+    "python-dateutil>=2.8.2",
+    "requests>=2.32.3",
+]
+yaml = [
+    "PyYAML>=6.0.1",
+]
+ultra = [
+    "iokit[audio,crypto,env,image,jsonl,numpy,pandas,s3,web,yaml]",
 ]
 
 
 [build-system]
-requires = ["uv_build>=0.11.29,<0.12.0"]
+requires = ["uv_build>=0.12.24,<0.14.0"]
 build-backend = "uv_build"
 
 
 [project.urls]
 Homepage = "https://github.com/rilshok/iokit"
-Repository = "https://github.com/rilshok/iokit.git"
+Documentation = "https://github.com/rilshok/iokit#readme"
+Source = "https://github.com/rilshok/iokit"
 Issues = "https://github.com/rilshok/iokit/issues"
+Changelog = "https://github.com/rilshok/iokit/releases"
 
 
 [tool.pytest.ini_options]
