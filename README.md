@@ -157,7 +157,8 @@ from iokit import Txt
 text = "Hello, World!"
 
 state = Txt(text, "message")
-print(state.digest("sha256").hex())  # dffd6021bb2bd5b0af676290809ec3a53191dd81c7f70a4b28688a362182986f
+sha256 = state.digest("sha256")
+print(sha256.hex())  # dffd6021bb2bd5b0af676290809ec3a53191dd81c7f70a4b28688a362182986f
 print(state.digest("xxh64").base64url)  # xJqs-AgP5H8
 print(state.data.base64)  # SGVsbG8sIFdvcmxkIQ==
 ```
