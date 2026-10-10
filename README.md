@@ -308,8 +308,6 @@ uvx pre-commit install
 uv run pytest -n auto -m "not network"
 ```
 
-`uv sync --extra dev` creates `.venv` with every optional dependency, PyTorch included. The pre-commit hooks run ruff, ruff-format, vulture and a few file checks on every commit, and `uvx pre-commit run --all-files` runs them over the whole tree. Pull requests with new formats, codecs and storage backends are welcome.
-
 ## License
 
 MIT
